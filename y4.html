@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Villacart POS Professional</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#1e3a5f",
+                    "on-primary": "#ffffff",
+                    "secondary": "#006e2d",
+                    "on-secondary": "#ffffff",
+                    "background": "#f0f4f8", 
+                    "surface": "#ffffff",
+                    "surface-container": "#eff4ff",
+                    "border-subtle": "#e2e8f0",
+                    "on-surface": "#0b1c30",
+                    "on-surface-variant": "#43474e",
+                    "error": "#ba1a1a",
+                    "primary-container": "#d5e3ff",
+                    "on-primary-container": "#001c3b",
+                    "accent-violet": "#7c3aed"
+            },
+            "borderRadius": {
+                    "DEFAULT": "8px",
+                    "lg": "12px",
+                    "xl": "16px",
+                    "2xl": "20px",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "12px",
+                    "base": "4px",
+                    "touch-target": "44px",
+                    "gutter": "12px",
+                    "stack-sm": "6px",
+                    "margin-tablet": "20px",
+                    "stack-lg": "20px",
+                    "stack-md": "12px"
+            },
+            "fontFamily": {
+                    "sans": ["Inter", "system-ui", "-apple-system", "sans-serif"],
+                    "headline-lg": ["Inter", "sans-serif"],
+                    "label-sm": ["Inter", "sans-serif"],
+                    "body-lg": ["Inter", "sans-serif"],
+                    "price-display": ["Inter", "sans-serif"],
+                    "num-monospace": ["monospace"],
+                    "body-md": ["Inter", "sans-serif"],
+                    "headline-md": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        body {
+            background-color: #f0f4f8;
+            -webkit-tap-highlight-color: transparent;
+            color: #0b1c30;
+            overflow-x: hidden;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .active-scale:active { transform: scale(0.97); transition: transform 0.1s ease; }
+        .screen-transition { transition: opacity 0.15s ease-in-out; }
+        .hidden { display: none !important; }
+        input, button, select { min-height: 44px; border-radius: 8px; }
+        #inv-cam-area video { width: 100%; height: auto; border-radius: 12px; object-fit: cover; }
+        #inv-cam-area canvas { position: absolute; top: 0; left: 0; display: none; }
+        .low-stock-row { border-left: 4px solid #ba1a1a !important; }
+        .ledger-tab-active { background-color: #1e3a5f; color: white; }
+        .receipt-container { font-family: 'Courier New', Courier, monospace; }
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-modal, #receipt-modal * { visibility: visible; }
+            #receipt-modal { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="selection:bg-primary-container selection:text-primary text-sm">
+<!-- Toast Notification Container -->
+<div class="fixed top-4 right-4 z-[250] pointer-events-none flex flex-col gap-2" id="toast-container"></div>
+<!-- Top Navigation Bar -->
+<header class="bg-primary text-on-primary fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 shadow-md">
+<div class="flex items-center gap-2">
+<div class="bg-white/20 p-1.5 rounded-lg">
+<span class="material-symbols-outlined text-white text-[20px]">diamond</span>
+</div>
+<h1 class="font-bold text-base tracking-tight uppercase">Villacart POS</h1>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/20" id="offline-indicator">
+<span class="w-2 h-2 rounded-full bg-green-400"></span>
+            Online
+        </div>
+<button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors">notifications</button>
+</div>
+</header>
+<main class="pt-14 pb-20 md:pb-6 md:pl-20 min-h-screen">
+<!-- TERMINAL SCREEN -->
+<div class="screen-transition max-w-[500px] mx-auto p-3 flex flex-col gap-3" id="screen-pos">
+<div class="flex flex-col gap-2">
+<div class="relative group w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px] group-focus-within:text-primary">search</span>
+<input class="w-full pl-10 pr-12 py-3 bg-surface border border-border-subtle rounded-xl focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm font-medium" id="pos-search" oninput="handlePosSearch(this.value)" placeholder="Search or scan barcode..." type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-primary active-scale w-9 h-9 flex items-center justify-center bg-primary-container rounded-lg">
+<span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+</button>
+</div>
+<div class="hidden absolute top-[120px] left-3 right-3 bg-surface border border-border-subtle rounded-xl shadow-2xl z-50 max-h-[60vh] overflow-y-auto custom-scrollbar p-2" id="search-results-container">
+<div class="divide-y divide-border-subtle" id="product-grid"></div>
+</div>
+<div class="flex items-center gap-2 px-1 text-[9px] font-bold uppercase tracking-widest text-primary/60">
+<span class="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
+                Scanner Active
+            </div>
+</div>
+<div class="bg-surface rounded-2xl border border-border-subtle flex flex-col h-[calc(100vh-210px)] shadow-sm overflow-hidden">
+<div class="px-4 py-3 bg-primary text-on-primary flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+<h2 class="font-bold text-xs uppercase tracking-wider">Current Order</h2>
+</div>
+<button class="bg-white/10 hover:bg-white/20 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg uppercase transition-colors" onclick="clearCart()">Clear</button>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2" id="cart-items"></div>
+<div class="p-4 bg-surface border-t border-border-subtle space-y-3">
+<div class="space-y-1.5">
+<div class="flex justify-between text-xs font-semibold text-on-surface-variant">
+<span>Subtotal</span>
+<span id="cart-subtotal">₱0.00</span>
+</div>
+<div class="flex justify-between items-baseline pt-2 border-t border-border-subtle mt-2">
+<span class="font-bold text-sm uppercase text-primary">Total Amount</span>
+<span class="text-2xl font-black text-primary tracking-tighter" id="cart-total">₱0.00</span>
+</div>
+</div>
+<button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg hover:bg-secondary/90" onclick="openReview()">
+<span class="material-symbols-outlined text-[24px]">payments</span>
+                    Process Payment
+                </button>
+</div>
+</div>
+</div>
+<!-- STOCK SCREEN -->
+<div class="screen-transition hidden p-4 max-w-[900px] mx-auto" id="screen-inventory">
+<div class="flex flex-col gap-4 mb-6">
+<div class="flex justify-between items-center">
+<div>
+<h2 class="text-xl font-black text-primary uppercase">Stock Inventory</h2>
+<p class="text-on-surface-variant text-xs font-medium">Manage your product catalog</p>
+</div>
+<button class="bg-primary text-on-primary h-11 px-4 rounded-xl font-bold text-xs flex items-center gap-2 active-scale shadow-md" onclick="openProductModal()">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+                    Add Product
+                </button>
+</div>
+<div class="hidden bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-center gap-3" id="low-stock-alert">
+<span class="material-symbols-outlined text-yellow-600">warning</span>
+<p class="text-xs font-bold text-yellow-800" id="low-stock-alert-text">Items low on stock!</p>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2.5 bg-surface border border-border-subtle rounded-xl focus:border-primary transition-all text-sm font-medium" oninput="renderInventory(this.value)" placeholder="Search inventory..." type="text"/>
+</div>
+</div>
+<div class="space-y-3" id="inventory-list"></div>
+</div>
+<!-- LEDGER SCREEN -->
+<div class="screen-transition hidden p-4 max-w-[600px] mx-auto" id="screen-history">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h2 class="text-xl font-black text-primary uppercase">Transactions</h2>
+<p class="text-on-surface-variant text-xs font-medium">Manage cash, credits, and expenses</p>
+</div>
+<button class="bg-error text-white h-10 px-4 rounded-xl font-bold text-[10px] uppercase flex items-center gap-2 active-scale shadow-md" onclick="openExpenseModal()">
+<span class="material-symbols-outlined text-[16px]">remove_circle</span>
+                Record Expense
+            </button>
+</div>
+<div class="flex bg-surface-container p-1 rounded-xl mb-6">
+<button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="tab-cash" onclick="switchLedgerTab('cash')">Cash Sales</button>
+<button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="tab-credit" onclick="switchLedgerTab('credit')">Credits</button>
+<button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="tab-expense" onclick="switchLedgerTab('expense')">Expenses</button>
+</div>
+<div class="mb-4" id="ledger-summary-container"></div>
+<div class="space-y-4 relative" id="ledger-content"></div>
+</div>
+<!-- INSIGHTS -->
+<div class="screen-transition hidden p-4 max-w-[600px] mx-auto" id="screen-insights">
+<h2 class="text-xl font-black text-primary mb-4 uppercase">Analytics &amp; Reports</h2>
+<!-- Restock Alerts Section -->
+<div class="mb-6" id="restock-alerts-container">
+<!-- Will be populated by JS -->
+</div>
+<div class="flex bg-surface-container p-1 rounded-xl mb-4">
+<button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="insight-tab-day" onclick="switchInsightPeriod('day')">Day</button>
+<button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="insight-tab-month" onclick="switchInsightPeriod('month')">Month</button>
+<button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="insight-tab-range" onclick="switchInsightPeriod('range')">Date Range</button>
+</div>
+<div class="hidden grid grid-cols-2 gap-2 mb-4" id="date-range-controls">
+<div>
+<label class="text-[9px] font-bold uppercase text-on-surface-variant block mb-1">Start Date</label>
+<input class="w-full text-xs font-bold border-border-subtle rounded-lg" id="insight-start-date" onchange="renderInsights()" type="date"/>
+</div>
+<div>
+<label class="text-[9px] font-bold uppercase text-on-surface-variant block mb-1">End Date</label>
+<input class="w-full text-xs font-bold border-border-subtle rounded-lg" id="insight-end-date" onchange="renderInsights()" type="date"/>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-3 mb-6">
+<div class="bg-primary text-white p-5 rounded-2xl shadow-md">
+<p class="text-white/70 text-[9px] font-bold uppercase tracking-widest mb-1" id="insight-revenue-label">Total Revenue (Today)</p>
+<h3 class="text-2xl font-black" id="daily-revenue">₱0.00</h3>
+</div>
+<div class="bg-surface border border-border-subtle p-5 rounded-2xl shadow-sm">
+<p class="text-on-surface-variant text-[9px] font-bold uppercase tracking-widest mb-1">Asset Value (at Cost)</p>
+<h3 class="text-2xl font-black text-primary" id="inventory-value">₱0</h3>
+<p class="text-[10px] text-on-surface-variant mt-1 font-semibold" id="inventory-count">0 items in stock</p>
+</div>
+</div>
+<div class="space-y-3" id="insight-transactions-list">
+<!-- List of transactions for the period -->
+</div>
+</div>
+</main>
+<!-- Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:top-14 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-6">
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-primary" data-screen="pos" onclick="switchScreen('pos')">
+<span class="material-symbols-outlined text-[24px]">point_of_sale</span>
+<span class="text-[9px] font-bold uppercase">Terminal</span>
+</button>
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant" data-screen="inventory" onclick="attemptInventoryAccess()">
+<span class="material-symbols-outlined text-[24px]">inventory_2</span>
+<span class="text-[9px] font-bold uppercase">Stock</span>
+</button>
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant" data-screen="history" onclick="switchScreen('history')">
+<span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
+<span class="text-[9px] font-bold uppercase">Ledger</span>
+</button>
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant" data-screen="insights" onclick="switchScreen('insights')">
+<span class="material-symbols-outlined text-[24px]">monitoring</span>
+<span class="text-[9px] font-bold uppercase">Insights</span>
+</button>
+</nav>
+<!-- PIN MODAL -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] hidden items-center justify-center p-4" id="pin-modal">
+<div class="bg-surface w-full max-w-[320px] rounded-2xl shadow-2xl p-6 flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-primary-container text-primary rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-[32px]">lock</span>
+</div>
+<h3 class="font-black text-lg text-primary uppercase mb-1">Restricted</h3>
+<p class="text-xs text-on-surface-variant mb-6" id="pin-modal-msg">Enter PIN to proceed</p>
+<div class="flex gap-3 mb-8">
+<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-0"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-1"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-2"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-3"></div>
+</div>
+<div class="grid grid-cols-3 gap-3 w-full">
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('1')">1</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('2')">2</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('3')">3</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('4')">4</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('5')">5</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('6')">6</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('7')">7</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('8')">8</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('9')">9</button>
+<button class="h-14 bg-error/10 text-error rounded-xl font-bold text-sm active-scale" onclick="clearPin()">CLR</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('0')">0</button>
+<button class="h-14 bg-on-surface-variant/10 text-on-surface-variant rounded-xl font-bold text-sm active-scale" onclick="closeModal('pin-modal')">ESC</button>
+</div>
+</div>
+</div>
+<!-- PRODUCT MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-end md:items-center justify-center p-0 md:p-4" id="product-modal">
+<div class="bg-surface w-full max-w-lg rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+<div class="p-5 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary sticky top-0 z-10">
+<h3 class="font-black text-sm uppercase tracking-tight" id="product-modal-title">Add New Product</h3>
+<button class="material-symbols-outlined" onclick="closeModal('product-modal')">close</button>
+</div>
+<div class="flex-1 overflow-y-auto p-5 custom-scrollbar pb-[100px]">
+<div class="space-y-4">
+<div class="hidden mb-4 relative" id="scanner-preview-container">
+<div class="bg-black aspect-video rounded-xl overflow-hidden relative" id="inv-cam-area"></div>
+<button class="absolute top-2 right-2 bg-error text-white p-1 rounded-full z-[101]" onclick="stopInvScanner()"><span class="material-symbols-outlined text-sm">close</span></button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="col-span-2">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Barcode / SKU</label>
+<div class="relative">
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-barcode" placeholder="Enter barcode manually or scan" type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-primary w-10 h-10 flex items-center justify-center bg-primary-container hover:bg-primary hover:text-white rounded-lg transition-colors active-scale" onclick="startInvScanner()" title="Scan Barcode">
+<span class="material-symbols-outlined text-[24px]">barcode_scanner</span>
+</button>
+</div>
+</div>
+<div class="col-span-2">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Product Name</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-name" type="text"/>
+</div>
+<div class="col-span-2">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Category</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-category" type="text"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Cost Price</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-cost" type="number"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Selling Price</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-price" type="number"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Stock Quantity</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-stock" type="number"/>
+</div>
+<div class="col-span-2 border-t border-border-subtle pt-4">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-black uppercase text-primary">Wholesale Pricing</span>
+<input id="p-has-pack" onchange="togglePackFields()" type="checkbox"/>
+</div>
+<div class="hidden grid grid-cols-2 gap-4" id="pack-fields">
+<input class="w-full px-4 py-2.5 bg-surface-container border rounded-lg" id="p-pack-size" placeholder="Pack Size" type="number"/>
+<input class="w-full px-4 py-2.5 bg-surface-container border rounded-lg" id="p-pack-price" placeholder="Pack Price" type="number"/>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-bold py-3.5 rounded-xl active-scale" onclick="saveProduct()">Save Product</button>
+</div>
+</div>
+</div>
+</div>
+<!-- REVIEW & CHECKOUT MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-end md:items-center justify-center p-0 md:p-4" id="review-modal">
+<div class="bg-surface w-full max-w-sm rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+<div class="p-5 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<h3 class="font-black text-sm uppercase">Complete Sale</h3>
+<button class="material-symbols-outlined" onclick="closeModal('review-modal')">close</button>
+</div>
+<div class="p-6">
+<div class="bg-secondary/5 border-2 border-secondary/20 rounded-xl p-4 mb-4 flex justify-between items-center">
+<span class="font-bold text-xs uppercase text-on-surface-variant">Amount Payable</span>
+<span class="text-xl font-black text-secondary" id="rev-total">₱0.00</span>
+</div>
+<div class="mb-4">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-2 block">Payment Mode</label>
+<div class="flex gap-2">
+<button class="flex-1 py-3 border-2 border-secondary bg-secondary text-white rounded-xl font-bold text-xs" id="btn-pay-cash" onclick="switchPayMode('cash')">CASH</button>
+<button class="flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs" id="btn-pay-credit" onclick="switchPayMode('credit')">CREDIT</button>
+</div>
+</div>
+<div class="space-y-4" id="cash-payment-area">
+<div class="grid grid-cols-4 gap-2">
+<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold" onclick="setCash(100)">₱100</button>
+<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold" onclick="setCash(500)">₱500</button>
+<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold" onclick="setCash(1000)">₱1K</button>
+<button class="h-10 border-2 border-secondary/40 bg-secondary/5 text-secondary rounded-lg text-[10px] font-bold" onclick="setExact()">EXACT</button>
+</div>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-black text-lg text-secondary" id="cash-input" oninput="calculateChange()" placeholder="Cash Received" type="number"/>
+<div class="hidden bg-surface-container p-3 rounded-xl border border-border-subtle" id="change-display">
+<div class="flex justify-between items-center">
+<span class="text-xs font-bold text-on-surface-variant">Change</span>
+<span class="text-xl font-black text-secondary" id="change-amount">₱0.00</span>
+</div>
+</div>
+</div>
+<div class="hidden space-y-4" id="credit-payment-area">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Customer Name</label>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold text-primary" id="credit-customer" placeholder="Enter Full Name" type="text"/>
+</div>
+<button class="w-full bg-primary text-on-primary h-14 rounded-xl font-bold text-base mt-6 active-scale shadow-lg" id="confirm-checkout" onclick="confirmSale()">
+<span class="material-symbols-outlined text-[24px]">check_circle</span>
+<span>Confirm Transaction</span>
+</button>
+</div>
+</div>
+</div>
+<!-- EXPENSE MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="expense-modal">
+<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-6">
+<h3 class="font-black text-primary uppercase mb-4">Record Expense</h3>
+<div class="space-y-4">
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Description</label>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-desc" placeholder="e.g. Electricity, Water" type="text"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Amount (₱)</label>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-amt" type="number"/>
+</div>
+<div class="flex gap-2 pt-2">
+<button class="flex-1 bg-primary text-on-primary py-3 rounded-xl font-bold active-scale" onclick="saveExpense()">Save Expense</button>
+<button class="px-6 border border-border-subtle rounded-xl font-bold" onclick="closeModal('expense-modal')">Cancel</button>
+</div>
+</div>
+</div>
+</div>
+<!-- SUCCESS MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="mod-success">
+<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-8 flex flex-col items-center text-center">
+<div class="w-20 h-20 bg-secondary/10 text-secondary rounded-full flex items-center justify-center mb-6 animate-pulse">
+<span class="material-symbols-outlined text-[48px]">check_circle</span>
+</div>
+<h3 class="font-black text-2xl text-primary uppercase mb-2">Sale Confirmed</h3>
+<p class="text-sm text-on-surface-variant mb-8">Transaction has been recorded successfully.</p>
+<div class="flex flex-col gap-3 w-full">
+<button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg" onclick="printReceiptFromSuccess()">
+<span class="material-symbols-outlined">print</span>
+                Print Receipt
+            </button>
+<button class="w-full bg-surface-container text-primary h-14 rounded-xl font-bold text-base active-scale" onclick="closeSuccessAndNewSale()">
+                New Sale
+            </button>
+</div>
+</div>
+</div>
+<!-- RECEIPT MODAL -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] hidden items-center justify-center p-4 overflow-y-auto" id="receipt-modal">
+<div class="bg-white w-full max-w-[320px] p-6 shadow-2xl relative mb-10 mt-10">
+<button class="absolute -top-12 right-0 text-white flex items-center gap-2 font-bold no-print" onclick="closeModal('receipt-modal')">
+<span class="material-symbols-outlined">close</span> CLOSE
+        </button>
+<div class="receipt-container text-[12px] text-black" id="receipt-content">
+<div class="text-center mb-4">
+<h3 class="font-bold text-lg uppercase">Villacart</h3>
+<p>Balagtas BMA San Rafael, Bulacan</p>
+<p class="mt-2 border-t border-b border-black py-1 font-bold" id="receipt-title">OFFICIAL RECEIPT</p>
+</div>
+<div id="receipt-standard-fields">
+<div class="flex justify-between mb-1">
+<span>Date:</span>
+<span id="rec-date">01/01/2024</span>
+</div>
+<div class="flex justify-between mb-3">
+<span>Trans #:</span>
+<span id="rec-id">SA-000000</span>
+</div>
+</div>
+<div class="hidden" id="receipt-settlement-fields">
+<div class="flex justify-between mb-1">
+<span class="font-bold">Customer:</span>
+<span class="font-bold" id="rec-set-customer">N/A</span>
+</div>
+<div class="flex justify-between mb-3">
+<span>Settlement Date:</span>
+<span id="rec-set-date">01/01/2024</span>
+</div>
+</div>
+<div class="border-b border-black border-dashed mb-2 pb-1 flex justify-between font-bold" id="receipt-items-header">
+<span class="w-1/2">Item</span>
+<span class="w-1/4 text-center">Qty</span>
+<span class="w-1/4 text-right">Price</span>
+</div>
+<div class="border-b border-black border-dashed mb-2 pb-1 flex justify-between font-bold hidden" id="receipt-settlement-header">
+<span class="w-1/3">Ticket ID</span>
+<span class="w-1/3 text-center">Date</span>
+<span class="w-1/3 text-right">Amt</span>
+</div>
+<div class="mb-3 space-y-1" id="rec-items-list"></div>
+<div class="border-t border-black pt-2 space-y-1">
+<div class="flex justify-between font-bold text-sm">
+<span id="rec-label-total">TOTAL:</span>
+<span id="rec-total">₱0.00</span>
+</div>
+<div class="flex justify-between" id="rec-cash-row">
+<span>Cash Received:</span>
+<span id="rec-cash">₱0.00</span>
+</div>
+<div class="flex justify-between" id="rec-change-row">
+<span>Change:</span>
+<span id="rec-change">₱0.00</span>
+</div>
+<div class="flex justify-between hidden font-bold" id="rec-remaining-row">
+<span>Remaining Balance:</span>
+<span>₱0.00</span>
+</div>
+<div class="flex justify-between hidden" id="rec-customer-row">
+<span>Customer:</span>
+<span id="rec-customer">N/A</span>
+</div>
+</div>
+<div class="text-center mt-6 pt-4 border-t border-black border-dashed">
+<p class="font-bold">THANK YOU!</p>
+<p class="text-[10px]">Please come again.</p>
+</div>
+</div>
+<button class="w-full bg-primary text-white font-bold py-3 rounded-xl mt-6 flex items-center justify-center gap-2 active-scale no-print" onclick="window.print()">
+<span class="material-symbols-outlined">print</span> Confirm &amp; Print
+        </button>
+</div>
+</div>
+<script>
+    // --- Data Storage ---
+    const DB_KEY = 'saph_pos_v5_villacart';
+    let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
+        inventory: [
+            { id: '1', barcode: '4801234567890', name: 'Midnight Roast Coffee (250g)', category: 'Beverages', cost: 850, price: 1050, packPrice: 11500, packSize: 12, stock: 4 },
+            { id: '2', barcode: '4809876543210', name: 'Almond Milk', category: 'Beverages', cost: 180, price: 245, packPrice: 2800, packSize: 12, stock: 85 }
+        ],
+        transactions: [],
+        cart: []
+    };
+
+    let activeLedgerTab = 'cash';
+    let currentPayMode = 'cash';
+    let insightPeriod = 'day'; // 'day', 'month', 'range'
+    let pinBuffer = "";
+    const MASTER_PIN = "1234";
+    let lastTransactionId = null;
+    let isQuaggaRunning = false;
+
+    function sync() { localStorage.setItem(DB_KEY, JSON.stringify(state)); }
+
+    // --- Screen Management ---
+    function switchScreen(id) {
+        document.querySelectorAll('.screen-transition').forEach(s => s.classList.add('hidden'));
+        const targetScreen = document.getElementById('screen-' + id);
+        if (targetScreen) targetScreen.classList.remove('hidden');
+        
+        document.querySelectorAll('.nav-item').forEach(n => {
+            const isActive = n.dataset.screen === id;
+            n.classList.toggle('text-primary', isActive);
+            n.classList.toggle('text-on-surface-variant', !isActive);
+        });
+
+        if (id === 'inventory') renderInventory();
+        if (id === 'history') switchLedgerTab(activeLedgerTab);
+        if (id === 'insights') renderInsights();
+    }
+
+    function attemptInventoryAccess() {
+        if (!document.getElementById('screen-inventory').classList.contains('hidden')) {
+            switchScreen('inventory');
+            return;
+        }
+        openPinModal("inventory");
+    }
+
+    function openPinModal(target) {
+        pinBuffer = "";
+        updatePinDots();
+        const modal = document.getElementById('pin-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        const msg = document.getElementById('pin-modal-msg');
+        if (msg) msg.innerText = "Enter PIN to proceed";
+        window._pinTarget = target;
+    }
+
+    function pressPin(num) {
+        if (pinBuffer.length < 4) {
+            pinBuffer += num;
+            updatePinDots();
+            if (pinBuffer.length === 4) setTimeout(validatePin, 150);
+        }
+    }
+
+    function updatePinDots() {
+        for (let i = 0; i < 4; i++) {
+            const dot = document.getElementById(`dot-${i}`);
+            if (dot) dot.classList.toggle('bg-primary', i < pinBuffer.length);
+        }
+    }
+
+    function validatePin() {
+        if (pinBuffer === MASTER_PIN) {
+            const target = window._pinTarget;
+            closeModal('pin-modal');
+            
+            if (target === 'inventory') {
+                switchScreen('inventory');
+            } else if (target && typeof target === 'object' && target.action === 'delete') {
+                deleteTransaction(target.id);
+            }
+            
+            showToast('Verified', 'success');
+        } else {
+            showToast('Incorrect PIN', 'error');
+            pinBuffer = "";
+            updatePinDots();
+        }
+    }
+
+    function clearPin() { pinBuffer = ""; updatePinDots(); }
+
+    // --- Scanner Logic (QuaggaJS) ---
+    function startInvScanner() {
+        const preview = document.getElementById('scanner-preview-container');
+        const camArea = document.getElementById('inv-cam-area');
+        if (!preview || !camArea) return;
+
+        preview.classList.remove('hidden');
+        camArea.innerHTML = ''; 
+
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: camArea,
+                constraints: {
+                    facingMode: "environment"
+                },
+            },
+            decoder: {
+                readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"]
+            }
+        }, function(err) {
+            if (err) {
+                console.error(err);
+                showToast("Failed to start camera.", "error");
+                stopInvScanner();
+                return;
+            }
+            Quagga.start();
+            isQuaggaRunning = true;
+            showToast("Scanner Ready", "success");
+        });
+
+        Quagga.onDetected(function(result) {
+            if (result.codeResult.code) {
+                const code = result.codeResult.code;
+                document.getElementById('p-barcode').value = code;
+                showToast("Barcode Detected: " + code, "success");
+                stopInvScanner();
+            }
+        });
+    }
+
+    function stopInvScanner() {
+        if (isQuaggaRunning) {
+            Quagga.stop();
+            isQuaggaRunning = false;
+        }
+        document.getElementById('scanner-preview-container').classList.add('hidden');
+    }
+
+    // --- Ledger Logic ---
+    function switchLedgerTab(tab) {
+        activeLedgerTab = tab;
+        const tabs = ['cash', 'credit', 'expense'];
+        tabs.forEach(t => {
+            const btn = document.getElementById('tab-' + t);
+            if (btn) {
+                btn.classList.toggle('ledger-tab-active', t === tab);
+                btn.classList.toggle('text-on-surface-variant', t !== tab);
+            }
+        });
+        renderLedger();
+    }
+
+    function renderLedger() {
+        const container = document.getElementById('ledger-content');
+        const summary = document.getElementById('ledger-summary-container');
+        if (!container || !summary) return;
+        
+        let html = '';
+        let sumHtml = '';
+
+        if (activeLedgerTab === 'cash') {
+            const sales = state.transactions.filter(t => t.type === 'SA').reverse();
+            const total = sales.reduce((a, b) => a + b.total, 0);
+            sumHtml = `<div class="bg-primary p-4 rounded-xl text-white shadow-md">
+                        <p class="text-[9px] font-bold uppercase opacity-70">Total Cash Sales</p>
+                        <h3 class="text-xl font-black">₱${total.toLocaleString()}</h3>
+                      </div>`;
+            
+            html = sales.map(t => `
+                <div class="bg-surface border border-border-subtle p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <div class="flex items-center gap-2">
+                             <p class="font-black text-sm text-primary">${t.id}</p>
+                             <span class="text-[8px] font-black px-1.5 py-0.5 bg-secondary text-white rounded uppercase">${t.subtype === 'settlement' ? 'Settlement' : 'Cash'}</span>
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant font-bold">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    </div>
+                    <div class="text-right flex flex-col items-end gap-1">
+                        <p class="font-black text-lg text-secondary">₱${t.total.toLocaleString()}</p>
+                        <div class="flex gap-3">
+                            <button onclick="viewReceipt('${t.id}')" class="text-[10px] text-primary font-bold uppercase underline">View</button>
+                            <button onclick="promptDeleteTransaction('${t.id}')" class="text-[10px] text-error font-bold uppercase">Void</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') || '<div class="text-center py-10 opacity-30">No cash sales</div>';
+
+        } else if (activeLedgerTab === 'credit') {
+            const credits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
+            const totalDue = credits.reduce((a, b) => a + b.total, 0);
+            const groups = {};
+            credits.forEach(c => {
+                if (!groups[c.customer]) groups[c.customer] = [];
+                groups[c.customer].push(c);
+            });
+            
+            sumHtml = `<div class="bg-orange-600 p-4 rounded-xl text-white shadow-md">
+                        <p class="text-[9px] font-bold uppercase opacity-70">Total Receivables</p>
+                        <h3 class="text-xl font-black">₱${totalDue.toLocaleString()}</h3>
+                      </div>`;
+            
+            let balancesHtml = `<div class="mb-6 space-y-3">
+                <h3 class="text-[10px] font-black uppercase text-primary tracking-widest px-1">Outstanding Balances</h3>
+                ${Object.keys(groups).map(cust => {
+                    const custTotal = groups[cust].reduce((a, b) => a + b.total, 0);
+                    return `
+                        <div class="bg-white border-2 border-orange-100 p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                            <div>
+                                <h4 class="font-black text-sm uppercase text-primary">${cust}</h4>
+                                <p class="text-[10px] font-bold text-orange-600">${groups[cust].length} unpaid tickets</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-black text-orange-600 leading-none">₱${custTotal.toLocaleString()}</p>
+                                <button onclick="payFullBalance('${cust}')" class="mt-2 bg-secondary text-white text-[9px] font-black px-3 py-1.5 rounded-lg uppercase shadow-sm active-scale">Pay Full Balance</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('') || '<p class="text-[10px] text-on-surface-variant italic text-center py-4 bg-surface-container rounded-xl">No outstanding balances</p>'}
+            </div>`;
+
+            let detailsHtml = `<div class="space-y-3">
+                <h3 class="text-[10px] font-black uppercase text-primary tracking-widest px-1">Transaction History</h3>
+                ${Object.keys(groups).map(cust => {
+                    return `
+                        <div class="bg-surface border border-border-subtle rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-surface-container px-4 py-2 flex justify-between items-center border-b border-border-subtle">
+                                <h4 class="font-black text-[10px] uppercase text-primary">${cust}</h4>
+                            </div>
+                            <div class="p-2 space-y-2">
+                                ${groups[cust].map(t => `
+                                    <div class="flex justify-between items-center bg-white p-2 border border-dashed border-border-subtle rounded-lg">
+                                        <div>
+                                            <p class="text-[10px] font-black text-primary">${t.id}</p>
+                                            <p class="text-[9px] font-medium text-on-surface-variant">${new Date(t.timestamp).toLocaleDateString()}</p>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <span class="font-bold text-xs">₱${t.total.toLocaleString()}</span>
+                                            <button onclick="viewReceipt('${t.id}')" class="text-primary material-symbols-outlined text-sm">visibility</button>
+                                            <button onclick="markAsPaid('${t.id}')" class="bg-secondary text-white text-[9px] font-black px-2 py-1 rounded-md uppercase">Pay</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('') || '<div class="text-center py-10 opacity-30">No unpaid transactions</div>'}
+            </div>`;
+
+            html = balancesHtml + detailsHtml;
+
+        } else if (activeLedgerTab === 'expense') {
+            const expenses = state.transactions.filter(t => t.type === 'EX').reverse();
+            const totalExp = expenses.reduce((a, b) => a + b.total, 0);
+            sumHtml = `<div class="bg-error p-4 rounded-xl text-white shadow-md">
+                        <p class="text-[9px] font-bold uppercase opacity-70">Total Expenses</p>
+                        <h3 class="text-xl font-black">₱${totalExp.toLocaleString()}</h3>
+                      </div>`;
+            html = expenses.map(t => `
+                <div class="bg-surface border border-border-subtle p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <p class="font-black text-sm text-error">${t.id}</p>
+                        <p class="text-xs font-bold text-on-surface">${t.desc}</p>
+                        <p class="text-[10px] text-on-surface-variant">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-black text-lg text-error">₱${t.total.toLocaleString()}</p>
+                        <button onclick="promptDeleteTransaction('${t.id}')" class="text-[10px] text-error font-bold uppercase">Delete</button>
+                    </div>
+                </div>
+            `).join('') || '<div class="text-center py-10 opacity-30">No expenses recorded</div>';
+        }
+        summary.innerHTML = sumHtml;
+        container.innerHTML = html;
+    }
+
+    function markAsPaid(id) {
+        const trans = state.transactions.find(t => t.id === id);
+        if (trans) {
+            trans.paid = true;
+            const saId = 'SA-' + Date.now().toString().slice(-6);
+            state.transactions.push({
+                ...trans,
+                id: saId,
+                type: 'SA',
+                timestamp: new Date().toISOString(),
+                originCreditId: id,
+                paid: true
+            });
+            sync();
+            renderLedger();
+            showToast('Payment Recorded', 'success');
+        }
+    }
+
+    function payFullBalance(customerName) {
+        const unpaid = state.transactions.filter(t => t.type === 'CR' && !t.paid && t.customer === customerName);
+        if (unpaid.length === 0) return;
+
+        const totalBalanceSettled = unpaid.reduce((a, b) => a + b.total, 0);
+        const settledItems = unpaid.map(t => ({ 
+            id: t.id, 
+            amount: t.total, 
+            date: new Date(t.timestamp).toLocaleDateString(),
+            items: JSON.parse(JSON.stringify(t.items || []))
+        }));
+
+        unpaid.forEach(trans => {
+            trans.paid = true;
+        });
+
+        const saId = 'SA-SET-' + Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+        const settlementTransaction = {
+            id: saId,
+            type: 'SA',
+            subtype: 'settlement',
+            total: totalBalanceSettled,
+            timestamp: new Date().toISOString(),
+            customer: customerName,
+            settledTransactions: settledItems,
+            paid: true
+        };
+
+        state.transactions.push(settlementTransaction);
+        sync();
+        renderLedger();
+        showToast(`Full payment settled for ${customerName}`, 'success');
+        buildSettlementRcpt(settlementTransaction);
+    }
+
+    function buildSettlementRcpt(t) {
+        document.getElementById('receipt-title').innerText = "CREDIT SETTLEMENT";
+        document.getElementById('receipt-standard-fields').classList.add('hidden');
+        document.getElementById('receipt-settlement-fields').classList.remove('hidden');
+        document.getElementById('receipt-items-header').classList.add('hidden');
+        document.getElementById('receipt-settlement-header').classList.remove('hidden');
+        document.getElementById('rec-set-customer').innerText = t.customer;
+        document.getElementById('rec-set-date').innerText = new Date(t.timestamp).toLocaleDateString() + ' ' + new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const list = document.getElementById('rec-items-list');
+        list.innerHTML = (t.settledTransactions || []).map(st => `
+            <div class="border-b border-black/10 py-1 mb-1 last:border-0">
+                <div class="flex justify-between items-center font-bold">
+                    <span class="w-1/3">${st.id}</span>
+                    <span class="w-1/3 text-center">${st.date}</span>
+                    <span class="w-1/3 text-right">₱${st.amount.toLocaleString()}</span>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('rec-label-total').innerText = "TOTAL PAID:";
+        document.getElementById('rec-total').innerText = `₱${t.total.toLocaleString()}`;
+        document.getElementById('rec-cash-row').classList.add('hidden');
+        document.getElementById('rec-change-row').classList.add('hidden');
+        document.getElementById('rec-remaining-row').classList.add('hidden');
+        document.getElementById('rec-customer-row').classList.add('hidden');
+
+        const modal = document.getElementById('receipt-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function promptDeleteTransaction(id) {
+        openPinModal({ action: 'delete', id });
+        const msg = document.getElementById('pin-modal-msg');
+        if (msg) msg.innerText = "Authorize Transaction Void";
+    }
+
+    function deleteTransaction(id) {
+        state.transactions = state.transactions.filter(t => t.id !== id);
+        sync();
+        renderLedger();
+        renderInsights();
+    }
+
+    // --- POS & Inventory Logic ---
+    function handlePosSearch(val) {
+        const container = document.getElementById('search-results-container');
+        const grid = document.getElementById('product-grid');
+        if (!val) { container.classList.add('hidden'); return; }
+        const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(val.toLowerCase()) || (p.barcode && p.barcode.includes(val)));
+        if (filtered.length > 0) {
+            container.classList.remove('hidden');
+            grid.innerHTML = filtered.map(p => `
+                <div class="py-3 px-2">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h4 class="font-bold text-sm text-on-surface">${p.name}</h4>
+                        <span class="text-[8px] font-bold uppercase bg-surface-container px-1 rounded">${p.category || 'Gen'}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="addToCart('${p.id}', 'piece')" class="flex-1 bg-surface-container py-2 px-3 text-left rounded-lg">
+                            <p class="text-[8px] uppercase font-bold opacity-50">Piece</p>
+                            <p class="font-black text-xs text-primary">₱${p.price.toLocaleString()}</p>
+                        </button>
+                        ${p.packPrice ? `
+                            <button onclick="addToCart('${p.id}', 'pack')" class="flex-1 bg-secondary/5 py-2 px-3 text-left rounded-lg">
+                                <p class="text-[8px] uppercase font-bold text-secondary">Pack (${p.packSize})</p>
+                                <p class="font-black text-xs text-secondary">₱${p.packPrice.toLocaleString()}</p>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            grid.innerHTML = '<div class="p-4 text-center text-xs opacity-50">No matches</div>';
+        }
+    }
+
+    function addToCart(id, type) {
+        const p = state.inventory.find(i => i.id === id);
+        if (!p) return;
+        const cartId = `${id}-${type}`;
+        const existing = state.cart.find(item => item.cartId === cartId);
+        if (existing) {
+            existing.qty++;
+        } else {
+            state.cart.push({
+                cartId, id: p.id, name: p.name, type,
+                price: type === 'pack' ? p.packPrice : p.price,
+                deduct: type === 'pack' ? p.packSize : 1,
+                qty: 1
+            });
+        }
+        document.getElementById('pos-search').value = '';
+        document.getElementById('search-results-container').classList.add('hidden');
+        updateCartUI();
+    }
+
+    function updateCartUI() {
+        const container = document.getElementById('cart-items');
+        if (!container) return;
+        if (state.cart.length === 0) {
+            container.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-20 py-10">
+                                    <span class="material-symbols-outlined text-[48px]">shopping_basket</span>
+                                    <p class="text-xs font-black uppercase">Order is empty</p>
+                                   </div>`;
+            document.getElementById('cart-subtotal').innerText = '₱0.00';
+            document.getElementById('cart-total').innerText = '₱0.00';
+            return;
+        }
+        let total = 0;
+        container.innerHTML = state.cart.map((item, idx) => {
+            const lineTotal = item.price * item.qty;
+            total += lineTotal;
+            return `
+                <div class="bg-surface-container/40 border border-border-subtle p-3 rounded-xl flex justify-between items-center">
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1 py-0.5 rounded uppercase">${item.type}</span>
+                            <h4 class="font-bold text-xs">${item.name}</h4>
+                        </div>
+                        <p class="text-[10px] font-bold opacity-60">₱${item.price.toLocaleString()} x ${item.qty}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-black text-sm mr-2">₱${lineTotal.toLocaleString()}</span>
+                        <div class="flex items-center bg-white border border-border-subtle rounded-lg">
+                            <button onclick="updateQty(${idx}, -1)" class="w-8 h-8 flex items-center justify-center text-error active-scale">
+                                <span class="material-symbols-outlined text-[18px]">remove_circle</span>
+                            </button>
+                            <span class="px-2 text-xs font-black">${item.qty}</span>
+                            <button onclick="updateQty(${idx}, 1)" class="w-8 h-8 flex items-center justify-center text-secondary active-scale">
+                                <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        document.getElementById('cart-subtotal').innerText = `₱${total.toLocaleString()}`;
+        document.getElementById('cart-total').innerText = `₱${total.toLocaleString()}`;
+    }
+
+    function updateQty(idx, delta) {
+        state.cart[idx].qty += delta;
+        if (state.cart[idx].qty <= 0) state.cart.splice(idx, 1);
+        updateCartUI();
+    }
+
+    function clearCart() { state.cart = []; updateCartUI(); }
+
+    function switchPayMode(mode) {
+        currentPayMode = mode;
+        const btnCash = document.getElementById('btn-pay-cash');
+        const btnCredit = document.getElementById('btn-pay-credit');
+        const cashArea = document.getElementById('cash-payment-area');
+        const creditArea = document.getElementById('credit-payment-area');
+        if (!btnCash || !btnCredit || !cashArea || !creditArea) return;
+
+        if (mode === 'cash') {
+            btnCash.className = "flex-1 py-3 border-2 border-secondary bg-secondary text-white rounded-xl font-bold text-xs";
+            btnCredit.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs";
+            cashArea.classList.remove('hidden');
+            creditArea.classList.add('hidden');
+        } else {
+            btnCredit.className = "flex-1 py-3 border-2 border-orange-600 bg-orange-600 text-white rounded-xl font-bold text-xs";
+            btnCash.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs";
+            creditArea.classList.remove('hidden');
+            cashArea.classList.add('hidden');
+        }
+    }
+
+    function openReview() {
+        if (state.cart.length === 0) return;
+        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+        document.getElementById('rev-total').innerText = `₱${total.toLocaleString()}`;
+        document.getElementById('cash-input').value = '';
+        document.getElementById('credit-customer').value = '';
+        switchPayMode('cash');
+        const modal = document.getElementById('review-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function setCash(v) { document.getElementById('cash-input').value = v; calculateChange(); }
+    function setExact() { 
+        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+        document.getElementById('cash-input').value = total;
+        calculateChange();
+    }
+    function calculateChange() {
+        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+        const cash = parseFloat(document.getElementById('cash-input').value) || 0;
+        const changeDisplay = document.getElementById('change-display');
+        if (cash >= total) {
+            document.getElementById('change-amount').innerText = `₱${(cash - total).toLocaleString()}`;
+            changeDisplay.classList.remove('hidden');
+        } else {
+            changeDisplay.classList.add('hidden');
+        }
+    }
+
+    function confirmSale() {
+        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+        const cashVal = parseFloat(document.getElementById('cash-input').value) || 0;
+        const type = currentPayMode === 'cash' ? 'SA' : 'CR';
+        const prefix = type + '-';
+        const id = prefix + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        const customer = document.getElementById('credit-customer').value;
+
+        if (type === 'CR' && !customer) { showToast('Customer name required', 'error'); return; }
+        if (type === 'SA' && cashVal < total) { showToast('Insufficient cash', 'error'); return; }
+
+        state.cart.forEach(item => {
+            const p = state.inventory.find(inv => inv.id === item.id);
+            if (p) p.stock -= (item.qty * item.deduct);
+        });
+
+        const transaction = {
+            id, type, total, timestamp: new Date().toISOString(),
+            items: JSON.parse(JSON.stringify(state.cart)),
+            customer, paid: (type === 'SA'),
+            cashReceived: cashVal,
+            change: type === 'SA' ? (cashVal - total) : 0
+        };
+
+        state.transactions.push(transaction);
+        lastTransactionId = id;
+
+        clearCart();
+        sync();
+        closeModal('review-modal');
+        
+        const mod = document.getElementById('mod-success');
+        mod.classList.remove('hidden');
+        mod.classList.add('flex');
+    }
+
+    function printReceiptFromSuccess() {
+        if (lastTransactionId) {
+            viewReceipt(lastTransactionId);
+        }
+    }
+
+    function closeSuccessAndNewSale() {
+        closeModal('mod-success');
+        switchScreen('pos');
+    }
+
+    function viewReceipt(id) {
+        const t = state.transactions.find(tr => tr.id === id);
+        if (!t) return;
+        if (t.subtype === 'settlement') {
+            buildSettlementRcpt(t);
+            return;
+        }
+        document.getElementById('receipt-title').innerText = "OFFICIAL RECEIPT";
+        document.getElementById('receipt-standard-fields').classList.remove('hidden');
+        document.getElementById('receipt-settlement-fields').classList.add('hidden');
+        document.getElementById('receipt-items-header').classList.remove('hidden');
+        document.getElementById('receipt-settlement-header').classList.add('hidden');
+        document.getElementById('rec-label-total').innerText = "TOTAL:";
+        document.getElementById('rec-remaining-row').classList.add('hidden');
+        document.getElementById('rec-id').innerText = t.id;
+        document.getElementById('rec-date').innerText = new Date(t.timestamp).toLocaleDateString() + ' ' + new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('rec-total').innerText = `₱${t.total.toLocaleString()}`;
+        
+        const list = document.getElementById('rec-items-list');
+        list.innerHTML = (t.items || []).map(i => `
+            <div class="flex justify-between items-start">
+                <span class="w-1/2">${i.name} ${i.type === 'pack' ? '(Pack)' : ''}</span>
+                <span class="w-1/4 text-center">x${i.qty}</span>
+                <span class="w-1/4 text-right">₱${(i.price * i.qty).toLocaleString()}</span>
+            </div>
+        `).join('');
+
+        const cashRow = document.getElementById('rec-cash-row');
+        const changeRow = document.getElementById('rec-change-row');
+        const custRow = document.getElementById('rec-customer-row');
+
+        if (t.type === 'SA') {
+            cashRow.classList.remove('hidden');
+            changeRow.classList.remove('hidden');
+            custRow.classList.add('hidden');
+            cashRow.innerHTML = `<span>Cash:</span><span>₱${(t.cashReceived || t.total).toLocaleString()}</span>`;
+            document.getElementById('rec-change').innerText = `₱${(t.change || 0).toLocaleString()}`;
+        } else {
+            cashRow.classList.add('hidden');
+            changeRow.classList.add('hidden');
+            custRow.classList.remove('hidden');
+            document.getElementById('rec-customer').innerText = t.customer || 'N/A';
+        }
+
+        const modal = document.getElementById('receipt-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function openExpenseModal() {
+        document.getElementById('exp-desc').value = '';
+        document.getElementById('exp-amt').value = '';
+        const modal = document.getElementById('expense-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function saveExpense() {
+        const desc = document.getElementById('exp-desc').value;
+        const amt = parseFloat(document.getElementById('exp-amt').value);
+        if (!desc || isNaN(amt)) return;
+        state.transactions.push({
+            id: 'EX-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0'),
+            type: 'EX',
+            desc,
+            total: amt,
+            timestamp: new Date().toISOString()
+        });
+        sync();
+        closeModal('expense-modal');
+        showToast('Expense Saved', 'success');
+        if (activeLedgerTab === 'expense') renderLedger();
+    }
+
+    // --- Inventory UI ---
+    function renderInventory(f = '') {
+        const list = document.getElementById('inventory-list');
+        if (!list) return;
+        const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(f.toLowerCase()) || (p.barcode && p.barcode.includes(f)));
+        list.innerHTML = filtered.map(p => `
+            <div class="bg-surface border border-border-subtle p-4 rounded-xl flex gap-3 shadow-sm ${p.stock <= 5 ? 'low-stock-row' : ''}">
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] font-black uppercase text-primary/60">${p.category || 'General'}</p>
+                    <h4 class="font-bold text-sm truncate">${p.name}</h4>
+                    <p class="text-[10px] font-medium opacity-50 mb-3">#${p.barcode || '---'}</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-surface-container rounded-lg p-2">
+                            <p class="text-[8px] font-bold uppercase opacity-60">Stock</p>
+                            <p class="text-xs font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p>
+                        </div>
+                        <div class="bg-surface-container rounded-lg p-2">
+                            <p class="text-[8px] font-bold uppercase opacity-60">Price</p>
+                            <p class="text-xs font-black text-primary">₱${p.price.toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1 border-l pl-3">
+                    <button onclick="openProductModal('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-primary-container text-primary rounded-lg"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+                    <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-error/10 text-error rounded-lg"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openProductModal(id = null) {
+        window._editId = id;
+        stopInvScanner();
+        const p = id ? state.inventory.find(i => i.id === id) : null;
+        document.getElementById('p-barcode').value = p ? p.barcode : '';
+        document.getElementById('p-name').value = p ? p.name : '';
+        document.getElementById('p-category').value = p ? p.category : '';
+        document.getElementById('p-cost').value = p ? p.cost : '';
+        document.getElementById('p-price').value = p ? p.price : '';
+        document.getElementById('p-stock').value = p ? p.stock : '';
+        document.getElementById('p-has-pack').checked = p && !!p.packPrice;
+        document.getElementById('p-pack-size').value = p ? p.packSize : '';
+        document.getElementById('p-pack-price').value = p ? p.packPrice : '';
+        togglePackFields();
+        const modalTitle = document.getElementById('product-modal-title');
+        if (modalTitle) modalTitle.innerText = id ? "Edit Product" : "Add New Product";
+        const modal = document.getElementById('product-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function togglePackFields() {
+        const packFields = document.getElementById('pack-fields');
+        const hasPack = document.getElementById('p-has-pack');
+        if (packFields && hasPack) packFields.classList.toggle('hidden', !hasPack.checked);
+    }
+
+    function saveProduct() {
+        const name = document.getElementById('p-name').value;
+        if (!name) { showToast('Product name is required', 'error'); return; }
+        const data = {
+            barcode: document.getElementById('p-barcode').value,
+            name: name,
+            category: document.getElementById('p-category').value,
+            cost: parseFloat(document.getElementById('p-cost').value) || 0,
+            price: parseFloat(document.getElementById('p-price').value) || 0,
+            stock: parseInt(document.getElementById('p-stock').value) || 0,
+            packPrice: document.getElementById('p-has-pack').checked ? parseFloat(document.getElementById('p-pack-price').value) : null,
+            packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null
+        };
+        if (window._editId) {
+            const idx = state.inventory.findIndex(i => i.id === window._editId);
+            state.inventory[idx] = { ...state.inventory[idx], ...data };
+        } else {
+            data.id = Date.now().toString();
+            state.inventory.push(data);
+        }
+        sync(); 
+        renderInventory(); 
+        closeModal('product-modal');
+        showToast('Product Saved', 'success');
+    }
+
+    function deleteProduct(id) {
+        if (confirm('Delete this product?')) {
+            state.inventory = state.inventory.filter(i => i.id !== id);
+            sync(); renderInventory();
+            showToast('Product Deleted', 'info');
+        }
+    }
+
+    // --- Insights Logic ---
+    function switchInsightPeriod(period) {
+        insightPeriod = period;
+        ['day', 'month', 'range'].forEach(p => {
+            const btn = document.getElementById('insight-tab-' + p);
+            if (btn) {
+                btn.classList.toggle('ledger-tab-active', p === period);
+                btn.classList.toggle('text-on-surface-variant', p !== period);
+            }
+        });
+        const rangeControls = document.getElementById('date-range-controls');
+        if (rangeControls) rangeControls.classList.toggle('hidden', period !== 'range');
+        renderInsights();
+    }
+
+    function renderInsights() {
+        // Restock Alerts
+        const lowStockItems = state.inventory.filter(i => i.stock <= 5);
+        const alertsContainer = document.getElementById('restock-alerts-container');
+        if (alertsContainer) {
+            if (lowStockItems.length > 0) {
+                alertsContainer.innerHTML = `
+                    <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-4 shadow-sm animate-pulse">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="material-symbols-outlined text-red-600">warning</span>
+                            <h3 class="font-black text-red-800 uppercase text-xs">Restock Alerts</h3>
+                        </div>
+                        <div class="space-y-2">
+                            ${lowStockItems.map(i => `
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-bold text-on-surface truncate pr-2">${i.name}</span>
+                                    <span class="whitespace-nowrap font-black text-red-600">What remains: ${i.stock} pcs</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                alertsContainer.innerHTML = '';
+            }
+        }
+
+        // Transactions Filtering
+        let filteredTrans = [];
+        const todayStr = new Date().toISOString().split('T')[0];
+        const monthStr = todayStr.slice(0, 7); // YYYY-MM
+        let label = "Total Revenue";
+
+        if (insightPeriod === 'day') {
+            filteredTrans = state.transactions.filter(t => t.type === 'SA' && t.timestamp.startsWith(todayStr));
+            label = "Revenue (Today)";
+        } else if (insightPeriod === 'month') {
+            filteredTrans = state.transactions.filter(t => t.type === 'SA' && t.timestamp.startsWith(monthStr));
+            label = "Revenue (Current Month)";
+        } else if (insightPeriod === 'range') {
+            const start = document.getElementById('insight-start-date').value;
+            const end = document.getElementById('insight-end-date').value;
+            if (start && end) {
+                filteredTrans = state.transactions.filter(t => {
+                    const d = t.timestamp.split('T')[0];
+                    return t.type === 'SA' && d >= start && d <= end;
+                });
+                label = `Revenue (${start} to ${end})`;
+            } else {
+                label = "Please select date range";
+            }
+        }
+
+        const revenue = filteredTrans.reduce((a, b) => a + b.total, 0);
+        const assetVal = state.inventory.reduce((a, b) => a + (b.stock * (b.cost || 0)), 0);
+        const count = state.inventory.reduce((a, b) => a + b.stock, 0);
+        
+        if (document.getElementById('insight-revenue-label')) document.getElementById('insight-revenue-label').innerText = label;
+        if (document.getElementById('daily-revenue')) document.getElementById('daily-revenue').innerText = `₱${revenue.toLocaleString()}`;
+        if (document.getElementById('inventory-value')) document.getElementById('inventory-value').innerText = `₱${assetVal.toLocaleString()}`;
+        if (document.getElementById('inventory-count')) document.getElementById('inventory-count').innerText = `${count.toLocaleString()} items in stock`;
+
+        // Period Transactions List
+        const list = document.getElementById('insight-transactions-list');
+        if (list) {
+            list.innerHTML = `
+                <h4 class="text-[10px] font-black uppercase text-primary tracking-widest px-1">Transactions for Period</h4>
+                ${filteredTrans.reverse().map(t => `
+                    <div class="bg-surface border border-border-subtle p-3 rounded-xl flex justify-between items-center">
+                        <div class="min-w-0">
+                            <p class="font-black text-xs text-primary">${t.id}</p>
+                            <p class="text-[9px] font-medium text-on-surface-variant truncate">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        </div>
+                        <p class="font-black text-sm text-secondary">₱${t.total.toLocaleString()}</p>
+                    </div>
+                `).join('') || '<p class="text-center py-6 text-xs opacity-50">No data found</p>'}
+            `;
+        }
+    }
+
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (id === 'product-modal') stopInvScanner();
+        }
+    }
+
+    function showToast(m, t = 'info') {
+        const c = document.getElementById('toast-container');
+        if (!c) return;
+        const toast = document.createElement('div');
+        toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`;
+        toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${m}</span>`;
+        c.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0'));
+        setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500);
+    }
+
+    // Initialize
+    switchScreen('pos');
+    updateCartUI();
+</script>
+</body></html>
