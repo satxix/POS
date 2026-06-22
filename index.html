@@ -310,6 +310,41 @@
 <span class="text-[9px] font-bold uppercase">Insights</span>
 </button>
 </nav>
+<!-- SCAN CHOICE MODAL -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[230] hidden items-center justify-center p-4" id="scan-choice-modal">
+<div class="bg-surface w-full max-w-[340px] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+<div class="p-5 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+<h3 class="font-black text-xs uppercase tracking-wider">Scanning Choice</h3>
+</div>
+<button class="material-symbols-outlined hover:bg-white/10 rounded-full w-8 h-8 flex items-center justify-center transition-colors" onclick="closeModal('scan-choice-modal')">close</button>
+</div>
+<div class="p-6 text-center">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Product Detected</p>
+<h4 class="text-xl font-black text-primary leading-tight mb-6 uppercase" id="scan-choice-name">Product Name</h4>
+<div class="flex flex-col gap-3">
+<button class="w-full bg-surface-container hover:bg-primary/5 border-2 border-border-subtle p-4 rounded-2xl flex items-center justify-between group transition-all active-scale" id="scan-choice-piece-btn">
+<div class="text-left">
+<p class="text-[9px] font-black uppercase text-on-surface-variant/60">Retail</p>
+<p class="text-base font-black text-on-surface uppercase">Add Piece</p>
+</div>
+<p class="text-lg font-black text-primary" id="scan-choice-piece-price">₱0</p>
+</button>
+<button class="w-full bg-secondary/5 hover:bg-secondary/10 border-2 border-secondary/20 p-4 rounded-2xl flex items-center justify-between group transition-all active-scale" id="scan-choice-pack-btn">
+<div class="text-left">
+<p class="text-[9px] font-black uppercase text-secondary/60" id="scan-choice-pack-label">Wholesale (0 pcs)</p>
+<p class="text-base font-black text-secondary uppercase">Add Pack</p>
+</div>
+<p class="text-lg font-black text-secondary" id="scan-choice-pack-price">₱0</p>
+</button>
+</div>
+</div>
+<div class="p-4 bg-surface-container/30 text-center">
+<button class="text-[10px] font-black text-on-surface-variant/40 uppercase hover:text-error transition-colors" onclick="closeModal('scan-choice-modal')">Cancel Operation</button>
+</div>
+</div>
+</div>
 <!-- FAVORITES PICKER MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[220] hidden items-center justify-center p-4" id="fav-picker-modal">
 <div class="bg-surface w-full max-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
@@ -794,7 +829,7 @@
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' && e.key !== 'Enter') return;
         clearTimeout(scannerTimeout);
-        scannerTimeout = setTimeout(() => { scannerBuffer = ""; }, 100);
+        scannerTimeout = setTimeout(() => { scannerBuffer = ""; }, 150);
         if (e.key === 'Enter') {
             if (scannerBuffer.length > 2) {
                 handlePhysicalScan(scannerBuffer);
@@ -817,9 +852,18 @@
         }
         const product = state.inventory.find(p => p.barcode === barcode);
         if (product) {
-            addToCart(product.id, 'piece');
-            switchScreen('pos');
-            showToast(`Added: ${product.name}`, "success");
+            // Check for pack option
+            const hasPack = product.packPrice && product.packPrice > 0;
+            
+            if (hasPack) {
+                switchScreen('pos');
+                openScanChoiceModal(product);
+            } else {
+                addToCart(product.id, 'piece');
+                switchScreen('pos');
+                showToast(`Added: ${product.name}`, "success");
+            }
+            
             const searchInput = document.getElementById('pos-search');
             if (searchInput) {
                 searchInput.value = "";
@@ -828,6 +872,36 @@
         } else {
             showToast(`Product not found: ${barcode}`, "error");
         }
+    }
+
+    // --- Scan Choice Modal ---
+    function openScanChoiceModal(product) {
+        const modal = document.getElementById('scan-choice-modal');
+        const nameDisplay = document.getElementById('scan-choice-name');
+        const pieceBtn = document.getElementById('scan-choice-piece-btn');
+        const piecePrice = document.getElementById('scan-choice-piece-price');
+        const packBtn = document.getElementById('scan-choice-pack-btn');
+        const packPrice = document.getElementById('scan-choice-pack-price');
+        const packLabel = document.getElementById('scan-choice-pack-label');
+
+        nameDisplay.innerText = product.name;
+        piecePrice.innerText = `₱${product.price.toLocaleString()}`;
+        packPrice.innerText = `₱${(product.packPrice || 0).toLocaleString()}`;
+        packLabel.innerText = `Wholesale (${product.packSize || 0} pcs)`;
+
+        pieceBtn.onclick = () => {
+            addToCart(product.id, 'piece');
+            closeModal('scan-choice-modal');
+            showToast(`Added: ${product.name} (Piece)`, "success");
+        };
+
+        packBtn.onclick = () => {
+            addToCart(product.id, 'pack');
+            closeModal('scan-choice-modal');
+            showToast(`Added: ${product.name} (Pack)`, "success");
+        };
+
+        modal.classList.replace('hidden', 'flex');
     }
 
     // --- Favorite Logic ---
@@ -881,7 +955,14 @@
             openFavoritesPicker(index);
         } else {
             const fav = state.favorites[index];
-            if (fav) addToCart(fav.id, 'piece');
+            if (fav) {
+                const product = state.inventory.find(p => p.id === fav.id);
+                if (product && product.packPrice && product.packPrice > 0) {
+                    openScanChoiceModal(product);
+                } else {
+                    addToCart(fav.id, 'piece');
+                }
+            }
         }
     }
 
@@ -1092,8 +1173,10 @@
                 qty: 1
             });
         }
-        document.getElementById('pos-search').value = '';
-        document.getElementById('search-results-container').classList.add('hidden');
+        const searchInput = document.getElementById('pos-search');
+        if (searchInput) searchInput.value = '';
+        const results = document.getElementById('search-results-container');
+        if (results) results.classList.add('hidden');
         updateCartUI();
     }
 
