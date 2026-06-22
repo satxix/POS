@@ -632,19 +632,21 @@
                     fbGet('transactions')
                 ]);
 
-                // Filter out any transaction IDs that are currently present in the offlineQueue as a 'delete' task
+                // --- INVENTORY SYNC PROTECTION ---
+                // Keep local products marked as _offline (pending stock updates)
+                const offlineProdIds = new Set(state.inventory.filter(p => p._offline).map(p => p.id));
+                const pendingInv = state.inventory.filter(p => p._offline);
+                const filteredCloudInv = inv.filter(p => !offlineProdIds.has(p.id));
+                state.inventory = [...pendingInv, ...filteredCloudInv];
+                
+                // --- TRANSACTION SYNC PROTECTION ---
+                const offlineIds = new Set(state.transactions.filter(t => t._offline).map(t => t.id));
                 const deletedIds = offlineQueue.filter(op => op.type === 'delete' && op.table === 'transactions').map(op => op.data.id);
                 
-                const offTrans = state.transactions.filter(t => t._offline);
-                // Filter cloud transactions by excluding those marked for deletion locally
-                const filteredCloudTrans = trans.filter(t => !deletedIds.includes(t.id));
+                const pendingTrans = state.transactions.filter(t => t._offline && !deletedIds.includes(t.id));
+                const filteredCloudTrans = trans.filter(t => !offlineIds.has(t.id) && !deletedIds.includes(t.id));
                 
-                state.inventory = inv.length > 0 ? inv : state.inventory;
-                
-                const cloudIds = new Set(filteredCloudTrans.map(t => t.id));
-                const uniqueOffTrans = offTrans.filter(t => !cloudIds.has(t.id) && !deletedIds.includes(t.id));
-                
-                state.transactions = [...uniqueOffTrans, ...filteredCloudTrans].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                state.transactions = [...pendingTrans, ...filteredCloudTrans].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 
                 sync();
                 renderInventory();
@@ -667,6 +669,9 @@
             updateSyncUI();
             try {
                 const batch = db.batch();
+                const syncedTransIds = [];
+                const syncedInvIds = [];
+
                 for (const task of offlineQueue) {
                     const col = task.table;
                     const targetId = task.data.id;
@@ -678,19 +683,27 @@
                         const dataToSync = { ...task.data };
                         delete dataToSync._offline;
                         batch.set(docRef, dataToSync);
+                        if (col === 'transactions') syncedTransIds.push(targetId);
+                        if (col === 'inventory') syncedInvIds.push(targetId);
                     } else if (task.type === 'update') {
                         const updateData = { ...task.data };
                         delete updateData.id; 
+                        delete updateData._offline;
                         batch.update(docRef, updateData);
+                        if (col === 'transactions') syncedTransIds.push(targetId);
+                        if (col === 'inventory') syncedInvIds.push(targetId);
                     } else if (task.type === 'delete') {
                         batch.delete(docRef);
                     }
                 }
                 await batch.commit();
                 
-                const syncedIds = offlineQueue.filter(t => t.type === 'new_transaction').map(t => t.data.id);
+                // Clear offline flags
                 state.transactions.forEach(t => {
-                    if (syncedIds.includes(t.id)) delete t._offline;
+                    if (syncedTransIds.includes(t.id)) delete t._offline;
+                });
+                state.inventory.forEach(p => {
+                    if (syncedInvIds.includes(p.id)) delete p._offline;
                 });
                 
                 offlineQueue = [];
@@ -714,13 +727,15 @@
 
         function queueTransaction(transaction) {
             transaction._offline = true;
-            state.transactions.push(transaction);
+            state.transactions.unshift(transaction);
             queueAction('new_transaction', 'transactions', transaction);
+            // Stock logic: Only deduct for direct sales or initial credit creation
             if (transaction.items && (transaction.type !== 'SA_SETTLEMENT' && transaction.type !== 'SA_CREDIT_INDIVIDUAL')) {
                 transaction.items.forEach(item => {
                     const p = state.inventory.find(inv => inv.id === item.id);
                     if (p) {
                         p.stock -= (item.qty * (item.deduct || 1));
+                        p._offline = true; // --- INVENTORY SYNC PROTECTION ---
                         queueAction('update', 'inventory', p);
                     }
                 });
@@ -1091,7 +1106,8 @@
                 price: parseFloat(document.getElementById('p-price').value) || 0,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
                 packPrice: document.getElementById('p-has-pack').checked ? parseFloat(document.getElementById('p-pack-price').value) : null,
-                packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null
+                packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null,
+                _offline: true // --- INVENTORY SYNC PROTECTION ---
             };
             if (window._editId) {
                 const idx = state.inventory.findIndex(i => i.id === window._editId);
@@ -1343,7 +1359,10 @@
                 originalTicket: t.id
             };
 
+            // Update status and set _offline flag for prioritization logic
             t.paid = true;
+            t._offline = true; 
+            
             queueAction('update', 'transactions', t);
             queueTransaction(saleTransaction);
 
@@ -1354,7 +1373,6 @@
         }
 
         function payFullBalance(customerName) {
-            // Case-insensitive filtering for payment
             const normalizedName = customerName.trim().toLowerCase();
             const credits = state.transactions.filter(t => 
                 t.type === 'CR' && 
@@ -1369,6 +1387,7 @@
             
             credits.forEach(t => {
                 t.paid = true;
+                t._offline = true; 
                 queueAction('update', 'transactions', t);
             });
             
@@ -1575,12 +1594,11 @@
             openPinModal({ action: 'delete', id: lastTransactionId });
         }
 
-        // --- Fixed Deletion Logic ---
+        // --- Transaction Deletion Logic ---
         async function deleteTransaction(id) {
             const tx = state.transactions.find(t => t.id === id);
             if (!tx) return;
 
-            // Direct Cloud Deletion Attempt if online
             if (navigator.onLine) {
                 try {
                     await fbDelete('transactions', id);
@@ -1590,33 +1608,18 @@
                 }
             }
 
-            // Restoration of stock: Loop through items and update products
-            if (['SA', 'CR', 'SA_CREDIT_INDIVIDUAL'].includes(tx.type) && tx.items) {
+            if ((tx.type === 'SA' || tx.type === 'CR') && tx.items) {
                 tx.items.forEach(item => {
                     const p = state.inventory.find(inv => inv.id === item.id);
                     if (p) {
                         p.stock += (item.qty * (item.deduct || 1));
+                        p._offline = true; // --- INVENTORY SYNC PROTECTION ---
                         queueAction('update', 'inventory', p);
-                    }
-                });
-            } else if (tx.type === 'SA_SETTLEMENT' && tx.settledTickets) {
-                tx.settledTickets.forEach(st => {
-                    if (st.items) {
-                        st.items.forEach(item => {
-                            const p = state.inventory.find(inv => inv.id === item.id);
-                            if (p) {
-                                p.stock += (item.qty * (item.deduct || 1));
-                                queueAction('update', 'inventory', p);
-                            }
-                        });
                     }
                 });
             }
 
-            // Update local state immediately
             state.transactions = state.transactions.filter(t => t.id !== id);
-            
-            // Queue the delete task as backup/sync logic
             queueAction('delete', 'transactions', { id: id });
             
             sync();
@@ -1624,7 +1627,7 @@
             renderLedger();
             renderInsights();
             closeModal('mod-tx');
-            showToast('Transaction Voided & Stock Restored', 'success');
+            showToast('Transaction Voided', 'success');
         }
 
         // --- Receipt Logic ---
