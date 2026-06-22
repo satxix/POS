@@ -141,8 +141,8 @@
 </div>
 <div class="flex items-center gap-2 px-1 text-[9px] font-bold uppercase tracking-widest text-primary/60">
 <span class="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
-                Scanner Active
-            </div>
+                    Scanner Active
+                </div>
 </div>
 <div class="bg-surface rounded-2xl border border-border-subtle flex flex-col h-[calc(100vh-210px)] shadow-sm overflow-hidden">
 <div class="px-4 py-3 bg-primary text-on-primary flex justify-between items-center">
@@ -166,8 +166,8 @@
 </div>
 <button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg hover:bg-secondary/90" onclick="openReview()">
 <span class="material-symbols-outlined text-[24px]">payments</span>
-                    Process Payment
-                </button>
+                        Process Payment
+                    </button>
 </div>
 </div>
 </div>
@@ -181,8 +181,8 @@
 </div>
 <button class="bg-primary text-on-primary h-11 px-4 rounded-xl font-bold text-xs flex items-center gap-2 active-scale shadow-md" onclick="openProductModal()">
 <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                    Add Product
-                </button>
+                        Add Product
+                    </button>
 </div>
 <div class="hidden bg-yellow-50 border-2 border-yellow-200 p-4 rounded-xl flex items-center gap-3" id="low-stock-alert">
 <span class="material-symbols-outlined text-yellow-600">warning</span>
@@ -204,8 +204,8 @@
 </div>
 <button class="bg-error text-white h-10 px-4 rounded-xl font-bold text-[10px] uppercase flex items-center gap-2 active-scale shadow-md" onclick="openExpenseModal()">
 <span class="material-symbols-outlined text-[16px]">remove_circle</span>
-                Record Expense
-            </button>
+                    Record Expense
+                </button>
 </div>
 <div class="flex bg-surface-container p-1 rounded-xl mb-6">
 <button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="tab-cash" onclick="switchLedgerTab('cash')">Cash Sales</button>
@@ -252,8 +252,7 @@
 <span>Urgent Restock Needed</span>
 </div>
 <div class="flex flex-col gap-1.5" id="insight-low-stock-list"></div>
-</div>
-</div>
+</div></div>
 </main>
 <!-- Navigation -->
 <nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:top-14 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-6">
@@ -439,11 +438,11 @@
 <div class="flex flex-col gap-3 w-full">
 <button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg" onclick="printReceiptFromSuccess()">
 <span class="material-symbols-outlined">print</span>
-                Print Receipt
-            </button>
+                    Print Receipt
+                </button>
 <button class="w-full bg-surface-container text-primary h-14 rounded-xl font-bold text-base active-scale" onclick="closeSuccessAndNewSale()">
-                New Sale
-            </button>
+                    New Sale
+                </button>
 </div>
 </div>
 </div>
@@ -452,7 +451,7 @@
 <div class="bg-white w-full max-w-[320px] p-6 shadow-2xl relative mb-10 mt-10">
 <button class="absolute -top-12 right-0 text-white flex items-center gap-2 font-bold no-print" onclick="closeModal('receipt-modal')">
 <span class="material-symbols-outlined">close</span> CLOSE
-        </button>
+            </button>
 <div class="receipt-container text-[12px] text-black" id="receipt-content">
 <div class="text-center mb-4">
 <h3 class="font-bold text-lg uppercase">Villacart</h3>
@@ -520,16 +519,16 @@
 <div class="flex gap-2 mt-6 no-print">
 <button class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="window.print()">
 <span class="material-symbols-outlined">print</span> Print
-            </button>
+                </button>
 <button class="flex-1 bg-border-subtle text-on-surface font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="closeModal('receipt-modal')">
 <span class="material-symbols-outlined">close</span> Close
-            </button>
+                </button>
 </div>
 </div>
 </div>
 <!-- TRANSACTION DETAIL MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="mod-tx">
-<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-6">
+<div class="bg-surface w-full max-sm rounded-2xl shadow-2xl p-6">
 <div class="flex justify-between items-center mb-4 border-b pb-2">
 <h3 class="font-black text-primary uppercase text-sm" id="txmtitle">Transaction Details</h3>
 <button class="material-symbols-outlined" onclick="closeModal('mod-tx')">close</button>
@@ -538,10 +537,10 @@
 <div class="flex gap-2 mt-6">
 <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="printTx()">
 <span class="material-symbols-outlined text-[20px]">print</span> Print
-            </button>
+                </button>
 <button class="flex-1 bg-error text-white font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="confirmDeleteTransaction()">
 <span class="material-symbols-outlined text-[20px]">delete</span> Delete
-            </button>
+                </button>
 </div>
 </div>
 </div>
@@ -602,9 +601,26 @@
                     fbGet('inventory'),
                     fbGet('transactions')
                 ]);
+
+                // Filter out items that are currently marked for deletion in the offline queue
+                const deletedIds = offlineQueue.filter(op => op.type === 'delete').map(op => op.data.id);
+                
+                // Preserve local offline transactions (pending uploads)
+                const offTrans = state.transactions.filter(t => t._offline);
+                
+                // Filter fetched cloud transactions
+                const filteredCloudTrans = trans.filter(t => !deletedIds.includes(t.id));
+                
+                // Inventory update
                 state.inventory = inv.length > 0 ? inv : state.inventory;
-                state.transactions = trans.length > 0 ? trans : state.transactions;
-                sync();
+                
+                // Transaction update: Merge filtered cloud data with local pending offline records
+                const cloudIds = new Set(filteredCloudTrans.map(t => t.id));
+                const uniqueOffTrans = offTrans.filter(t => !cloudIds.has(t.id));
+                
+                state.transactions = [...uniqueOffTrans, ...filteredCloudTrans].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                sync(); // Persists to localStorage
                 renderInventory();
                 renderLedger();
                 renderInsights();
@@ -629,7 +645,9 @@
                     const col = task.table;
                     const docRef = db.collection(col).doc(task.data.id);
                     if (task.type === 'add' || task.type === 'new_transaction') {
-                        batch.set(docRef, task.data);
+                        const dataToSync = { ...task.data };
+                        delete dataToSync._offline;
+                        batch.set(docRef, dataToSync);
                     } else if (task.type === 'update') {
                         batch.update(docRef, task.data);
                     } else if (task.type === 'delete') {
@@ -637,6 +655,12 @@
                     }
                 }
                 await batch.commit();
+                
+                const syncedIds = offlineQueue.filter(t => t.type === 'new_transaction').map(t => t.data.id);
+                state.transactions.forEach(t => {
+                    if (syncedIds.includes(t.id)) delete t._offline;
+                });
+                
                 offlineQueue = [];
                 sync();
                 showToast("Cloud sync complete", "success");
@@ -657,6 +681,7 @@
         }
 
         function queueTransaction(transaction) {
+            transaction._offline = true;
             state.transactions.push(transaction);
             queueAction('new_transaction', 'transactions', transaction);
             if (transaction.items && (transaction.type !== 'SA_SETTLEMENT' && transaction.type !== 'SA_CREDIT_INDIVIDUAL')) {
@@ -1151,6 +1176,7 @@
                             <div class="flex items-center gap-2">
                                  <p class="font-black text-sm text-primary">${t.id}</p>
                                  ${t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL' ? '<span class="text-[7px] bg-secondary text-white px-1 rounded uppercase">Settlement</span>' : ''}
+                                 ${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
                             </div>
                             <p class="text-[10px] text-on-surface-variant font-bold">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
                         </div>
@@ -1202,7 +1228,10 @@
                                 ${data.items.map(t => `
                                     <div class="bg-surface border border-border-subtle p-3 rounded-xl flex justify-between items-center text-xs">
                                         <div class="flex-1 min-w-0">
-                                            <p class="font-black text-primary/60 truncate">${t.id}</p>
+                                            <div class="flex items-center gap-1">
+                                                <p class="font-black text-primary/60 truncate">${t.id}</p>
+                                                ${t._offline ? '<span class="text-[6px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                                            </div>
                                             <p class="opacity-50 font-bold">${new Date(t.timestamp).toLocaleDateString()}</p>
                                         </div>
                                         <div class="flex items-center gap-2">
@@ -1230,7 +1259,10 @@
                 html = expenses.map(t => `
                     <div class="bg-surface border border-border-subtle p-4 rounded-xl flex justify-between items-center shadow-sm">
                         <div>
-                            <p class="font-black text-sm text-error">${t.id}</p>
+                            <div class="flex items-center gap-1">
+                                <p class="font-black text-sm text-error">${t.id}</p>
+                                ${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                            </div>
                             <p class="text-xs font-bold text-on-surface">${t.desc}</p>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1267,11 +1299,8 @@
                 originalTicket: t.id
             };
 
-            // Update original
             t.paid = true;
             queueAction('update', 'transactions', t);
-            
-            // Record new settlement entry
             queueTransaction(saleTransaction);
 
             showToast('Individual ticket paid', 'success');
@@ -1387,6 +1416,7 @@
                         <div class="flex items-center gap-1">
                             <p class="font-black text-xs text-primary">${t.id}</p>
                             ${t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL' ? '<span class="text-[6px] bg-secondary text-white px-1 rounded uppercase">Settlement</span>' : ''}
+                            ${t._offline ? '<span class="text-[6px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
                         </div>
                         <p class="text-[10px] text-on-surface-variant font-bold">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} · ${new Date(t.timestamp).toLocaleDateString()}</p>
                     </div>
@@ -1468,36 +1498,25 @@
         }
 
         function deleteTransaction(id) {
-            // Find the transaction in state before removal
-            const txToDelete = state.transactions.find(t => t.id === id);
-            
-            if (txToDelete) {
+            const tx = state.transactions.find(t => t.id === id);
+            if (tx) {
                 // Restore inventory stock if applicable
-                if (txToDelete.items && txToDelete.items.length > 0 && txToDelete.type !== 'SA_SETTLEMENT') {
-                    txToDelete.items.forEach(item => {
-                        const product = state.inventory.find(inv => inv.id === item.id);
+                if (tx.items && tx.items.length > 0 && tx.type !== 'EX') {
+                    tx.items.forEach(item => {
+                        const product = state.inventory.find(p => p.id === item.id);
                         if (product) {
-                            const restoreQty = item.qty * (item.deduct || 1);
-                            product.stock += restoreQty;
-                            // Queue cloud update for stock
+                            product.stock += (item.qty * (item.deduct || 1));
                             queueAction('update', 'inventory', product);
                         }
                     });
                 }
             }
 
-            // Remove from local state
             state.transactions = state.transactions.filter(t => t.id !== id);
-            
-            // Queue deletion task
             queueAction('delete', 'transactions', { id });
-            
-            // Persist and Refresh UI
             sync();
-            renderInventory();
             renderLedger();
             renderInsights();
-            
             closeModal('mod-tx');
             showToast('Transaction Voided & Stock Restored', 'info');
         }
