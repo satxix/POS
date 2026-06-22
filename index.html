@@ -100,6 +100,9 @@
             #receipt-modal { position: absolute; left: 0; top: 0; width: 100%; }
             .no-print { display: none !important; }
         }
+        .category-folder.collapsed .category-content { display: none; }
+        .category-folder.collapsed .folder-icon { transform: rotate(-90deg); }
+        .folder-icon { transition: transform 0.2s ease; }
     </style>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
@@ -201,7 +204,7 @@
 <input class="w-full pl-10 pr-4 py-2.5 bg-surface border border-border-subtle rounded-xl focus:border-primary transition-all text-sm font-medium" oninput="renderInventory(this.value)" placeholder="Search inventory..." type="text"/>
 </div>
 </div>
-<div class="space-y-3" id="inventory-list"></div>
+<div class="space-y-4" id="inventory-list"></div>
 </div>
 <!-- LEDGER SCREEN -->
 <div class="screen-transition hidden p-4 max-w-[600px] mx-auto" id="screen-history">
@@ -309,7 +312,7 @@
 </nav>
 <!-- FAVORITES PICKER MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[220] hidden items-center justify-center p-4" id="fav-picker-modal">
-<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+<div class="bg-surface w-full max-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
 <div class="p-4 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
 <h3 class="font-black text-xs uppercase" id="fav-picker-title">Assign Favorite Slot</h3>
 <button class="material-symbols-outlined" onclick="closeModal('fav-picker-modal')">close</button>
@@ -650,6 +653,9 @@
     let scannerTimeout = null;
     let favoritesEditMode = false;
     let currentFavSlotIndex = null;
+    let inventoryState = {
+        collapsedCategories: {}
+    };
 
     // --- Helper Utils ---
     function titleCase(str) {
@@ -1275,6 +1281,11 @@
         }
     }
 
+    function toggleCategory(cat) {
+        inventoryState.collapsedCategories[cat] = !inventoryState.collapsedCategories[cat];
+        renderInventory(document.querySelector('#screen-inventory input[type="text"]').value);
+    }
+
     function renderInventory(f = '') {
         const list = document.getElementById('inventory-list');
         if (!list) return;
@@ -1289,30 +1300,72 @@
             alertDiv.classList.add('hidden');
         }
         
-        const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(f.toLowerCase()) || (p.barcode && p.barcode.includes(f)));
-        list.innerHTML = filtered.map(p => `
-            <div class="bg-surface border border-border-subtle p-4 rounded-xl flex gap-3 shadow-sm ${p.stock <= 5 ? 'low-stock-row' : ''}">
-                <div class="flex-1 min-w-0">
-                    <p class="text-[9px] font-black uppercase text-primary/60">${p.category || 'General'}</p>
-                    <h4 class="font-bold text-sm truncate">${p.name}</h4>
-                    <p class="text-[10px] font-medium opacity-50 mb-3">#${p.barcode || '---'}</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="bg-surface-container rounded-lg p-2">
-                            <p class="text-[8px] font-bold uppercase opacity-60">Stock</p>
-                            <p class="text-xs font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p>
+        const filtered = state.inventory.filter(p => 
+            p.name.toLowerCase().includes(f.toLowerCase()) || 
+            (p.barcode && p.barcode.includes(f)) ||
+            (p.category && p.category.toLowerCase().includes(f.toLowerCase()))
+        );
+
+        // Group by category (case-insensitive)
+        const groups = {};
+        filtered.forEach(p => {
+            const cat = (p.category || 'Uncategorized').trim().toLowerCase();
+            const displayName = titleCase(p.category || 'Uncategorized');
+            if (!groups[cat]) groups[cat] = { name: displayName, items: [] };
+            groups[cat].items.push(p);
+        });
+
+        const sortedCats = Object.keys(groups).sort();
+        
+        if (filtered.length === 0) {
+            list.innerHTML = '<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No matching products</div>';
+            return;
+        }
+
+        list.innerHTML = sortedCats.map(catKey => {
+            const group = groups[catKey];
+            const isSearching = f.length > 0;
+            const isCollapsed = inventoryState.collapsedCategories[catKey] === true && !isSearching;
+            
+            return `
+                <div class="category-folder bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-sm ${isCollapsed ? 'collapsed' : ''}" data-cat="${catKey}">
+                    <button onclick="toggleCategory('${catKey}')" class="w-full px-4 py-3.5 bg-surface-container/50 flex justify-between items-center active:bg-primary-container transition-colors">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span>
+                            <div class="text-left">
+                                <h3 class="font-black text-xs text-primary uppercase tracking-wider">${group.name}</h3>
+                                <p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p>
+                            </div>
                         </div>
-                        <div class="bg-surface-container rounded-lg p-2">
-                            <p class="text-[8px] font-bold uppercase opacity-60">Price</p>
-                            <p class="text-xs font-black text-primary">₱${p.price.toLocaleString()}</p>
-                        </div>
+                        <span class="material-symbols-outlined text-primary/30">folder_open</span>
+                    </button>
+                    <div class="category-content divide-y divide-border-subtle">
+                        ${group.items.map(p => `
+                            <div class="p-4 flex gap-3 ${p.stock <= 5 ? 'low-stock-row' : ''}">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-sm truncate">${p.name}</h4>
+                                    <p class="text-[10px] font-medium opacity-50 mb-3">#${p.barcode || '---'}</p>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="bg-surface-container/60 rounded-lg p-2">
+                                            <p class="text-[8px] font-bold uppercase opacity-60">Stock</p>
+                                            <p class="text-xs font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p>
+                                        </div>
+                                        <div class="bg-surface-container/60 rounded-lg p-2">
+                                            <p class="text-[8px] font-bold uppercase opacity-60">Price</p>
+                                            <p class="text-xs font-black text-primary">₱${p.price.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-1 border-l pl-3">
+                                    <button onclick="openProductModal('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+                                    <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-error/10 text-error rounded-lg active-scale"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
-                <div class="flex flex-col gap-1 border-l pl-3">
-                    <button onclick="openProductModal('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                    <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-error/10 text-error rounded-lg active-scale"><span class="material-symbols-outlined text-[18px]">delete</span></button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // --- Ledger Logic ---
