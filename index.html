@@ -114,12 +114,10 @@
 <h1 class="font-bold text-base tracking-tight uppercase">Villacart POS</h1>
 </div>
 <div class="flex items-center gap-2">
-<!-- Sync Indicator -->
 <div class="flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-all cursor-pointer relative group" id="sync-pill" onclick="syncNow()">
 <span class="w-2 h-2 rounded-full bg-green-400" id="sync-dot"></span>
 <span class="material-symbols-outlined text-[14px] hidden" id="sync-spinner">sync</span>
 <span id="sync-text">Online</span>
-<!-- Pending Badge -->
 <span class="absolute -top-1 -right-1 bg-orange-500 text-white text-[8px] h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full hidden border border-primary shadow-sm" id="queue-badge">0</span>
 </div>
 <button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors">notifications</button>
@@ -221,7 +219,7 @@
 <div class="flex bg-surface-container p-1 rounded-xl mb-4">
 <button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="insight-tab-day" onclick="switchInsightPeriod('day')">Day</button>
 <button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="insight-tab-month" onclick="switchInsightPeriod('month')">Month</button>
-<button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="insight-tab-range" onclick="switchInsightPeriod('range')">Date Range</button>
+<button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="insight-tab-range" onclick="switchInsightPeriod('range')">Range</button>
 </div>
 <div class="hidden grid grid-cols-2 gap-2 mb-4" id="date-range-controls">
 <div>
@@ -233,26 +231,52 @@
 <input class="w-full text-xs font-bold border-border-subtle rounded-lg" id="insight-end-date" onchange="renderInsights()" type="date"/>
 </div>
 </div>
-<div class="grid grid-cols-1 gap-3 mb-6">
+<div class="space-y-4 mb-6">
 <div class="bg-primary text-white p-5 rounded-2xl shadow-md">
-<p class="text-white/70 text-[9px] font-bold uppercase tracking-widest mb-1" id="insight-revenue-label">Total Revenue (Today)</p>
-<h3 class="text-2xl font-black" id="daily-revenue">₱0.00</h3>
+<p class="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-1" id="insight-revenue-label">Total Revenue (Today)</p>
+<h3 class="text-3xl font-black" id="daily-revenue">₱0.00</h3>
+<div class="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-4">
+<div>
+<p class="text-white/60 text-[9px] font-bold uppercase">Net Profit</p>
+<p class="text-lg font-black" id="daily-profit">₱0.00</p>
 </div>
-<div class="bg-surface border border-border-subtle p-5 rounded-2xl shadow-sm">
-<p class="text-on-surface-variant text-[9px] font-bold uppercase tracking-widest mb-1">Asset Value (at Cost)</p>
-<h3 class="text-2xl font-black text-primary" id="inventory-value">₱0</h3>
-<p class="text-[10px] text-on-surface-variant mt-1 font-semibold" id="inventory-count">0 items in stock</p>
+<div class="text-right">
+<p class="text-white/60 text-[9px] font-bold uppercase">Profit Margin</p>
+<p class="text-lg font-black" id="daily-margin">0%</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface border border-border-subtle p-4 rounded-2xl shadow-sm">
+<p class="text-on-surface-variant text-[9px] font-bold uppercase tracking-widest mb-1">Cost of Goods (COGS)</p>
+<h3 class="text-xl font-black text-primary" id="daily-cogs">₱0.00</h3>
+</div>
+<div class="bg-surface border border-border-subtle p-4 rounded-2xl shadow-sm">
+<p class="text-on-surface-variant text-[9px] font-bold uppercase tracking-widest mb-1">Operating Expenses</p>
+<h3 class="text-xl font-black text-error" id="daily-expenses">₱0.00</h3>
+</div>
+<div class="bg-surface border border-border-subtle p-4 rounded-2xl shadow-sm col-span-2">
+<div class="flex justify-between items-center">
+<div>
+<p class="text-on-surface-variant text-[9px] font-bold uppercase tracking-widest mb-1">Asset Value (Stock)</p>
+<h3 class="text-xl font-black text-primary" id="inventory-value">₱0</h3>
+</div>
+<div class="text-right">
+<p class="text-[10px] text-on-surface-variant font-black uppercase" id="inventory-count">0 items</p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="space-y-3" id="insight-transactions-list"></div>
-<!-- Restock Alerts -->
 <div class="hidden bg-yellow-50 border-2 border-yellow-200 p-4 rounded-xl flex flex-col gap-2 mb-6" id="restock-alerts-container">
 <div class="flex items-center gap-2 text-yellow-800 font-bold text-sm">
 <span class="material-symbols-outlined text-yellow-600">notification_important</span>
 <span>Urgent Restock Needed</span>
 </div>
 <div class="flex flex-col gap-1.5" id="insight-low-stock-list"></div>
-</div></div>
+</div>
+</div>
 </main>
 <!-- Navigation -->
 <nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:top-14 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-6">
@@ -409,7 +433,7 @@
 </div>
 <!-- EXPENSE MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="expense-modal">
-<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-6">
+<div class="bg-surface w-full max-sm rounded-2xl shadow-2xl p-6">
 <h3 class="font-black text-primary uppercase mb-4">Record Expense</h3>
 <div class="space-y-4">
 <div>
@@ -429,7 +453,7 @@
 </div>
 <!-- SUCCESS MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="mod-success">
-<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-8 flex flex-col items-center text-center">
+<div class="bg-surface w-full max-sm rounded-2xl shadow-2xl p-8 flex flex-col items-center text-center">
 <div class="w-20 h-20 bg-secondary/10 text-secondary rounded-full flex items-center justify-center mb-6 animate-pulse">
 <span class="material-symbols-outlined text-[48px]">check_circle</span>
 </div>
@@ -588,6 +612,12 @@
         let scannerBuffer = "";
         let scannerTimeout = null;
 
+        // --- Helper Utils ---
+        function titleCase(str) {
+            if (!str) return 'Unknown';
+            return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+
         // --- Core Functions ---
         function sync() { 
             localStorage.setItem(DB_KEY, JSON.stringify(state)); 
@@ -602,25 +632,21 @@
                     fbGet('transactions')
                 ]);
 
-                // Filter out items that are currently marked for deletion in the offline queue
-                const deletedIds = offlineQueue.filter(op => op.type === 'delete').map(op => op.data.id);
+                // Filter out any transaction IDs that are currently present in the offlineQueue as a 'delete' task
+                const deletedIds = offlineQueue.filter(op => op.type === 'delete' && op.table === 'transactions').map(op => op.data.id);
                 
-                // Preserve local offline transactions (pending uploads)
                 const offTrans = state.transactions.filter(t => t._offline);
-                
-                // Filter fetched cloud transactions
+                // Filter cloud transactions by excluding those marked for deletion locally
                 const filteredCloudTrans = trans.filter(t => !deletedIds.includes(t.id));
                 
-                // Inventory update
                 state.inventory = inv.length > 0 ? inv : state.inventory;
                 
-                // Transaction update: Merge filtered cloud data with local pending offline records
                 const cloudIds = new Set(filteredCloudTrans.map(t => t.id));
-                const uniqueOffTrans = offTrans.filter(t => !cloudIds.has(t.id));
+                const uniqueOffTrans = offTrans.filter(t => !cloudIds.has(t.id) && !deletedIds.includes(t.id));
                 
                 state.transactions = [...uniqueOffTrans, ...filteredCloudTrans].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 
-                sync(); // Persists to localStorage
+                sync();
                 renderInventory();
                 renderLedger();
                 renderInsights();
@@ -643,13 +669,19 @@
                 const batch = db.batch();
                 for (const task of offlineQueue) {
                     const col = task.table;
-                    const docRef = db.collection(col).doc(task.data.id);
+                    const targetId = task.data.id;
+                    if (!targetId) continue;
+                    
+                    const docRef = db.collection(col).doc(targetId);
+                    
                     if (task.type === 'add' || task.type === 'new_transaction') {
                         const dataToSync = { ...task.data };
                         delete dataToSync._offline;
                         batch.set(docRef, dataToSync);
                     } else if (task.type === 'update') {
-                        batch.update(docRef, task.data);
+                        const updateData = { ...task.data };
+                        delete updateData.id; 
+                        batch.update(docRef, updateData);
                     } else if (task.type === 'delete') {
                         batch.delete(docRef);
                     }
@@ -760,7 +792,7 @@
                 pill.classList.remove('bg-red-500/20', 'border-red-500/40');
                 pill.classList.add('bg-white/10', 'border-white/20');
                 dot.classList.remove('hidden');
-                dot.classList.replace('bg-red-500', 'bg-green-400');
+                dot.classList.replace('bg-green-400', 'bg-green-400');
                 spinner.classList.add('hidden');
                 text.innerText = "Online";
             }
@@ -891,6 +923,7 @@
                 state.cart.push({
                     cartId, id: p.id, name: p.name, type,
                     price: type === 'pack' ? p.packPrice : p.price,
+                    cost: p.cost, 
                     deduct: type === 'pack' ? p.packSize : 1,
                     qty: 1
                 });
@@ -1012,7 +1045,8 @@
             const transaction = {
                 id, type, total, timestamp: new Date().toISOString(),
                 items: JSON.parse(JSON.stringify(state.cart)),
-                customer, paid: (type === 'SA'),
+                customer: customer ? customer.trim() : null, 
+                paid: (type === 'SA'),
                 cashReceived: cashVal,
                 change: type === 'SA' ? (cashVal - total) : 0
             };
@@ -1192,13 +1226,23 @@
                 `).join('') || '<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No cash sales</div>';
             } else if (activeLedgerTab === 'credit') {
                 const credits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
+                
+                // Grouping by case-insensitive name
                 const grouped = credits.reduce((acc, curr) => {
-                    const name = curr.customer || 'Unknown';
-                    if (!acc[name]) acc[name] = { items: [], total: 0 };
-                    acc[name].items.push(curr);
-                    acc[name].total += curr.total;
+                    const rawName = curr.customer || 'Guest';
+                    const normalizedKey = rawName.trim().toLowerCase();
+                    if (!acc[normalizedKey]) {
+                        acc[normalizedKey] = { 
+                            displayName: titleCase(rawName), // Standardized display
+                            items: [], 
+                            total: 0 
+                        };
+                    }
+                    acc[normalizedKey].items.push(curr);
+                    acc[normalizedKey].total += curr.total;
                     return acc;
                 }, {});
+
                 const totalBalance = credits.reduce((a, b) => a + b.total, 0);
                 sumHtml = `<div class="bg-orange-600 p-4 rounded-xl text-white shadow-md">
                             <p class="text-[9px] font-bold uppercase opacity-70">Total Outstanding Credits</p>
@@ -1207,12 +1251,12 @@
                 if (Object.keys(grouped).length === 0) {
                     html = '<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No pending credits</div>';
                 } else {
-                    html = Object.entries(grouped).map(([name, data]) => `
+                    html = Object.entries(grouped).map(([key, data]) => `
                         <div class="space-y-2 mb-6">
                             <div class="bg-white border-2 border-orange-500/20 p-4 rounded-2xl shadow-sm">
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="min-w-0 flex-1">
-                                        <h3 class="text-base font-black text-primary uppercase truncate">${name}</h3>
+                                        <h3 class="text-base font-black text-primary uppercase truncate">${data.displayName}</h3>
                                         <p class="text-[10px] font-bold text-on-surface-variant">${data.items.length} Pending Tickets</p>
                                     </div>
                                     <div class="text-right">
@@ -1220,7 +1264,7 @@
                                         <p class="text-2xl font-black text-orange-600 tracking-tighter">₱${data.total.toLocaleString()}</p>
                                     </div>
                                 </div>
-                                <button onclick="payFullBalance('${name.replace(/'/g, "\\'")}')" class="w-full bg-secondary text-white py-3 rounded-xl font-black text-xs uppercase shadow-md active-scale">
+                                <button onclick="payFullBalance('${data.displayName.replace(/'/g, "\\'")}')" class="w-full bg-secondary text-white py-3 rounded-xl font-black text-xs uppercase shadow-md active-scale">
                                     Pay Full Balance
                                 </button>
                             </div>
@@ -1310,7 +1354,15 @@
         }
 
         function payFullBalance(customerName) {
-            const credits = state.transactions.filter(t => t.type === 'CR' && t.customer === customerName && !t.paid);
+            // Case-insensitive filtering for payment
+            const normalizedName = customerName.trim().toLowerCase();
+            const credits = state.transactions.filter(t => 
+                t.type === 'CR' && 
+                t.customer && 
+                t.customer.trim().toLowerCase() === normalizedName && 
+                !t.paid
+            );
+            
             if (credits.length === 0) return;
             const totalToPay = credits.reduce((a, b) => a + b.total, 0);
             if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()} from ${customerName}?`)) return;
@@ -1374,22 +1426,23 @@
             }
 
             const now = new Date();
-            let filteredTransactions = state.transactions.filter(t => t.type === 'SA' || t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL');
             let label = "Today";
+            
+            let periodTransactions = state.transactions;
 
             if (insightPeriod === 'day') {
                 const todayStr = now.toISOString().split('T')[0];
-                filteredTransactions = filteredTransactions.filter(t => t.timestamp.startsWith(todayStr));
+                periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(todayStr));
                 label = "Today";
             } else if (insightPeriod === 'month') {
                 const monthStr = now.toISOString().slice(0, 7);
-                filteredTransactions = filteredTransactions.filter(t => t.timestamp.startsWith(monthStr));
+                periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(monthStr));
                 label = "This Month";
             } else if (insightPeriod === 'range') {
                 const start = document.getElementById('insight-start-date').value;
                 const end = document.getElementById('insight-end-date').value;
                 if (start && end) {
-                    filteredTransactions = filteredTransactions.filter(t => {
+                    periodTransactions = periodTransactions.filter(t => {
                         const ts = t.timestamp.split('T')[0];
                         return ts >= start && ts <= end;
                     });
@@ -1399,35 +1452,60 @@
                 }
             }
 
-            const revenue = filteredTransactions.reduce((a, b) => a + b.total, 0);
-            document.getElementById('insight-revenue-label').innerText = `Total Revenue (${label})`;
-            document.getElementById('daily-revenue').innerText = `₱${revenue.toLocaleString()}`;
+            const salesTransactions = periodTransactions.filter(t => ['SA', 'SA_SETTLEMENT', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
+            const revenue = salesTransactions.reduce((a, b) => a + b.total, 0);
 
-            const totalValue = state.inventory.reduce((a, b) => a + (b.cost * b.stock), 0);
-            document.getElementById('inventory-value').innerText = `₱${totalValue.toLocaleString()}`;
-            document.getElementById('inventory-count').innerText = `${state.inventory.length} products tracking`;
+            const expenseTransactions = periodTransactions.filter(t => t.type === 'EX');
+            const totalExpenses = expenseTransactions.reduce((a, b) => a + b.total, 0);
+
+            let totalCogs = 0;
+            const stockMovingTransactions = periodTransactions.filter(t => ['SA', 'CR', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
+            stockMovingTransactions.forEach(t => {
+                if (t.items) {
+                    t.items.forEach(item => {
+                        totalCogs += ((item.cost || 0) * item.qty * (item.deduct || 1));
+                    });
+                }
+            });
+
+            const grossProfit = revenue - totalCogs;
+            const netProfit = grossProfit - totalExpenses;
+            const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+
+            const totalAssetValue = state.inventory.reduce((a, b) => a + (b.cost * b.stock), 0);
+
+            document.getElementById('insight-revenue-label').innerText = `Gross Revenue (${label})`;
+            document.getElementById('daily-revenue').innerText = `₱${revenue.toLocaleString()}`;
+            document.getElementById('daily-profit').innerText = `₱${netProfit.toLocaleString()}`;
+            document.getElementById('daily-margin').innerText = `${profitMargin.toFixed(1)}%`;
+            document.getElementById('daily-cogs').innerText = `₱${totalCogs.toLocaleString()}`;
+            document.getElementById('daily-expenses').innerText = `₱${totalExpenses.toLocaleString()}`;
+            
+            document.getElementById('inventory-value').innerText = `₱${totalAssetValue.toLocaleString()}`;
+            document.getElementById('inventory-count').innerText = `${state.inventory.length} items tracking`;
             
             const txList = document.getElementById('insight-transactions-list');
-            const recent = filteredTransactions.slice().reverse().slice(0, 10);
-            txList.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-2">Transactions (${label})</p>` + 
+            const recent = periodTransactions.slice(0, 10);
+            txList.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-2">Recent Period Activities (${label})</p>` + 
             recent.map(t => `
                 <div class="bg-surface border border-border-subtle p-3 rounded-xl flex justify-between items-center shadow-sm mb-2">
                     <div>
                         <div class="flex items-center gap-1">
                             <p class="font-black text-xs text-primary">${t.id}</p>
-                            ${t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL' ? '<span class="text-[6px] bg-secondary text-white px-1 rounded uppercase">Settlement</span>' : ''}
-                            ${t._offline ? '<span class="text-[6px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                            <span class="text-[6px] px-1 rounded uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">
+                                ${t.type === 'SA' ? 'Sale' : t.type === 'CR' ? 'Credit' : t.type === 'EX' ? 'Expense' : 'Settle'}
+                            </span>
                         </div>
-                        <p class="text-[10px] text-on-surface-variant font-bold">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} · ${new Date(t.timestamp).toLocaleDateString()}</p>
+                        <p class="text-[10px] text-on-surface-variant font-bold">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="font-black text-sm text-on-surface">₱${t.total.toLocaleString()}</span>
+                        <span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span>
                         <button onclick="viewTxDetails('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-primary/10 text-primary rounded-lg active-scale">
                             <span class="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `).join('') || `<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No records for this period</div>`;
         }
 
         // --- Transaction Detail Logic ---
@@ -1460,7 +1538,7 @@
                  tx.settledTickets.forEach(st => {
                     html += `<div class="p-2 border border-border-subtle rounded-lg mb-1">
                         <div class="flex justify-between items-center text-xs border-b border-border-subtle pb-1 mb-1">
-                            <span class="font-bold">${st.id} (${new Date(st.ts).toLocaleDateString()})</span>
+                            <span class="font-bold">${st.id}</span>
                             <span class="font-black">₱${st.total.toLocaleString()}</span>
                         </div>`;
                     if (st.items) {
@@ -1476,9 +1554,9 @@
                  html += '</div>';
             }
             html += `
-                <div class="flex justify-between items-center p-3 bg-secondary/10 rounded-xl">
-                    <span class="text-sm font-black text-secondary">TOTAL</span>
-                    <span class="text-xl font-black text-secondary">₱${tx.total.toLocaleString()}</span>
+                <div class="flex justify-between items-center p-3 ${tx.type === 'EX' ? 'bg-error/10' : 'bg-secondary/10'} rounded-xl">
+                    <span class="text-sm font-black ${tx.type === 'EX' ? 'text-error' : 'text-secondary'}">TOTAL</span>
+                    <span class="text-xl font-black ${tx.type === 'EX' ? 'text-error' : 'text-secondary'}">₱${tx.total.toLocaleString()}</span>
                 </div>
             `;
             document.getElementById('txdetail').innerHTML = html;
@@ -1497,28 +1575,56 @@
             openPinModal({ action: 'delete', id: lastTransactionId });
         }
 
-        function deleteTransaction(id) {
+        // --- Fixed Deletion Logic ---
+        async function deleteTransaction(id) {
             const tx = state.transactions.find(t => t.id === id);
-            if (tx) {
-                // Restore inventory stock if applicable
-                if (tx.items && tx.items.length > 0 && tx.type !== 'EX') {
-                    tx.items.forEach(item => {
-                        const product = state.inventory.find(p => p.id === item.id);
-                        if (product) {
-                            product.stock += (item.qty * (item.deduct || 1));
-                            queueAction('update', 'inventory', product);
-                        }
-                    });
+            if (!tx) return;
+
+            // Direct Cloud Deletion Attempt if online
+            if (navigator.onLine) {
+                try {
+                    await fbDelete('transactions', id);
+                    showToast('Cloud record deleted', 'success');
+                } catch (e) {
+                    console.error("Cloud deletion failed, queued for offline sync", e);
                 }
             }
 
+            // Restoration of stock: Loop through items and update products
+            if (['SA', 'CR', 'SA_CREDIT_INDIVIDUAL'].includes(tx.type) && tx.items) {
+                tx.items.forEach(item => {
+                    const p = state.inventory.find(inv => inv.id === item.id);
+                    if (p) {
+                        p.stock += (item.qty * (item.deduct || 1));
+                        queueAction('update', 'inventory', p);
+                    }
+                });
+            } else if (tx.type === 'SA_SETTLEMENT' && tx.settledTickets) {
+                tx.settledTickets.forEach(st => {
+                    if (st.items) {
+                        st.items.forEach(item => {
+                            const p = state.inventory.find(inv => inv.id === item.id);
+                            if (p) {
+                                p.stock += (item.qty * (item.deduct || 1));
+                                queueAction('update', 'inventory', p);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Update local state immediately
             state.transactions = state.transactions.filter(t => t.id !== id);
-            queueAction('delete', 'transactions', { id });
+            
+            // Queue the delete task as backup/sync logic
+            queueAction('delete', 'transactions', { id: id });
+            
             sync();
+            renderInventory();
             renderLedger();
             renderInsights();
             closeModal('mod-tx');
-            showToast('Transaction Voided & Stock Restored', 'info');
+            showToast('Transaction Voided & Stock Restored', 'success');
         }
 
         // --- Receipt Logic ---
