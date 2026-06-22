@@ -3,12 +3,13 @@
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<meta content="yes" name="mobile-web-app-capable"/>
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
-<meta content="#004ac6" name="theme-color"/>
+<meta content="#1e3a5f" name="theme-color"/>
 <title>Villacart POS: Insights Optimized</title>
 <!-- PWA Manifest -->
-<link href="data:application/manifest+json;base64,ewogICJuYW1lIjogIlZpbGxhY2FydCBQT1MiLAogICJzaG9ydF9uYW1lIjogIlZpbGxhY2FydCIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjdmemZiIiwKICAidGhlbWVfY29sb3IiOiAiIzAwNGFjNiIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogInt7REFUQTtJTUFHRTpJTUFHRV8xMDh9fSIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJ7e0RBVEE6SU1BR0U6SU1BR0VfMTA4fX0iLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdCn0=" rel="manifest"/>
+<link href="data:application/manifest+json;base64,ewogICJuYW1lIjogIlZpbGxhY2FydCBQT1MiLAogICJzaG9ydF9uYW1lIjogIlZpbGxhY2FydCIsCiAgInN0YXJ0X3VybCI6ICIuLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI2Y3ZjlmYiIsCiAgInRoZW1lX2NvbG9yIjogIiMxZTNhNWYiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJ7e0RBVEE6SU1BR0U6SU1BR0VfNzh9fSIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJ7e0RBVEE6SU1BR0U6SU1BR0VfNzh9fSIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfQogIF0KfQ==" rel="manifest"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -115,7 +116,7 @@
 <header class="bg-primary text-on-primary fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 shadow-md">
 <div class="flex items-center gap-2">
 <div class="bg-white p-0.5 rounded-lg overflow-hidden flex items-center justify-center">
-<img alt="Villacart Logo" class="h-8 w-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0T_0dDIYgT3Bc3N7QpbFJVElneho3JKLdDD8FmkSgGYWT8-3eO4j2i_h3Kl16oJZrjRND-scszyA76G2BDdDiyhEQ1YS7Lt4MLqhTERUDEYW8ITpMtVWBiEpdoLkSm5q6O_i1Um_MpEsknxmh-P87JlCawQ5sqOUw8h8JSU2aAoNeGFeHrejDAO10rcnyqnwggKtFBFkmE1hF3Eld6kIA7PI8hiksIoas0ikWxPYqJHagOtYc8FHZ9KTdlH3sC7T-iOSr3MeAM6L9"/>
+<img alt="Villacart Logo" class="h-8 w-8 object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py"/>
 </div>
 <h1 class="font-bold text-base tracking-tight uppercase">Villacart POS</h1>
 </div>
@@ -1805,7 +1806,7 @@
             toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${m}</span>`;
             c.appendChild(toast);
             requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0'));
-            setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500);
+            setTimeout(() => { toast.classList.add('opacity-0', translate-x-full); setTimeout(() => toast.remove(), 300); }, 2500);
         }
 
         // --- Scanner Quagga Logic ---
