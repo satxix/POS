@@ -3,7 +3,12 @@
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="#004ac6" name="theme-color"/>
 <title>Villacart POS: Insights Optimized</title>
+<!-- PWA Manifest -->
+<link href="data:application/manifest+json;base64,ewogICJuYW1lIjogIlZpbGxhY2FydCBQT1MiLAogICJzaG9ydF9uYW1lIjogIlZpbGxhY2FydCIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjdmemZiIiwKICAidGhlbWVfY29sb3IiOiAiIzAwNGFjNiIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogInt7REFUQTtJTUFHRTpJTUFHRV8xMDh9fSIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJ7e0RBVEE6SU1BR0U6SU1BR0VfMTA4fX0iLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdCn0=" rel="manifest"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -13,30 +18,31 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script id="tailwind-config">
       tailwind.config = {
+        darkMode: "class",
         theme: {
           extend: {
             "colors": {
-                    "primary": "#1e3a5f",
+                    "primary": "#004ac6",
                     "on-primary": "#ffffff",
-                    "secondary": "#006e2d",
+                    "secondary": "#795900",
                     "on-secondary": "#ffffff",
-                    "background": "#f0f4f8", 
+                    "background": "#f7f9fb",
                     "surface": "#ffffff",
-                    "surface-container": "#eff4ff",
-                    "border-subtle": "#e2e8f0",
-                    "on-surface": "#0b1c30",
-                    "on-surface-variant": "#43474e",
+                    "surface-container": "#eceef0",
+                    "border-subtle": "#e0e3e5",
+                    "on-surface": "#191c1e",
+                    "on-surface-variant": "#434655",
                     "error": "#ba1a1a",
-                    "primary-container": "#d5e3ff",
-                    "on-primary-container": "#001c3b",
-                    "accent-violet": "#7c3aed"
+                    "primary-container": "#dbe1ff",
+                    "on-primary-container": "#00174b",
+                    "accent-yellow": "#ffc329",
+                    "on-accent-yellow": "#261a00"
             },
             "borderRadius": {
-                    "DEFAULT": "8px",
-                    "lg": "12px",
-                    "xl": "16px",
-                    "2xl": "20px",
-                    "full": "9999px"
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
             },
             "spacing": {
                     "margin-mobile": "12px",
@@ -74,23 +80,23 @@
             direction: ltr;
         }
         body {
-            background-color: #f0f4f8;
+            background-color: #f7f9fb;
             -webkit-tap-highlight-color: transparent;
-            color: #0b1c30;
+            color: #191c1e;
             overflow-x: hidden;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #eceef0; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c3c6d7; border-radius: 10px; }
         .active-scale:active { transform: scale(0.97); transition: transform 0.1s ease; }
         .screen-transition { transition: opacity 0.15s ease-in-out; }
         .hidden { display: none !important; }
         input, button, select { min-height: 44px; border-radius: 8px; }
         #inv-cam-area video { width: 100%; height: auto; border-radius: 12px; object-fit: cover; }
         #inv-cam-area canvas { position: absolute; top: 0; left: 0; display: none; }
-        .low-stock-row { border-left: 4px solid #ba1a1a !important; }
-        .ledger-tab-active { background-color: #1e3a5f; color: white; }
+        .low-stock-row { border-left: 4px solid #ffc329 !important; background-color: #ffc32908; }
+        .ledger-tab-active { background-color: #004ac6; color: white; }
         .receipt-container { font-family: 'Courier New', Courier, monospace; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .animate-spin-custom { animation: spin 1s linear infinite; }
@@ -102,14 +108,14 @@
         }
     </style>
 </head>
-<body class="selection:bg-primary-container selection:text-primary text-sm">
+<body class="selection:bg-primary-container selection:text-on-primary-container text-sm">
 <!-- Toast Notification Container -->
 <div class="fixed top-4 right-4 z-[250] pointer-events-none flex flex-col gap-2" id="toast-container"></div>
 <!-- Top Navigation Bar -->
 <header class="bg-primary text-on-primary fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 shadow-md">
 <div class="flex items-center gap-2">
-<div class="bg-white/20 p-1.5 rounded-lg">
-<span class="material-symbols-outlined text-white text-[20px]">diamond</span>
+<div class="bg-white p-0.5 rounded-lg overflow-hidden flex items-center justify-center">
+<img alt="Villacart Logo" class="h-8 w-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0T_0dDIYgT3Bc3N7QpbFJVElneho3JKLdDD8FmkSgGYWT8-3eO4j2i_h3Kl16oJZrjRND-scszyA76G2BDdDiyhEQ1YS7Lt4MLqhTERUDEYW8ITpMtVWBiEpdoLkSm5q6O_i1Um_MpEsknxmh-P87JlCawQ5sqOUw8h8JSU2aAoNeGFeHrejDAO10rcnyqnwggKtFBFkmE1hF3Eld6kIA7PI8hiksIoas0ikWxPYqJHagOtYc8FHZ9KTdlH3sC7T-iOSr3MeAM6L9"/>
 </div>
 <h1 class="font-bold text-base tracking-tight uppercase">Villacart POS</h1>
 </div>
@@ -118,7 +124,7 @@
 <span class="w-2 h-2 rounded-full bg-green-400" id="sync-dot"></span>
 <span class="material-symbols-outlined text-[14px] hidden" id="sync-spinner">sync</span>
 <span id="sync-text">Online</span>
-<span class="absolute -top-1 -right-1 bg-orange-500 text-white text-[8px] h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full hidden border border-primary shadow-sm" id="queue-badge">0</span>
+<span class="absolute -top-1 -right-1 bg-accent-yellow text-on-accent-yellow text-[8px] h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full hidden border border-primary shadow-sm" id="queue-badge">0</span>
 </div>
 <button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors">notifications</button>
 </div>
@@ -162,7 +168,7 @@
 <span class="text-2xl font-black text-primary tracking-tighter" id="cart-total">₱0.00</span>
 </div>
 </div>
-<button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg hover:bg-secondary/90" onclick="openReview()">
+<button class="w-full bg-primary text-on-primary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg hover:bg-primary/90" onclick="openReview()">
 <span class="material-symbols-outlined text-[24px]">payments</span>
                         Process Payment
                     </button>
@@ -182,9 +188,9 @@
                         Add Product
                     </button>
 </div>
-<div class="hidden bg-yellow-50 border-2 border-yellow-200 p-4 rounded-xl flex items-center gap-3" id="low-stock-alert">
-<span class="material-symbols-outlined text-yellow-600">warning</span>
-<p class="text-sm font-bold text-yellow-800" id="low-stock-alert-text">0 items are low on stock!</p>
+<div class="hidden bg-accent-yellow/10 border-2 border-accent-yellow p-4 rounded-xl flex items-center gap-3" id="low-stock-alert">
+<span class="material-symbols-outlined text-secondary">warning</span>
+<p class="text-sm font-bold text-on-accent-yellow" id="low-stock-alert-text">0 items are low on stock!</p>
 </div>
 <div class="relative">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
@@ -200,7 +206,7 @@
 <h2 class="text-xl font-black text-primary uppercase">Transactions</h2>
 <p class="text-on-surface-variant text-xs font-medium">Manage cash, credits, and expenses</p>
 </div>
-<button class="bg-error text-white h-10 px-4 rounded-xl font-bold text-[10px] uppercase flex items-center gap-2 active-scale shadow-md" onclick="openExpenseModal()">
+<button class="bg-error text-on-error h-10 px-4 rounded-xl font-bold text-[10px] uppercase flex items-center gap-2 active-scale shadow-md" onclick="openExpenseModal()">
 <span class="material-symbols-outlined text-[16px]">remove_circle</span>
                     Record Expense
                 </button>
@@ -232,7 +238,7 @@
 </div>
 </div>
 <div class="space-y-4 mb-6">
-<div class="bg-primary text-white p-5 rounded-2xl shadow-md">
+<div class="bg-primary text-on-primary p-5 rounded-2xl shadow-md">
 <p class="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-1" id="insight-revenue-label">Total Revenue (Today)</p>
 <h3 class="text-3xl font-black" id="daily-revenue">₱0.00</h3>
 <div class="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-4">
@@ -269,9 +275,9 @@
 </div>
 </div>
 <div class="space-y-3" id="insight-transactions-list"></div>
-<div class="hidden bg-yellow-50 border-2 border-yellow-200 p-4 rounded-xl flex flex-col gap-2 mb-6" id="restock-alerts-container">
-<div class="flex items-center gap-2 text-yellow-800 font-bold text-sm">
-<span class="material-symbols-outlined text-yellow-600">notification_important</span>
+<div class="hidden bg-accent-yellow/10 border-2 border-accent-yellow p-4 rounded-xl flex flex-col gap-2 mb-6" id="restock-alerts-container">
+<div class="flex items-center gap-2 text-on-accent-yellow font-bold text-sm">
+<span class="material-symbols-outlined text-secondary">notification_important</span>
 <span>Urgent Restock Needed</span>
 </div>
 <div class="flex flex-col gap-1.5" id="insight-low-stock-list"></div>
@@ -394,35 +400,35 @@
 <button class="material-symbols-outlined" onclick="closeModal('review-modal')">close</button>
 </div>
 <div class="p-6">
-<div class="bg-secondary/5 border-2 border-secondary/20 rounded-xl p-4 mb-4 flex justify-between items-center">
+<div class="bg-primary-container/20 border-2 border-primary/20 rounded-xl p-4 mb-4 flex justify-between items-center">
 <span class="font-bold text-xs uppercase text-on-surface-variant">Amount Payable</span>
-<span class="text-xl font-black text-secondary" id="rev-total">₱0.00</span>
+<span class="text-xl font-black text-primary" id="rev-total">₱0.00</span>
 </div>
 <div class="mb-4">
 <label class="text-[10px] font-bold uppercase text-on-surface-variant mb-2 block">Payment Mode</label>
 <div class="flex gap-2">
-<button class="flex-1 py-3 border-2 border-secondary bg-secondary text-white rounded-xl font-bold text-xs" id="btn-pay-cash" onclick="switchPayMode('cash')">CASH</button>
+<button class="flex-1 py-3 border-2 border-primary bg-primary text-on-primary rounded-xl font-bold text-xs" id="btn-pay-cash" onclick="switchPayMode('cash')">CASH</button>
 <button class="flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs" id="btn-pay-credit" onclick="switchPayMode('credit')">CREDIT</button>
 </div>
 </div>
 <div class="space-y-4" id="cash-payment-area">
 <div class="grid grid-cols-4 gap-2">
-<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold" onclick="setCash(100)">₱100</button>
-<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold" onclick="setCash(500)">₱500</button>
-<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold" onclick="setCash(1000)">₱1K</button>
-<button class="h-10 border-2 border-secondary/40 bg-secondary/5 text-secondary rounded-lg text-[10px] font-bold" onclick="setExact()">EXACT</button>
+<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold hover:bg-surface-container transition-colors" onclick="setCash(100)">₱100</button>
+<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold hover:bg-surface-container transition-colors" onclick="setCash(500)">₱500</button>
+<button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold hover:bg-surface-container transition-colors" onclick="setCash(1000)">₱1K</button>
+<button class="h-10 border-2 border-accent-yellow bg-accent-yellow text-on-accent-yellow rounded-lg text-[10px] font-bold active-scale" onclick="setExact()">EXACT</button>
 </div>
-<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-black text-lg text-secondary" id="cash-input" oninput="calculateChange()" placeholder="Cash Received" type="number"/>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-black text-lg text-primary focus:ring-2 focus:ring-primary/20 outline-none" id="cash-input" oninput="calculateChange()" placeholder="Cash Received" type="number"/>
 <div class="hidden bg-surface-container p-3 rounded-xl border border-border-subtle" id="change-display">
 <div class="flex justify-between items-center">
 <span class="text-xs font-bold text-on-surface-variant">Change</span>
-<span class="text-xl font-black text-secondary" id="change-amount">₱0.00</span>
+<span class="text-xl font-black text-primary" id="change-amount">₱0.00</span>
 </div>
 </div>
 </div>
 <div class="hidden space-y-4" id="credit-payment-area">
 <label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Customer Name</label>
-<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold text-primary" id="credit-customer" placeholder="Enter Full Name" type="text"/>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold text-primary focus:ring-2 focus:ring-primary/20 outline-none" id="credit-customer" placeholder="Enter Full Name" type="text"/>
 </div>
 <button class="w-full bg-primary text-on-primary h-14 rounded-xl font-bold text-base mt-6 active-scale shadow-lg" id="confirm-checkout" onclick="confirmSale()">
 <span class="material-symbols-outlined text-[24px]">check_circle</span>
@@ -454,13 +460,13 @@
 <!-- SUCCESS MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="mod-success">
 <div class="bg-surface w-full max-sm rounded-2xl shadow-2xl p-8 flex flex-col items-center text-center">
-<div class="w-20 h-20 bg-secondary/10 text-secondary rounded-full flex items-center justify-center mb-6 animate-pulse">
+<div class="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6 animate-pulse">
 <span class="material-symbols-outlined text-[48px]">check_circle</span>
 </div>
 <h3 class="font-black text-2xl text-primary uppercase mb-2">Sale Confirmed</h3>
 <p class="text-sm text-on-surface-variant mb-8">Transaction has been recorded successfully.</p>
 <div class="flex flex-col gap-3 w-full">
-<button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg" onclick="printReceiptFromSuccess()">
+<button class="w-full bg-primary text-on-primary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg" onclick="printReceiptFromSuccess()">
 <span class="material-symbols-outlined">print</span>
                     Print Receipt
                 </button>
@@ -541,7 +547,7 @@
 </div>
 </div>
 <div class="flex gap-2 mt-6 no-print">
-<button class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="window.print()">
+<button class="flex-1 bg-primary text-on-primary font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="window.print()">
 <span class="material-symbols-outlined">print</span> Print
                 </button>
 <button class="flex-1 bg-border-subtle text-on-surface font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="closeModal('receipt-modal')">
@@ -562,12 +568,68 @@
 <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="printTx()">
 <span class="material-symbols-outlined text-[20px]">print</span> Print
                 </button>
-<button class="flex-1 bg-error text-white font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="confirmDeleteTransaction()">
+<button class="flex-1 bg-error text-on-error font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="confirmDeleteTransaction()">
 <span class="material-symbols-outlined text-[20px]">delete</span> Delete
                 </button>
 </div>
 </div>
 </div>
+<!-- PWA Service Worker Registration -->
+<script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    const CACHE_NAME = 'villacart-pos-v1';
+                    const urlsToCache = [
+                        './',
+                        './index.html',
+                        'https://cdn.tailwindcss.com?plugins=forms,container-queries',
+                        'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+                        'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap',
+                        'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js',
+                        'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+                        'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
+                    ];
+
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+                        );
+                    });
+
+                    self.addEventListener('fetch', event => {
+                        event.respondWith(
+                            caches.match(event.request).then(response => {
+                                return response || fetch(event.request);
+                            })
+                        );
+                    });
+
+                    self.addEventListener('activate', event => {
+                        const cacheWhitelist = [CACHE_NAME];
+                        event.waitUntil(
+                            caches.keys().then(cacheNames => {
+                                return Promise.all(
+                                    cacheNames.map(cacheName => {
+                                        if (cacheWhitelist.indexOf(cacheName) === -1) {
+                                            return caches.delete(cacheName);
+                                        }
+                                    })
+                                );
+                            })
+                        );
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'text/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).then(registration => {
+                    console.log('ServiceWorker registration successful');
+                }).catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 <script>
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -632,11 +694,8 @@
                     fbGet('transactions')
                 ]);
 
-                // Filter out any transaction IDs that are currently present in the offlineQueue as a 'delete' task
                 const deletedIds = offlineQueue.filter(op => op.type === 'delete' && op.table === 'transactions').map(op => op.data.id);
-                
                 const offTrans = state.transactions.filter(t => t._offline);
-                // Filter cloud transactions by excluding those marked for deletion locally
                 const filteredCloudTrans = trans.filter(t => !deletedIds.includes(t.id));
                 
                 state.inventory = inv.length > 0 ? inv : state.inventory;
@@ -888,18 +947,18 @@
             if (filtered.length > 0) {
                 container.classList.remove('hidden');
                 grid.innerHTML = filtered.map(p => `
-                    <div class="py-3 px-2">
+                    <div class="py-3 px-2 hover:bg-surface-container/50 cursor-pointer transition-colors" onclick="addToCart('${p.id}', 'piece')">
                         <div class="flex items-center gap-2 mb-1">
                             <h4 class="font-bold text-sm text-on-surface">${p.name}</h4>
-                            <span class="text-[8px] font-bold uppercase bg-surface-container px-1 rounded">${p.category || 'Gen'}</span>
+                            <span class="text-[8px] font-bold uppercase bg-primary/10 text-primary px-1 rounded">${p.category || 'Gen'}</span>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="addToCart('${p.id}', 'piece')" class="flex-1 bg-surface-container py-2 px-3 text-left rounded-lg active-scale">
+                            <button onclick="event.stopPropagation(); addToCart('${p.id}', 'piece')" class="flex-1 bg-surface-container py-2 px-3 text-left rounded-lg active-scale">
                                 <p class="text-[8px] uppercase font-bold opacity-50">Piece</p>
                                 <p class="font-black text-xs text-primary">₱${p.price.toLocaleString()}</p>
                             </button>
                             ${p.packPrice ? `
-                                <button onclick="addToCart('${p.id}', 'pack')" class="flex-1 bg-secondary/5 py-2 px-3 text-left rounded-lg active-scale">
+                                <button onclick="event.stopPropagation(); addToCart('${p.id}', 'pack')" class="flex-1 bg-accent-yellow/10 py-2 px-3 text-left rounded-lg active-scale">
                                     <p class="text-[8px] uppercase font-bold text-secondary">Pack (${p.packSize})</p>
                                     <p class="font-black text-xs text-secondary">₱${p.packPrice.toLocaleString()}</p>
                                 </button>
@@ -950,7 +1009,7 @@
                 const lineTotal = item.price * item.qty;
                 total += lineTotal;
                 return `
-                    <div class="bg-surface-container/40 border border-border-subtle p-3 rounded-xl flex justify-between items-center">
+                    <div class="bg-surface border border-border-subtle p-3 rounded-xl flex justify-between items-center shadow-sm">
                         <div>
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1 py-0.5 rounded uppercase">${item.type}</span>
@@ -959,13 +1018,13 @@
                             <p class="text-[10px] font-bold opacity-60">₱${item.price.toLocaleString()} x ${item.qty}</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="font-black text-sm mr-2">₱${lineTotal.toLocaleString()}</span>
-                            <div class="flex items-center bg-white border border-border-subtle rounded-lg">
+                            <span class="font-black text-sm mr-2 text-primary">₱${lineTotal.toLocaleString()}</span>
+                            <div class="flex items-center bg-surface-container border border-border-subtle rounded-lg">
                                 <button onclick="updateQty(${idx}, -1)" class="w-8 h-8 flex items-center justify-center text-error active-scale">
                                     <span class="material-symbols-outlined text-[18px]">remove_circle</span>
                                 </button>
                                 <span class="px-2 text-xs font-black">${item.qty}</span>
-                                <button onclick="updateQty(${idx}, 1)" class="w-8 h-8 flex items-center justify-center text-secondary active-scale">
+                                <button onclick="updateQty(${idx}, 1)" class="w-8 h-8 flex items-center justify-center text-primary active-scale">
                                     <span class="material-symbols-outlined text-[18px]">add_circle</span>
                                 </button>
                             </div>
@@ -992,13 +1051,13 @@
             const cashArea = document.getElementById('cash-payment-area');
             const creditArea = document.getElementById('credit-payment-area');
             if (mode === 'cash') {
-                btnCash.className = "flex-1 py-3 border-2 border-secondary bg-secondary text-white rounded-xl font-bold text-xs";
-                btnCredit.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs";
+                btnCash.className = "flex-1 py-3 border-2 border-primary bg-primary text-on-primary rounded-xl font-bold text-xs shadow-md";
+                btnCredit.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs hover:bg-surface-container";
                 cashArea.classList.remove('hidden');
                 creditArea.classList.add('hidden');
             } else {
-                btnCredit.className = "flex-1 py-3 border-2 border-orange-600 bg-orange-600 text-white rounded-xl font-bold text-xs";
-                btnCash.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs";
+                btnCredit.className = "flex-1 py-3 border-2 border-primary bg-primary text-on-primary rounded-xl font-bold text-xs shadow-md";
+                btnCash.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs hover:bg-surface-container";
                 creditArea.classList.remove('hidden');
                 cashArea.classList.add('hidden');
             }
@@ -1140,7 +1199,7 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div class="bg-surface-container rounded-lg p-2">
                                 <p class="text-[8px] font-bold uppercase opacity-60">Stock</p>
-                                <p class="text-xs font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p>
+                                <p class="text-xs font-black ${p.stock <= 5 ? 'text-secondary' : 'text-primary'}">${p.stock} pcs</p>
                             </div>
                             <div class="bg-surface-container rounded-lg p-2">
                                 <p class="text-[8px] font-bold uppercase opacity-60">Price</p>
@@ -1148,9 +1207,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex flex-col gap-1 border-l pl-3">
-                        <button onclick="openProductModal('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                        <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-error/10 text-error rounded-lg active-scale"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                    <div class="flex flex-col gap-1 border-l pl-3 border-border-subtle">
+                        <button onclick="openProductModal('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale hover:bg-primary hover:text-on-primary transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+                        <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-error/10 text-error rounded-lg active-scale hover:bg-error hover:text-on-error transition-colors"><span class="material-symbols-outlined text-[18px]">delete</span></button>
                     </div>
                 </div>
             `).join('');
@@ -1200,7 +1259,7 @@
             if (activeLedgerTab === 'cash') {
                 const sales = state.transactions.filter(t => (t.type === 'SA' || t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL')).reverse();
                 const total = sales.reduce((a, b) => a + b.total, 0);
-                sumHtml = `<div class="bg-primary p-4 rounded-xl text-white shadow-md">
+                sumHtml = `<div class="bg-primary p-4 rounded-xl text-on-primary shadow-md">
                             <p class="text-[9px] font-bold uppercase opacity-70">Total Cash Sales</p>
                             <h3 class="text-xl font-black">₱${total.toLocaleString()}</h3>
                           </div>`;
@@ -1209,16 +1268,16 @@
                         <div>
                             <div class="flex items-center gap-2">
                                  <p class="font-black text-sm text-primary">${t.id}</p>
-                                 ${t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL' ? '<span class="text-[7px] bg-secondary text-white px-1 rounded uppercase">Settlement</span>' : ''}
-                                 ${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                                 ${t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL' ? '<span class="text-[7px] bg-secondary text-on-secondary px-1 rounded uppercase">Settlement</span>' : ''}
+                                 ${t._offline ? '<span class="text-[7px] bg-accent-yellow text-on-accent-yellow px-1 rounded uppercase">Pending</span>' : ''}
                             </div>
                             <p class="text-[10px] text-on-surface-variant font-bold">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="text-right mr-2">
-                                <p class="font-black text-lg text-secondary">₱${t.total.toLocaleString()}</p>
+                                <p class="font-black text-lg text-primary">₱${t.total.toLocaleString()}</p>
                             </div>
-                            <button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale">
+                            <button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale hover:bg-primary hover:text-on-primary transition-colors">
                                 <span class="material-symbols-outlined text-[20px]">visibility</span>
                             </button>
                         </div>
@@ -1226,14 +1285,12 @@
                 `).join('') || '<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No cash sales</div>';
             } else if (activeLedgerTab === 'credit') {
                 const credits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
-                
-                // Grouping by case-insensitive name
                 const grouped = credits.reduce((acc, curr) => {
                     const rawName = curr.customer || 'Guest';
                     const normalizedKey = rawName.trim().toLowerCase();
                     if (!acc[normalizedKey]) {
                         acc[normalizedKey] = { 
-                            displayName: titleCase(rawName), // Standardized display
+                            displayName: titleCase(rawName), 
                             items: [], 
                             total: 0 
                         };
@@ -1244,7 +1301,7 @@
                 }, {});
 
                 const totalBalance = credits.reduce((a, b) => a + b.total, 0);
-                sumHtml = `<div class="bg-orange-600 p-4 rounded-xl text-white shadow-md">
+                sumHtml = `<div class="bg-secondary p-4 rounded-xl text-on-secondary shadow-md">
                             <p class="text-[9px] font-bold uppercase opacity-70">Total Outstanding Credits</p>
                             <h3 class="text-xl font-black">₱${totalBalance.toLocaleString()}</h3>
                           </div>`;
@@ -1253,37 +1310,37 @@
                 } else {
                     html = Object.entries(grouped).map(([key, data]) => `
                         <div class="space-y-2 mb-6">
-                            <div class="bg-white border-2 border-orange-500/20 p-4 rounded-2xl shadow-sm">
+                            <div class="bg-surface border border-border-subtle p-4 rounded-2xl shadow-sm">
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="min-w-0 flex-1">
                                         <h3 class="text-base font-black text-primary uppercase truncate">${data.displayName}</h3>
                                         <p class="text-[10px] font-bold text-on-surface-variant">${data.items.length} Pending Tickets</p>
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-[10px] font-black text-orange-600 uppercase mb-0.5">Total Balance</p>
-                                        <p class="text-2xl font-black text-orange-600 tracking-tighter">₱${data.total.toLocaleString()}</p>
+                                        <p class="text-[10px] font-black text-secondary uppercase mb-0.5">Total Balance</p>
+                                        <p class="text-2xl font-black text-secondary tracking-tighter">₱${data.total.toLocaleString()}</p>
                                     </div>
                                 </div>
-                                <button onclick="payFullBalance('${data.displayName.replace(/'/g, "\\'")}')" class="w-full bg-secondary text-white py-3 rounded-xl font-black text-xs uppercase shadow-md active-scale">
+                                <button onclick="payFullBalance('${data.displayName.replace(/'/g, "\\'")}')" class="w-full bg-secondary text-on-secondary py-3 rounded-xl font-black text-xs uppercase shadow-md active-scale hover:bg-secondary/90 transition-colors">
                                     Pay Full Balance
                                 </button>
                             </div>
-                            <div class="space-y-1.5 pl-2 border-l-2 border-border-subtle">
+                            <div class="space-y-1.5 pl-2 border-l-2 border-primary/20">
                                 ${data.items.map(t => `
                                     <div class="bg-surface border border-border-subtle p-3 rounded-xl flex justify-between items-center text-xs">
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-1">
                                                 <p class="font-black text-primary/60 truncate">${t.id}</p>
-                                                ${t._offline ? '<span class="text-[6px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                                                ${t._offline ? '<span class="text-[6px] bg-accent-yellow text-on-accent-yellow px-1 rounded uppercase">Pending</span>' : ''}
                                             </div>
                                             <p class="opacity-50 font-bold">${new Date(t.timestamp).toLocaleDateString()}</p>
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <p class="font-black text-on-surface mr-1">₱${t.total.toLocaleString()}</p>
-                                            <button onclick="payIndividualTicket('${t.id}')" class="bg-secondary text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase active-scale shadow-sm">
+                                            <button onclick="payIndividualTicket('${t.id}')" class="bg-primary text-on-primary px-3 py-1.5 rounded-lg text-[10px] font-black uppercase active-scale shadow-sm">
                                                 Pay
                                             </button>
-                                            <button onclick="viewTxDetails('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-primary/5 text-primary rounded-lg active-scale">
+                                            <button onclick="viewTxDetails('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale">
                                                 <span class="material-symbols-outlined text-[18px]">visibility</span>
                                             </button>
                                         </div>
@@ -1296,7 +1353,7 @@
             } else if (activeLedgerTab === 'expense') {
                 const expenses = state.transactions.filter(t => t.type === 'EX').reverse();
                 const totalExp = expenses.reduce((a, b) => a + b.total, 0);
-                sumHtml = `<div class="bg-error p-4 rounded-xl text-white shadow-md">
+                sumHtml = `<div class="bg-error p-4 rounded-xl text-on-error shadow-md">
                             <p class="text-[9px] font-bold uppercase opacity-70">Total Expenses</p>
                             <h3 class="text-xl font-black">₱${totalExp.toLocaleString()}</h3>
                           </div>`;
@@ -1305,7 +1362,7 @@
                         <div>
                             <div class="flex items-center gap-1">
                                 <p class="font-black text-sm text-error">${t.id}</p>
-                                ${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                                ${t._offline ? '<span class="text-[7px] bg-accent-yellow text-on-accent-yellow px-1 rounded uppercase">Pending</span>' : ''}
                             </div>
                             <p class="text-xs font-bold text-on-surface">${t.desc}</p>
                         </div>
@@ -1354,7 +1411,6 @@
         }
 
         function payFullBalance(customerName) {
-            // Case-insensitive filtering for payment
             const normalizedName = customerName.trim().toLowerCase();
             const credits = state.transactions.filter(t => 
                 t.type === 'CR' && 
@@ -1416,9 +1472,9 @@
             if (lowStockItems.length > 0) {
                 alertDiv.classList.remove('hidden');
                 insightList.innerHTML = lowStockItems.map(p => `
-                    <div class="flex justify-between items-center bg-white/50 p-2 rounded-lg border border-yellow-200">
-                        <span class="text-xs font-bold text-yellow-900">${p.name}</span>
-                        <span class="text-xs font-black text-error">${p.stock} left</span>
+                    <div class="flex justify-between items-center bg-surface p-2 rounded-lg border border-accent-yellow shadow-sm">
+                        <span class="text-xs font-bold text-on-surface">${p.name}</span>
+                        <span class="text-xs font-black text-secondary">${p.stock} left</span>
                     </div>
                 `).join('');
             } else {
@@ -1427,7 +1483,6 @@
 
             const now = new Date();
             let label = "Today";
-            
             let periodTransactions = state.transactions;
 
             if (insightPeriod === 'day') {
@@ -1492,7 +1547,7 @@
                     <div>
                         <div class="flex items-center gap-1">
                             <p class="font-black text-xs text-primary">${t.id}</p>
-                            <span class="text-[6px] px-1 rounded uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">
+                            <span class="text-[6px] px-1 rounded uppercase font-bold ${t.type === 'CR' ? 'bg-secondary text-on-secondary' : t.type === 'EX' ? 'bg-error text-on-error' : 'bg-primary/10 text-primary'}">
                                 ${t.type === 'SA' ? 'Sale' : t.type === 'CR' ? 'Credit' : t.type === 'EX' ? 'Expense' : 'Settle'}
                             </span>
                         </div>
@@ -1500,7 +1555,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span>
-                        <button onclick="viewTxDetails('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-primary/10 text-primary rounded-lg active-scale">
+                        <button onclick="viewTxDetails('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale hover:bg-primary hover:text-on-primary transition-colors">
                             <span class="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
                     </div>
@@ -1515,7 +1570,7 @@
             lastTransactionId = id;
             document.getElementById('txmtitle').innerText = tx.id;
             let html = `
-                <div class="p-3 bg-primary/5 rounded-xl border border-primary/10 mb-4">
+                <div class="p-3 bg-primary-container/20 rounded-xl border border-primary/10 mb-4">
                     <div class="flex justify-between text-xs mb-1"><span class="font-bold opacity-60">Date</span><span class="font-black">${new Date(tx.timestamp).toLocaleString()}</span></div>
                     <div class="flex justify-between text-xs mb-1"><span class="font-bold opacity-60">Type</span><span class="font-black uppercase">${tx.type === 'SA' ? 'Sale' : tx.type === 'CR' ? 'Credit' : tx.type === 'EX' ? 'Expense' : 'Settlement'}</span></div>
                     ${tx.customer ? `<div class="flex justify-between text-xs"><span class="font-bold opacity-60">Customer</span><span class="font-black">${tx.customer}</span></div>` : ''}
@@ -1536,7 +1591,7 @@
             } else if (tx.settledTickets) {
                  html += '<div class="space-y-2 mb-4"><p class="text-[10px] font-black uppercase text-primary/60">Settled Tickets:</p>';
                  tx.settledTickets.forEach(st => {
-                    html += `<div class="p-2 border border-border-subtle rounded-lg mb-1">
+                    html += `<div class="p-2 border border-border-subtle rounded-lg mb-1 bg-surface-container/30">
                         <div class="flex justify-between items-center text-xs border-b border-border-subtle pb-1 mb-1">
                             <span class="font-bold">${st.id}</span>
                             <span class="font-black">₱${st.total.toLocaleString()}</span>
@@ -1554,9 +1609,9 @@
                  html += '</div>';
             }
             html += `
-                <div class="flex justify-between items-center p-3 ${tx.type === 'EX' ? 'bg-error/10' : 'bg-secondary/10'} rounded-xl">
-                    <span class="text-sm font-black ${tx.type === 'EX' ? 'text-error' : 'text-secondary'}">TOTAL</span>
-                    <span class="text-xl font-black ${tx.type === 'EX' ? 'text-error' : 'text-secondary'}">₱${tx.total.toLocaleString()}</span>
+                <div class="flex justify-between items-center p-3 ${tx.type === 'EX' ? 'bg-error/10' : 'bg-primary/10'} rounded-xl">
+                    <span class="text-sm font-black ${tx.type === 'EX' ? 'text-error' : 'text-primary'}">TOTAL</span>
+                    <span class="text-xl font-black ${tx.type === 'EX' ? 'text-error' : 'text-primary'}">₱${tx.total.toLocaleString()}</span>
                 </div>
             `;
             document.getElementById('txdetail').innerHTML = html;
@@ -1575,22 +1630,19 @@
             openPinModal({ action: 'delete', id: lastTransactionId });
         }
 
-        // --- Fixed Deletion Logic ---
         async function deleteTransaction(id) {
             const tx = state.transactions.find(t => t.id === id);
             if (!tx) return;
 
-            // Direct Cloud Deletion Attempt if online
             if (navigator.onLine) {
                 try {
                     await fbDelete('transactions', id);
                     showToast('Cloud record deleted', 'success');
                 } catch (e) {
-                    console.error("Cloud deletion failed, queued for offline sync", e);
+                    console.error("Cloud deletion failed", e);
                 }
             }
 
-            // Restoration of stock: Loop through items and update products
             if (['SA', 'CR', 'SA_CREDIT_INDIVIDUAL'].includes(tx.type) && tx.items) {
                 tx.items.forEach(item => {
                     const p = state.inventory.find(inv => inv.id === item.id);
@@ -1613,10 +1665,7 @@
                 });
             }
 
-            // Update local state immediately
             state.transactions = state.transactions.filter(t => t.id !== id);
-            
-            // Queue the delete task as backup/sync logic
             queueAction('delete', 'transactions', { id: id });
             
             sync();
@@ -1624,7 +1673,7 @@
             renderLedger();
             renderInsights();
             closeModal('mod-tx');
-            showToast('Transaction Voided & Stock Restored', 'success');
+            showToast('Transaction Voided', 'success');
         }
 
         // --- Receipt Logic ---
@@ -1752,7 +1801,7 @@
             const c = document.getElementById('toast-container');
             if (!c) return;
             const toast = document.createElement('div');
-            toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`;
+            toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-primary' : t === 'error' ? 'bg-error' : 'bg-primary'}`;
             toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${m}</span>`;
             c.appendChild(toast);
             requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0'));
