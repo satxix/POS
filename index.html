@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -91,7 +92,7 @@
         #inv-cam-area canvas { position: absolute; top: 0; left: 0; display: none; }
         .low-stock-row { border-left: 4px solid #ba1a1a !important; }
         .ledger-tab-active { background-color: #1e3a5f; color: white; }
-        .receipt-container { font-family: 'Courier New', Courier, monospace; }
+        .receipt-container { font-family: 'Courier New', Courier, monospace; background-color: white; padding: 20px; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .animate-spin-custom { animation: spin 1s linear infinite; }
         @media print {
@@ -228,7 +229,13 @@
 </div>
 <!-- INSIGHTS -->
 <div class="screen-transition hidden p-4 max-w-[600px] mx-auto" id="screen-insights">
-<h2 class="text-xl font-black text-primary mb-4 uppercase">Analytics &amp; Reports</h2>
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-black text-primary uppercase">Analytics &amp; Reports</h2>
+<button class="bg-secondary text-white h-10 px-4 rounded-xl font-bold text-[10px] uppercase flex items-center gap-2 active-scale shadow-md" onclick="exportSalesCSV()">
+<span class="material-symbols-outlined text-[18px]">download</span>
+            Export CSV
+        </button>
+</div>
 <div class="flex bg-surface-container p-1 rounded-xl mb-4">
 <button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="insight-tab-day" onclick="switchInsightPeriod('day')">Day</button>
 <button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="insight-tab-month" onclick="switchInsightPeriod('month')">Month</button>
@@ -606,12 +613,17 @@
 <p class="text-[10px]">Please come again.</p>
 </div>
 </div>
-<div class="flex gap-2 mt-6 no-print">
+<div class="flex flex-col gap-2 mt-6 no-print">
+<div class="flex gap-2">
 <button class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="window.print()">
-<span class="material-symbols-outlined">print</span> Print
-            </button>
-<button class="flex-1 bg-border-subtle text-on-surface font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="closeModal('receipt-modal')">
-<span class="material-symbols-outlined">close</span> Close
+<span class="material-symbols-outlined text-[20px]">print</span> Print
+                </button>
+<button class="flex-1 bg-secondary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" id="share-receipt-btn" onclick="shareReceipt()">
+<span class="material-symbols-outlined text-[20px]">image</span> Share Receipt
+                </button>
+</div>
+<button class="w-full bg-border-subtle text-on-surface font-bold py-3 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="closeModal('receipt-modal')">
+<span class="material-symbols-outlined text-[20px]">close</span> Close
             </button>
 </div>
 </div>
@@ -1705,6 +1717,29 @@
         renderInsights();
     }
 
+    function getPeriodTransactions() {
+        const now = new Date();
+        let periodTransactions = state.transactions;
+
+        if (insightPeriod === 'day') {
+            const todayStr = now.toISOString().split('T')[0];
+            periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(todayStr));
+        } else if (insightPeriod === 'month') {
+            const monthStr = now.toISOString().slice(0, 7);
+            periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(monthStr));
+        } else if (insightPeriod === 'range') {
+            const start = document.getElementById('insight-start-date').value;
+            const end = document.getElementById('insight-end-date').value;
+            if (start && end) {
+                periodTransactions = periodTransactions.filter(t => {
+                    const ts = t.timestamp.split('T')[0];
+                    return ts >= start && ts <= end;
+                });
+            }
+        }
+        return periodTransactions;
+    }
+
     function renderInsights() {
         const lowStockItems = state.inventory.filter(p => p.stock <= 5);
         const alertDiv = document.getElementById('restock-alerts-container');
@@ -1723,29 +1758,16 @@
 
         const now = new Date();
         let label = "Today";
-        
-        let periodTransactions = state.transactions;
+        let periodTransactions = getPeriodTransactions();
 
         if (insightPeriod === 'day') {
-            const todayStr = now.toISOString().split('T')[0];
-            periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(todayStr));
             label = "Today";
         } else if (insightPeriod === 'month') {
-            const monthStr = now.toISOString().slice(0, 7);
-            periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(monthStr));
             label = "This Month";
         } else if (insightPeriod === 'range') {
             const start = document.getElementById('insight-start-date').value;
             const end = document.getElementById('insight-end-date').value;
-            if (start && end) {
-                periodTransactions = periodTransactions.filter(t => {
-                    const ts = t.timestamp.split('T')[0];
-                    return ts >= start && ts <= end;
-                });
-                label = `From ${start} to ${end}`;
-            } else {
-                label = "Select Range";
-            }
+            label = start && end ? `From ${start} to ${end}` : "Select Range";
         }
 
         const salesTransactions = periodTransactions.filter(t => ['SA', 'SA_SETTLEMENT', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
@@ -1802,6 +1824,102 @@
                 </div>
             </div>
         `).join('') || `<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No records for this period</div>`;
+    }
+
+    // --- Share and Export Logic ---
+    async function shareReceipt() {
+        const tx = state.transactions.find(t => t.id === lastTransactionId);
+        if (!tx) return;
+
+        const receiptEl = document.getElementById('receipt-content');
+        if (!receiptEl) return;
+
+        const shareBtn = document.getElementById('share-receipt-btn');
+        const originalBtnHtml = shareBtn.innerHTML;
+        shareBtn.disabled = true;
+        shareBtn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Processing...`;
+
+        try {
+            const canvas = await html2canvas(receiptEl, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                backgroundColor: "#ffffff"
+            });
+
+            canvas.toBlob(async (blob) => {
+                if (!blob) throw new Error("Canvas to Blob conversion failed");
+
+                const fileName = `Villacart_Receipt_${tx.id}.png`;
+                const file = new File([blob], fileName, { type: 'image/png' });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: `Receipt ${tx.id}`,
+                            text: `Transaction: ${tx.id} - Date: ${new Date(tx.timestamp).toLocaleDateString()}`
+                        });
+                        showToast("Shared successfully", "success");
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error("Share failed", err);
+                            showToast("Sharing failed", "error");
+                        }
+                    }
+                } else {
+                    // Fallback for non-sharing browsers
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast("Downloaded as Image", "info");
+                }
+                
+                shareBtn.disabled = false;
+                shareBtn.innerHTML = originalBtnHtml;
+            }, 'image/png');
+        } catch (error) {
+            console.error("Receipt capture failed", error);
+            showToast("Failed to generate image", "error");
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = originalBtnHtml;
+        }
+    }
+
+    function exportSalesCSV() {
+        const trans = getPeriodTransactions();
+        if (trans.length === 0) {
+            showToast("No data to export", "error");
+            return;
+        }
+
+        const headers = ["Date", "Transaction ID", "Type", "Customer", "Total"];
+        const rows = trans.map(t => [
+            new Date(t.timestamp).toLocaleDateString(),
+            t.id,
+            t.type === 'SA' ? 'Sale' : t.type === 'CR' ? 'Credit' : t.type === 'EX' ? 'Expense' : 'Settlement',
+            t.customer || (t.desc || 'N/A'),
+            t.total
+        ]);
+
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        const dateName = new Date().toISOString().split('T')[0];
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Villacart_Sales_${insightPeriod}_${dateName}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("CSV Exported", "success");
     }
 
     // --- Transaction Detail Logic ---
@@ -1911,6 +2029,7 @@
     function viewReceipt(id) {
         const tx = state.transactions.find(t => t.id === id);
         if (!tx) return;
+        lastTransactionId = id; // Store for sharing
         if (tx.type === 'SA_SETTLEMENT' || tx.type === 'SA_CREDIT_INDIVIDUAL') {
             buildSettlementRcpt(tx);
             return;
