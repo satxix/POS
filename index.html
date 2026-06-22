@@ -141,8 +141,8 @@
 </div>
 <div class="flex items-center gap-2 px-1 text-[9px] font-bold uppercase tracking-widest text-primary/60">
 <span class="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
-                    Scanner Active
-                </div>
+                Scanner Active
+            </div>
 </div>
 <div class="bg-surface rounded-2xl border border-border-subtle flex flex-col h-[calc(100vh-210px)] shadow-sm overflow-hidden">
 <div class="px-4 py-3 bg-primary text-on-primary flex justify-between items-center">
@@ -166,8 +166,8 @@
 </div>
 <button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg hover:bg-secondary/90" onclick="openReview()">
 <span class="material-symbols-outlined text-[24px]">payments</span>
-                        Process Payment
-                    </button>
+                    Process Payment
+                </button>
 </div>
 </div>
 </div>
@@ -181,8 +181,8 @@
 </div>
 <button class="bg-primary text-on-primary h-11 px-4 rounded-xl font-bold text-xs flex items-center gap-2 active-scale shadow-md" onclick="openProductModal()">
 <span class="material-symbols-outlined text-[18px]">add_circle</span>
-                        Add Product
-                    </button>
+                    Add Product
+                </button>
 </div>
 <div class="hidden bg-yellow-50 border-2 border-yellow-200 p-4 rounded-xl flex items-center gap-3" id="low-stock-alert">
 <span class="material-symbols-outlined text-yellow-600">warning</span>
@@ -204,8 +204,8 @@
 </div>
 <button class="bg-error text-white h-10 px-4 rounded-xl font-bold text-[10px] uppercase flex items-center gap-2 active-scale shadow-md" onclick="openExpenseModal()">
 <span class="material-symbols-outlined text-[16px]">remove_circle</span>
-                    Record Expense
-                </button>
+                Record Expense
+            </button>
 </div>
 <div class="flex bg-surface-container p-1 rounded-xl mb-6">
 <button class="flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="tab-cash" onclick="switchLedgerTab('cash')">Cash Sales</button>
@@ -252,7 +252,8 @@
 <span>Urgent Restock Needed</span>
 </div>
 <div class="flex flex-col gap-1.5" id="insight-low-stock-list"></div>
-</div></div>
+</div>
+</div>
 </main>
 <!-- Navigation -->
 <nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:top-14 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-6">
@@ -438,11 +439,11 @@
 <div class="flex flex-col gap-3 w-full">
 <button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg" onclick="printReceiptFromSuccess()">
 <span class="material-symbols-outlined">print</span>
-                    Print Receipt
-                </button>
+                Print Receipt
+            </button>
 <button class="w-full bg-surface-container text-primary h-14 rounded-xl font-bold text-base active-scale" onclick="closeSuccessAndNewSale()">
-                    New Sale
-                </button>
+                New Sale
+            </button>
 </div>
 </div>
 </div>
@@ -451,7 +452,7 @@
 <div class="bg-white w-full max-w-[320px] p-6 shadow-2xl relative mb-10 mt-10">
 <button class="absolute -top-12 right-0 text-white flex items-center gap-2 font-bold no-print" onclick="closeModal('receipt-modal')">
 <span class="material-symbols-outlined">close</span> CLOSE
-            </button>
+        </button>
 <div class="receipt-container text-[12px] text-black" id="receipt-content">
 <div class="text-center mb-4">
 <h3 class="font-bold text-lg uppercase">Villacart</h3>
@@ -519,10 +520,10 @@
 <div class="flex gap-2 mt-6 no-print">
 <button class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="window.print()">
 <span class="material-symbols-outlined">print</span> Print
-                </button>
+            </button>
 <button class="flex-1 bg-border-subtle text-on-surface font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="closeModal('receipt-modal')">
 <span class="material-symbols-outlined">close</span> Close
-                </button>
+            </button>
 </div>
 </div>
 </div>
@@ -537,10 +538,10 @@
 <div class="flex gap-2 mt-6">
 <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="printTx()">
 <span class="material-symbols-outlined text-[20px]">print</span> Print
-                </button>
+            </button>
 <button class="flex-1 bg-error text-white font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="confirmDeleteTransaction()">
 <span class="material-symbols-outlined text-[20px]">delete</span> Delete
-                </button>
+            </button>
 </div>
 </div>
 </div>
@@ -1467,13 +1468,38 @@
         }
 
         function deleteTransaction(id) {
+            // Find the transaction in state before removal
+            const txToDelete = state.transactions.find(t => t.id === id);
+            
+            if (txToDelete) {
+                // Restore inventory stock if applicable
+                if (txToDelete.items && txToDelete.items.length > 0 && txToDelete.type !== 'SA_SETTLEMENT') {
+                    txToDelete.items.forEach(item => {
+                        const product = state.inventory.find(inv => inv.id === item.id);
+                        if (product) {
+                            const restoreQty = item.qty * (item.deduct || 1);
+                            product.stock += restoreQty;
+                            // Queue cloud update for stock
+                            queueAction('update', 'inventory', product);
+                        }
+                    });
+                }
+            }
+
+            // Remove from local state
             state.transactions = state.transactions.filter(t => t.id !== id);
+            
+            // Queue deletion task
             queueAction('delete', 'transactions', { id });
+            
+            // Persist and Refresh UI
             sync();
+            renderInventory();
             renderLedger();
             renderInsights();
+            
             closeModal('mod-tx');
-            showToast('Transaction Deleted', 'info');
+            showToast('Transaction Voided & Stock Restored', 'info');
         }
 
         // --- Receipt Logic ---
