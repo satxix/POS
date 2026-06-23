@@ -4,44 +4,6 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
 <title>Villacart POS: Insights Optimized</title>
-<!-- PWA & Mobile App Meta Tags -->
-<meta content="yes" name="mobile-web-app-capable"/>
-<meta content="yes" name="apple-mobile-web-app-capable"/>
-<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
-<meta content="Villacart POS" name="apple-mobile-web-app-title"/>
-<meta content="#1e3a5f" name="theme-color"/>
-<!-- Icons -->
-<link href="https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py" rel="icon" type="image/png"/>
-<link href="https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py" rel="apple-touch-icon"/>
-<!-- Inline Web Manifest (Base64 Encoded for PWABuilder compatibility in single-file) -->
-<script>
-        (function() {
-            const manifest = {
-                "name": "Villacart POS",
-                "short_name": "Villacart",
-                "description": "High-density POS system for retail management",
-                "start_url": ".",
-                "display": "standalone",
-                "background_color": "#f0f4f8",
-                "theme_color": "#1e3a5f",
-                "icons": [
-                    {
-                        "src": "https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py",
-                        "sizes": "512x512",
-                        "type": "image/png",
-                        "purpose": "any maskable"
-                    }
-                ]
-            };
-            const stringManifest = JSON.stringify(manifest);
-            const blob = new Blob([stringManifest], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(blob);
-            const link = document.createElement('link');
-            link.rel = 'manifest';
-            link.href = 'data:application/json;base64,' + btoa(stringManifest);
-            document.head.appendChild(link);
-        })();
-    </script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -118,7 +80,6 @@
             color: #0b1c30;
             overflow-x: hidden;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            padding-top: env(safe-area-inset-top);
         }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -149,10 +110,10 @@
 <!-- Toast Notification Container -->
 <div class="fixed top-4 right-4 z-[250] pointer-events-none flex flex-col gap-2" id="toast-container"></div>
 <!-- Top Navigation Bar -->
-<header class="bg-primary text-on-primary fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 shadow-md pt-[env(safe-area-inset-top)] h-[calc(3.5rem+env(safe-area-inset-top))]">
+<header class="bg-primary text-on-primary fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 shadow-md">
 <div class="flex items-center gap-2">
 <div class="bg-white/20 p-1.5 rounded-lg">
-<img alt="Villacart Icon" class="w-5 h-5 object-contain invert brightness-200" src="https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py"/>
+<span class="material-symbols-outlined text-white text-[20px]">diamond</span>
 </div>
 <h1 class="font-bold text-base tracking-tight uppercase">Villacart POS</h1>
 </div>
@@ -166,7 +127,7 @@
 <button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors">notifications</button>
 </div>
 </header>
-<main class="pt-[calc(3.5rem+env(safe-area-inset-top))] pb-20 md:pb-6 md:pl-20 min-h-screen">
+<main class="pt-14 pb-20 md:pb-6 md:pl-20 min-h-screen">
 <!-- TERMINAL SCREEN -->
 <div class="screen-transition max-w-[500px] mx-auto p-3 flex flex-col gap-3" id="screen-pos">
 <div class="flex flex-col gap-2">
@@ -338,7 +299,7 @@
 </div>
 </main>
 <!-- Navigation -->
-<nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:top-14 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-6 pb-[env(safe-area-inset-bottom)] h-[calc(4rem+env(safe-area-inset-bottom))]">
+<nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:top-14 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-6">
 <button class="nav-item flex flex-col items-center justify-center gap-1 text-primary" data-screen="pos" onclick="switchScreen('pos')">
 <span class="material-symbols-outlined text-[24px]">point_of_sale</span>
 <span class="text-[9px] font-bold uppercase">Terminal</span>
@@ -686,55 +647,6 @@
 </div>
 </div>
 <script>
-    // --- Service Worker & PWA Registration ---
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            const swScript = `
-                const CACHE_NAME = 'villacart-pos-v6';
-                const urlsToCache = [
-                    '/',
-                    window.location.href,
-                    'https://cdn.tailwindcss.com?plugins=forms,container-queries',
-                    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
-                    'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap',
-                    'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js',
-                    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-                    'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
-                    'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
-                ];
-
-                self.addEventListener('install', event => {
-                    event.waitUntil(
-                        caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-                    );
-                });
-
-                self.addEventListener('fetch', event => {
-                    event.respondWith(
-                        caches.match(event.request).then(response => response || fetch(event.request))
-                    );
-                });
-
-                self.addEventListener('activate', event => {
-                    event.waitUntil(
-                        caches.keys().then(cacheNames => {
-                            return Promise.all(
-                                cacheNames.filter(cacheName => cacheName !== CACHE_NAME).map(cacheName => caches.delete(cacheName))
-                            );
-                        })
-                    );
-                });
-            `;
-            const blob = new Blob([swScript], {type: 'text/javascript'});
-            const swUrl = URL.createObjectURL(blob);
-            navigator.serviceWorker.register(swUrl).then(reg => {
-                console.log('SW Registered');
-            }).catch(err => {
-                console.error('SW Registration Failed', err);
-            });
-        });
-    }
-
     // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyBSRVxGcKllY04Ghoy9e_2ZKId3D1Mx7bM",
@@ -759,7 +671,7 @@
     // --- Data Storage ---
     const DB_KEY = 'saph_pos_v5_villacart';
     const QUEUE_KEY = 'saph_pos_v5_villacart_queue';
-    const FAV_KEY = 'villacart_favorites'; 
+    const FAV_KEY = 'villacart_favorites'; // New Key for local persistence
     
     let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
         inventory: [],
@@ -768,7 +680,10 @@
         favorites: new Array(8).fill(null)
     };
     
+    // Safety check for favorites if user has old localstorage
     if (!state.favorites) state.favorites = new Array(8).fill(null);
+    
+    // Load favorites from its own storage
     const localFavs = JSON.parse(localStorage.getItem(FAV_KEY));
     if (localFavs) state.favorites = localFavs;
 
@@ -799,7 +714,7 @@
     function sync() { 
         localStorage.setItem(DB_KEY, JSON.stringify(state)); 
         localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
-        localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites)); 
+        localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites)); // Save favorites separately
         updateQueueBadge();
     }
 
@@ -809,15 +724,22 @@
                 fbGet('inventory'),
                 fbGet('transactions')
             ]);
+
+            // --- INVENTORY SYNC PROTECTION ---
             const offlineProdIds = new Set(state.inventory.filter(p => p._offline).map(p => p.id));
             const pendingInv = state.inventory.filter(p => p._offline);
             const filteredCloudInv = inv.filter(p => !offlineProdIds.has(p.id));
             state.inventory = [...pendingInv, ...filteredCloudInv];
+            
+            // --- TRANSACTION SYNC PROTECTION ---
             const offlineIds = new Set(state.transactions.filter(t => t._offline).map(t => t.id));
             const deletedIds = offlineQueue.filter(op => op.type === 'delete' && op.table === 'transactions').map(op => op.data.id);
+            
             const pendingTrans = state.transactions.filter(t => t._offline && !deletedIds.includes(t.id));
             const filteredCloudTrans = trans.filter(t => !offlineIds.has(t.id) && !deletedIds.includes(t.id));
+            
             state.transactions = [...pendingTrans, ...filteredCloudTrans].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
             sync();
             renderInventory();
             renderLedger();
@@ -840,11 +762,14 @@
                 const batch = db.batch();
                 const syncedTransIds = [];
                 const syncedInvIds = [];
+
                 for (const task of offlineQueue) {
                     const col = task.table;
                     const targetId = task.data.id;
                     if (!targetId) continue;
+                    
                     const docRef = db.collection(col).doc(targetId);
+                    
                     if (task.type === 'add' || task.type === 'new_transaction') {
                         const dataToSync = { ...task.data };
                         delete dataToSync._offline;
@@ -863,19 +788,25 @@
                     }
                 }
                 await batch.commit();
+                
                 state.transactions.forEach(t => {
                     if (syncedTransIds.includes(t.id)) delete t._offline;
                 });
                 state.inventory.forEach(p => {
                     if (syncedInvIds.includes(p.id)) delete p._offline;
                 });
+                
                 offlineQueue = [];
             }
             sync();
             showToast("Cloud sync complete", "success");
         } catch (err) {
             console.error("Sync failed", err);
-            showToast(`Sync Error`, "error");
+            let errMsg = err.message || err.code || "Unknown Error";
+            if (err.code === 'permission-denied') {
+                errMsg += ". Check Firebase Security Rules.";
+            }
+            showToast(`Sync Error: ${errMsg}`, "error");
         } finally {
             isSyncing = false;
             updateSyncUI();
@@ -933,7 +864,9 @@
         }
         const product = state.inventory.find(p => p.barcode === barcode);
         if (product) {
+            // Check for pack option
             const hasPack = product.packPrice && product.packPrice > 0;
+            
             if (hasPack) {
                 switchScreen('pos');
                 openScanChoiceModal(product);
@@ -942,16 +875,18 @@
                 switchScreen('pos');
                 showToast(`Added: ${product.name}`, "success");
             }
+            
             const searchInput = document.getElementById('pos-search');
             if (searchInput) {
                 searchInput.value = "";
                 document.getElementById('search-results-container').classList.add('hidden');
             }
         } else {
-            showToast(`Not found: ${barcode}`, "error");
+            showToast(`Product not found: ${barcode}`, "error");
         }
     }
 
+    // --- Scan Choice Modal ---
     function openScanChoiceModal(product) {
         const modal = document.getElementById('scan-choice-modal');
         const nameDisplay = document.getElementById('scan-choice-name');
@@ -960,15 +895,28 @@
         const packBtn = document.getElementById('scan-choice-pack-btn');
         const packPrice = document.getElementById('scan-choice-pack-price');
         const packLabel = document.getElementById('scan-choice-pack-label');
+
         nameDisplay.innerText = product.name;
         piecePrice.innerText = `₱${product.price.toLocaleString()}`;
         packPrice.innerText = `₱${(product.packPrice || 0).toLocaleString()}`;
         packLabel.innerText = `Wholesale (${product.packSize || 0} pcs)`;
-        pieceBtn.onclick = () => { addToCart(product.id, 'piece'); closeModal('scan-choice-modal'); };
-        packBtn.onclick = () => { addToCart(product.id, 'pack'); closeModal('scan-choice-modal'); };
+
+        pieceBtn.onclick = () => {
+            addToCart(product.id, 'piece');
+            closeModal('scan-choice-modal');
+            showToast(`Added: ${product.name} (Piece)`, "success");
+        };
+
+        packBtn.onclick = () => {
+            addToCart(product.id, 'pack');
+            closeModal('scan-choice-modal');
+            showToast(`Added: ${product.name} (Pack)`, "success");
+        };
+
         modal.classList.replace('hidden', 'flex');
     }
 
+    // --- Favorite Logic ---
     function toggleFavoritesMode() {
         favoritesEditMode = !favoritesEditMode;
         const btn = document.getElementById('fav-mode-btn');
@@ -981,29 +929,51 @@
     function renderFavorites() {
         const grid = document.getElementById('favorites-grid');
         if (!grid) return;
+        
         grid.innerHTML = state.favorites.map((fav, index) => {
             if (!fav) {
-                return `<button onclick="openFavoritesPicker(${index})" class="h-14 border-2 border-dashed border-primary/10 rounded-xl flex flex-col items-center justify-center gap-0.5 active-scale group hover:border-primary/30 transition-colors">
-                    <span class="material-symbols-outlined text-[18px] text-primary/30 group-hover:text-primary transition-colors">add</span>
-                    <span class="text-[7px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
+                return `
+                    <button onclick="openFavoritesPicker(${index})" class="h-14 border-2 border-dashed border-primary/10 rounded-xl flex flex-col items-center justify-center gap-0.5 active-scale group hover:border-primary/30 transition-colors">
+                        <span class="material-symbols-outlined text-[18px] text-primary/30 group-hover:text-primary transition-colors">add</span>
+                        <span class="text-[7px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
+                    </button>
+                `;
+            }
+            
+            const product = state.inventory.find(p => p.id === fav.id);
+            if (!product) {
+                return `<button onclick="openFavoritesPicker(${index})" class="h-14 border-2 border-dashed border-error/20 rounded-xl flex flex-col items-center justify-center gap-0.5 active-scale text-error/50">
+                    <span class="material-symbols-outlined text-[16px]">error</span>
+                    <span class="text-[6px] font-black uppercase">Missing</span>
                 </button>`;
             }
-            const product = state.inventory.find(p => p.id === fav.id);
-            if (!product) return `<button onclick="openFavoritesPicker(${index})" class="h-14 border-2 border-dashed border-error/20 rounded-xl flex items-center justify-center text-error/50 active-scale"><span class="material-symbols-outlined text-[16px]">error</span></button>`;
-            return `<button onclick="handleFavoriteClick(${index})" class="relative h-14 bg-surface border border-border-subtle rounded-xl flex flex-col items-center justify-center px-1 overflow-hidden active-scale shadow-sm">
+
+            return `
+                <button onclick="handleFavoriteClick(${index})" class="relative h-14 bg-surface border border-border-subtle rounded-xl flex flex-col items-center justify-center px-1 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all">
                     <span class="text-[8px] font-black text-primary leading-tight line-clamp-2 text-center uppercase">${product.name}</span>
                     <span class="text-[9px] font-black text-secondary mt-0.5">₱${product.price.toLocaleString()}</span>
-                    ${favoritesEditMode ? `<div class="absolute inset-0 bg-primary/80 flex items-center justify-center text-white"><span class="material-symbols-outlined text-[20px]">edit</span></div>` : ''}
-                </button>`;
+                    ${favoritesEditMode ? `
+                        <div class="absolute inset-0 bg-primary/80 flex items-center justify-center text-white">
+                            <span class="material-symbols-outlined text-[20px]">edit</span>
+                        </div>
+                    ` : ''}
+                </button>
+            `;
         }).join('');
     }
 
     function handleFavoriteClick(index) {
-        if (favoritesEditMode) { openFavoritesPicker(index); } else {
+        if (favoritesEditMode) {
+            openFavoritesPicker(index);
+        } else {
             const fav = state.favorites[index];
             if (fav) {
                 const product = state.inventory.find(p => p.id === fav.id);
-                if (product && product.packPrice && product.packPrice > 0) { openScanChoiceModal(product); } else { addToCart(fav.id, 'piece'); }
+                if (product && product.packPrice && product.packPrice > 0) {
+                    openScanChoiceModal(product);
+                } else {
+                    addToCart(fav.id, 'piece');
+                }
             }
         }
     }
@@ -1019,24 +989,42 @@
     function renderFavPickerList(query = '') {
         const list = document.getElementById('fav-picker-list');
         const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
+        
+        if (filtered.length === 0) {
+            list.innerHTML = `<div class="p-4 text-center text-xs opacity-50 font-bold uppercase">No products found</div>`;
+            return;
+        }
+
         list.innerHTML = filtered.map(p => `
             <button onclick="assignFavorite('${p.id}')" class="w-full p-3 bg-surface-container/30 border border-border-subtle rounded-xl flex justify-between items-center active-scale hover:bg-primary-container transition-colors">
-                <div class="text-left"><p class="text-xs font-black text-primary uppercase">${p.name}</p></div>
+                <div class="text-left">
+                    <p class="text-xs font-black text-primary uppercase">${p.name}</p>
+                    <p class="text-[10px] font-bold text-on-surface-variant">${p.category || 'General'}</p>
+                </div>
                 <p class="text-xs font-black text-secondary">₱${p.price.toLocaleString()}</p>
             </button>
-        `).join('') || '<div class="p-4 text-center text-xs opacity-50">No matches</div>';
+        `).join('');
     }
 
     function assignFavorite(productId) {
+        if (currentFavSlotIndex === null) return;
         state.favorites[currentFavSlotIndex] = { id: productId };
-        sync(); renderFavorites(); closeModal('fav-picker-modal');
+        sync();
+        renderFavorites();
+        closeModal('fav-picker-modal');
+        showToast("Slot updated", "success");
     }
 
     function clearFavoriteSlot() {
+        if (currentFavSlotIndex === null) return;
         state.favorites[currentFavSlotIndex] = null;
-        sync(); renderFavorites(); closeModal('fav-picker-modal');
+        sync();
+        renderFavorites();
+        closeModal('fav-picker-modal');
+        showToast("Slot cleared", "info");
     }
 
+    // --- UI Updates ---
     function updateSyncUI() {
         const pill = document.getElementById('sync-pill');
         const dot = document.getElementById('sync-dot');
@@ -1044,15 +1032,25 @@
         const spinner = document.getElementById('sync-spinner');
         if (!pill) return;
         if (!navigator.onLine) {
-            pill.classList.replace('bg-white/10', 'bg-red-500/20'); dot.classList.replace('bg-green-400', 'bg-red-500');
-            text.innerText = "Offline"; spinner.classList.add('hidden'); return;
+            pill.classList.replace('bg-white/10', 'bg-red-500/20');
+            pill.classList.replace('border-white/20', 'border-red-500/40');
+            dot.classList.replace('bg-green-400', 'bg-red-500');
+            text.innerText = "Offline";
+            spinner.classList.add('hidden');
+            return;
         }
         if (isSyncing) {
-            dot.classList.add('hidden'); spinner.classList.remove('hidden'); spinner.classList.add('animate-spin-custom');
+            dot.classList.add('hidden');
+            spinner.classList.remove('hidden', 'animate-spin-custom');
+            spinner.classList.add('animate-spin-custom');
             text.innerText = "Syncing...";
         } else {
-            pill.classList.remove('bg-red-500/20'); pill.classList.add('bg-white/10'); dot.classList.remove('hidden');
-            dot.classList.replace('bg-red-500', 'bg-green-400'); spinner.classList.add('hidden'); text.innerText = "Online";
+            pill.classList.remove('bg-red-500/20', 'border-red-500/40');
+            pill.classList.add('bg-white/10', 'border-white/20');
+            dot.classList.remove('hidden');
+            dot.classList.replace('bg-green-400', 'bg-green-400');
+            spinner.classList.add('hidden');
+            text.innerText = "Online";
         }
         updateQueueBadge();
     }
@@ -1060,11 +1058,16 @@
     function updateQueueBadge() {
         const badge = document.getElementById('queue-badge');
         if (!badge) return;
-        if (offlineQueue.length > 0) { badge.innerText = offlineQueue.length; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
+        if (offlineQueue.length > 0) {
+            badge.innerText = offlineQueue.length;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
     }
 
-    window.addEventListener('online', () => { updateSyncUI(); syncNow(); });
-    window.addEventListener('offline', () => { updateSyncUI(); });
+    window.addEventListener('online', () => { updateSyncUI(); showToast("Online", "success"); syncNow(); });
+    window.addEventListener('offline', () => { updateSyncUI(); showToast("Offline Mode", "error"); });
 
     function switchScreen(id) {
         document.querySelectorAll('.screen-transition').forEach(s => s.classList.add('hidden'));
@@ -1072,7 +1075,8 @@
         if (targetScreen) targetScreen.classList.remove('hidden');
         document.querySelectorAll('.nav-item').forEach(n => {
             const isActive = n.dataset.screen === id;
-            n.classList.toggle('text-primary', isActive); n.classList.toggle('text-on-surface-variant', !isActive);
+            n.classList.toggle('text-primary', isActive);
+            n.classList.toggle('text-on-surface-variant', !isActive);
         });
         if (id === 'inventory') renderInventory();
         if (id === 'history') switchLedgerTab(activeLedgerTab);
@@ -1081,19 +1085,29 @@
     }
 
     function attemptInventoryAccess() {
-        if (!document.getElementById('screen-inventory').classList.contains('hidden')) { switchScreen('inventory'); return; }
+        if (!document.getElementById('screen-inventory').classList.contains('hidden')) {
+            switchScreen('inventory');
+            return;
+        }
         openPinModal("inventory");
     }
 
     function openPinModal(target) {
-        pinBuffer = ""; updatePinDots();
+        pinBuffer = "";
+        updatePinDots();
         const modal = document.getElementById('pin-modal');
         modal.classList.replace('hidden', 'flex');
+        const msg = document.getElementById('pin-modal-msg');
+        if (msg) msg.innerText = "Enter PIN to proceed";
         window._pinTarget = target;
     }
 
     function pressPin(num) {
-        if (pinBuffer.length < 4) { pinBuffer += num; updatePinDots(); if (pinBuffer.length === 4) setTimeout(validatePin, 150); }
+        if (pinBuffer.length < 4) {
+            pinBuffer += num;
+            updatePinDots();
+            if (pinBuffer.length === 4) setTimeout(validatePin, 150);
+        }
     }
 
     function updatePinDots() {
@@ -1105,13 +1119,24 @@
 
     function validatePin() {
         if (pinBuffer === MASTER_PIN) {
-            const target = window._pinTarget; closeModal('pin-modal');
-            if (target === 'inventory') { switchScreen('inventory'); } else if (target && target.action === 'delete') { deleteTransaction(target.id); }
-        } else { showToast('Incorrect PIN', 'error'); pinBuffer = ""; updatePinDots(); }
+            const target = window._pinTarget;
+            closeModal('pin-modal');
+            if (target === 'inventory') {
+                switchScreen('inventory');
+            } else if (target && typeof target === 'object' && target.action === 'delete') {
+                deleteTransaction(target.id);
+            }
+            showToast('Verified', 'success');
+        } else {
+            showToast('Incorrect PIN', 'error');
+            pinBuffer = "";
+            updatePinDots();
+        }
     }
 
     function clearPin() { pinBuffer = ""; updatePinDots(); }
 
+    // --- POS Logic ---
     function handlePosSearch(val) {
         const container = document.getElementById('search-results-container');
         const grid = document.getElementById('product-grid');
@@ -1120,18 +1145,28 @@
         if (filtered.length > 0) {
             container.classList.remove('hidden');
             grid.innerHTML = filtered.map(p => `
-                <div class="py-3 px-2 border-b border-border-subtle">
-                    <div class="flex items-center gap-2 mb-1"><h4 class="font-bold text-sm">${p.name}</h4></div>
+                <div class="py-3 px-2">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h4 class="font-bold text-sm text-on-surface">${p.name}</h4>
+                        <span class="text-[8px] font-bold uppercase bg-surface-container px-1 rounded">${p.category || 'Gen'}</span>
+                    </div>
                     <div class="flex gap-2">
                         <button onclick="addToCart('${p.id}', 'piece')" class="flex-1 bg-surface-container py-2 px-3 text-left rounded-lg active-scale">
                             <p class="text-[8px] uppercase font-bold opacity-50">Piece</p>
                             <p class="font-black text-xs text-primary">₱${p.price.toLocaleString()}</p>
                         </button>
-                        ${p.packPrice ? `<button onclick="addToCart('${p.id}', 'pack')" class="flex-1 bg-secondary/5 py-2 px-3 text-left rounded-lg active-scale"><p class="text-[8px] uppercase font-bold text-secondary">Pack</p><p class="font-black text-xs text-secondary">₱${p.packPrice.toLocaleString()}</p></button>` : ''}
+                        ${p.packPrice ? `
+                            <button onclick="addToCart('${p.id}', 'pack')" class="flex-1 bg-secondary/5 py-2 px-3 text-left rounded-lg active-scale">
+                                <p class="text-[8px] uppercase font-bold text-secondary">Pack (${p.packSize})</p>
+                                <p class="font-black text-xs text-secondary">₱${p.packPrice.toLocaleString()}</p>
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             `).join('');
-        } else { grid.innerHTML = '<div class="p-4 text-center text-xs opacity-50">No matches</div>'; }
+        } else {
+            grid.innerHTML = '<div class="p-4 text-center text-xs opacity-50">No matches</div>';
+        }
     }
 
     function addToCart(id, type) {
@@ -1139,11 +1174,21 @@
         if (!p) return;
         const cartId = `${id}-${type}`;
         const existing = state.cart.find(item => item.cartId === cartId);
-        if (existing) { existing.qty++; } else {
-            state.cart.push({ cartId, id: p.id, name: p.name, type, price: type === 'pack' ? p.packPrice : p.price, cost: p.cost, deduct: type === 'pack' ? p.packSize : 1, qty: 1 });
+        if (existing) {
+            existing.qty++;
+        } else {
+            state.cart.push({
+                cartId, id: p.id, name: p.name, type,
+                price: type === 'pack' ? p.packPrice : p.price,
+                cost: p.cost, 
+                deduct: type === 'pack' ? p.packSize : 1,
+                qty: 1
+            });
         }
-        document.getElementById('pos-search').value = '';
-        document.getElementById('search-results-container').classList.add('hidden');
+        const searchInput = document.getElementById('pos-search');
+        if (searchInput) searchInput.value = '';
+        const results = document.getElementById('search-results-container');
+        if (results) results.classList.add('hidden');
         updateCartUI();
     }
 
@@ -1151,37 +1196,70 @@
         const container = document.getElementById('cart-items');
         if (!container) return;
         if (state.cart.length === 0) {
-            container.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-20 py-10"><span class="material-symbols-outlined text-[48px]">shopping_basket</span><p class="text-xs font-black uppercase">Empty</p></div>`;
-            document.getElementById('cart-subtotal').innerText = '₱0.00'; document.getElementById('cart-total').innerText = '₱0.00';
+            container.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-20 py-10">
+                                    <span class="material-symbols-outlined text-[48px]">shopping_basket</span>
+                                    <p class="text-xs font-black uppercase">Order is empty</p>
+                                   </div>`;
+            document.getElementById('cart-subtotal').innerText = '₱0.00';
+            document.getElementById('cart-total').innerText = '₱0.00';
             return;
         }
         let total = 0;
         container.innerHTML = state.cart.map((item, idx) => {
-            const lineTotal = item.price * item.qty; total += lineTotal;
-            return `<div class="bg-surface-container/40 border border-border-subtle p-3 rounded-xl flex justify-between items-center">
-                    <div><h4 class="font-bold text-xs">${item.name}</h4><p class="text-[10px] font-bold opacity-60">₱${item.price.toLocaleString()} x ${item.qty}</p></div>
-                    <div class="flex items-center gap-2"><span class="font-black text-sm">₱${lineTotal.toLocaleString()}</span><div class="flex items-center bg-white border border-border-subtle rounded-lg"><button onclick="updateQty(${idx}, -1)" class="w-8 h-8 flex items-center justify-center text-error"><span class="material-symbols-outlined text-[18px]">remove_circle</span></button><span class="px-2 text-xs font-black">${item.qty}</span><button onclick="updateQty(${idx}, 1)" class="w-8 h-8 flex items-center justify-center text-secondary"><span class="material-symbols-outlined text-[18px]">add_circle</span></button></div></div>
-                </div>`;
+            const lineTotal = item.price * item.qty;
+            total += lineTotal;
+            return `
+                <div class="bg-surface-container/40 border border-border-subtle p-3 rounded-xl flex justify-between items-center">
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1 py-0.5 rounded uppercase">${item.type}</span>
+                            <h4 class="font-bold text-xs">${item.name}</h4>
+                        </div>
+                        <p class="text-[10px] font-bold opacity-60">₱${item.price.toLocaleString()} x ${item.qty}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-black text-sm mr-2">₱${lineTotal.toLocaleString()}</span>
+                        <div class="flex items-center bg-white border border-border-subtle rounded-lg">
+                            <button onclick="updateQty(${idx}, -1)" class="w-8 h-8 flex items-center justify-center text-error active-scale">
+                                <span class="material-symbols-outlined text-[18px]">remove_circle</span>
+                            </button>
+                            <span class="px-2 text-xs font-black">${item.qty}</span>
+                            <button onclick="updateQty(${idx}, 1)" class="w-8 h-8 flex items-center justify-center text-secondary active-scale">
+                                <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }).join('');
         document.getElementById('cart-subtotal').innerText = `₱${total.toLocaleString()}`;
         document.getElementById('cart-total').innerText = `₱${total.toLocaleString()}`;
     }
 
-    function updateQty(idx, delta) { state.cart[idx].qty += delta; if (state.cart[idx].qty <= 0) state.cart.splice(idx, 1); updateCartUI(); }
+    function updateQty(idx, delta) {
+        state.cart[idx].qty += delta;
+        if (state.cart[idx].qty <= 0) state.cart.splice(idx, 1);
+        updateCartUI();
+    }
+
     function clearCart() { state.cart = []; updateCartUI(); }
 
     function switchPayMode(mode) {
         currentPayMode = mode;
-        const bc = document.getElementById('btn-pay-cash'); const bcr = document.getElementById('btn-pay-credit');
-        const ca = document.getElementById('cash-payment-area'); const cra = document.getElementById('credit-payment-area');
+        const btnCash = document.getElementById('btn-pay-cash');
+        const btnCredit = document.getElementById('btn-pay-credit');
+        const cashArea = document.getElementById('cash-payment-area');
+        const creditArea = document.getElementById('credit-payment-area');
         if (mode === 'cash') {
-            bc.className = "flex-1 py-3 border-2 border-secondary bg-secondary text-white rounded-xl font-bold text-xs";
-            bcr.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs";
-            ca.classList.remove('hidden'); cra.classList.add('hidden');
+            btnCash.className = "flex-1 py-3 border-2 border-secondary bg-secondary text-white rounded-xl font-bold text-xs";
+            btnCredit.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs";
+            cashArea.classList.remove('hidden');
+            creditArea.classList.add('hidden');
         } else {
-            bcr.className = "flex-1 py-3 border-2 border-orange-600 bg-orange-600 text-white rounded-xl font-bold text-xs";
-            bc.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs";
-            cra.classList.remove('hidden'); ca.classList.add('hidden');
+            btnCredit.className = "flex-1 py-3 border-2 border-orange-600 bg-orange-600 text-white rounded-xl font-bold text-xs";
+            btnCash.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs";
+            creditArea.classList.remove('hidden');
+            cashArea.classList.add('hidden');
         }
     }
 
@@ -1189,35 +1267,60 @@
         if (state.cart.length === 0) return;
         const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
         document.getElementById('rev-total').innerText = `₱${total.toLocaleString()}`;
-        document.getElementById('cash-input').value = ''; document.getElementById('credit-customer').value = '';
-        switchPayMode('cash'); closeModal('search-results-container');
-        document.getElementById('review-modal').classList.replace('hidden', 'flex');
+        document.getElementById('cash-input').value = '';
+        document.getElementById('credit-customer').value = '';
+        switchPayMode('cash');
+        const modal = document.getElementById('review-modal');
+        modal.classList.replace('hidden', 'flex');
     }
 
     function setCash(v) { document.getElementById('cash-input').value = v; calculateChange(); }
-    function setExact() { const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); document.getElementById('cash-input').value = total; calculateChange(); }
+    function setExact() { 
+        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+        document.getElementById('cash-input').value = total;
+        calculateChange();
+    }
     function calculateChange() {
         const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
         const cash = parseFloat(document.getElementById('cash-input').value) || 0;
-        const cd = document.getElementById('change-display');
-        if (cash >= total) { document.getElementById('change-amount').innerText = `₱${(cash - total).toLocaleString()}`; cd.classList.remove('hidden'); } else { cd.classList.add('hidden'); }
+        const changeDisplay = document.getElementById('change-display');
+        if (cash >= total) {
+            document.getElementById('change-amount').innerText = `₱${(cash - total).toLocaleString()}`;
+            changeDisplay.classList.remove('hidden');
+        } else {
+            changeDisplay.classList.add('hidden');
+        }
     }
 
     function confirmSale() {
         const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
         const cashVal = parseFloat(document.getElementById('cash-input').value) || 0;
         const type = currentPayMode === 'cash' ? 'SA' : 'CR';
-        const id = type + '-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        const prefix = type + '-';
+        const id = prefix + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
         const customer = document.getElementById('credit-customer').value;
-        if (type === 'CR' && !customer) { showToast('Customer required', 'error'); return; }
+        if (type === 'CR' && !customer) { showToast('Customer name required', 'error'); return; }
         if (type === 'SA' && cashVal < total) { showToast('Insufficient cash', 'error'); return; }
-        const transaction = { id, type, total, timestamp: new Date().toISOString(), items: JSON.parse(JSON.stringify(state.cart)), customer: customer ? customer.trim() : null, paid: (type === 'SA'), cashReceived: cashVal, change: type === 'SA' ? (cashVal - total) : 0 };
-        queueTransaction(transaction); lastTransactionId = id; clearCart(); closeModal('review-modal');
-        document.getElementById('mod-success').classList.replace('hidden', 'flex');
+        const transaction = {
+            id, type, total, timestamp: new Date().toISOString(),
+            items: JSON.parse(JSON.stringify(state.cart)),
+            customer: customer ? customer.trim() : null, 
+            paid: (type === 'SA'),
+            cashReceived: cashVal,
+            change: type === 'SA' ? (cashVal - total) : 0
+        };
+        queueTransaction(transaction);
+        lastTransactionId = id;
+        clearCart();
+        closeModal('review-modal');
+        const mod = document.getElementById('mod-success');
+        mod.classList.replace('hidden', 'flex');
     }
 
+    // --- Inventory Logic ---
     function openProductModal(id = null) {
-        window._editId = id; stopInvScanner();
+        window._editId = id;
+        stopInvScanner();
         const p = id ? state.inventory.find(i => i.id === id) : null;
         document.getElementById('p-barcode').value = p ? p.barcode : '';
         document.getElementById('p-name').value = p ? p.name : '';
@@ -1229,162 +1332,864 @@
         document.getElementById('p-pack-size').value = p ? p.packSize : '';
         document.getElementById('p-pack-price').value = p ? p.packPrice : '';
         togglePackFields();
-        document.getElementById('product-modal-title').innerText = id ? "Edit Product" : "Add Product";
-        document.getElementById('product-modal').classList.replace('hidden', 'flex');
+        const modalTitle = document.getElementById('product-modal-title');
+        if (modalTitle) modalTitle.innerText = id ? "Edit Product" : "Add New Product";
+        const modal = document.getElementById('product-modal');
+        modal.classList.replace('hidden', 'flex');
     }
 
     function saveProduct() {
         const name = document.getElementById('p-name').value;
-        if (!name) return;
-        const data = { id: window._editId || Date.now().toString(), barcode: document.getElementById('p-barcode').value, name: name, category: document.getElementById('p-category').value, cost: parseFloat(document.getElementById('p-cost').value) || 0, price: parseFloat(document.getElementById('p-price').value) || 0, stock: parseInt(document.getElementById('p-stock').value) || 0, packPrice: document.getElementById('p-has-pack').checked ? parseFloat(document.getElementById('p-pack-price').value) : null, packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null, _offline: true };
-        if (window._editId) { const idx = state.inventory.findIndex(i => i.id === window._editId); state.inventory[idx] = data; queueAction('update', 'inventory', data); } else { state.inventory.push(data); queueAction('add', 'inventory', data); }
-        sync(); renderInventory(); closeModal('product-modal');
+        if (!name) { showToast('Product name is required', 'error'); return; }
+        const data = {
+            id: window._editId || Date.now().toString(),
+            barcode: document.getElementById('p-barcode').value,
+            name: name,
+            category: document.getElementById('p-category').value,
+            cost: parseFloat(document.getElementById('p-cost').value) || 0,
+            price: parseFloat(document.getElementById('p-price').value) || 0,
+            stock: parseInt(document.getElementById('p-stock').value) || 0,
+            packPrice: document.getElementById('p-has-pack').checked ? parseFloat(document.getElementById('p-pack-price').value) : null,
+            packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null,
+            _offline: true 
+        };
+        if (window._editId) {
+            const idx = state.inventory.findIndex(i => i.id === window._editId);
+            state.inventory[idx] = data;
+            queueAction('update', 'inventory', data);
+        } else {
+            state.inventory.push(data);
+            queueAction('add', 'inventory', data);
+        }
+        sync(); 
+        renderInventory(); 
+        closeModal('product-modal');
+        showToast('Product Saved', 'success');
     }
 
-    function deleteProduct(id) { if (confirm('Delete?')) { state.inventory = state.inventory.filter(i => i.id !== id); queueAction('delete', 'inventory', { id }); sync(); renderInventory(); } }
+    function deleteProduct(id) {
+        if (confirm('Delete this product?')) {
+            state.inventory = state.inventory.filter(i => i.id !== id);
+            queueAction('delete', 'inventory', { id });
+            sync(); renderInventory();
+            showToast('Product Deleted', 'info');
+        }
+    }
 
-    function toggleCategory(cat) { inventoryState.collapsedCategories[cat] = !inventoryState.collapsedCategories[cat]; renderInventory(document.querySelector('#screen-inventory input').value); }
+    function toggleCategory(cat) {
+        inventoryState.collapsedCategories[cat] = !inventoryState.collapsedCategories[cat];
+        renderInventory(document.querySelector('#screen-inventory input[type="text"]').value);
+    }
 
     function renderInventory(f = '') {
         const list = document.getElementById('inventory-list');
+        if (!list) return;
         const lowStockItems = state.inventory.filter(p => p.stock <= 5);
-        document.getElementById('low-stock-alert').classList.toggle('hidden', lowStockItems.length === 0);
-        document.getElementById('low-stock-alert-text').innerText = `${lowStockItems.length} low stock!`;
-        const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(f.toLowerCase()) || (p.barcode && p.barcode.includes(f)));
+        const alertDiv = document.getElementById('low-stock-alert');
+        const alertText = document.getElementById('low-stock-alert-text');
+        
+        if (lowStockItems.length > 0) {
+            alertDiv.classList.remove('hidden');
+            alertText.innerText = `${lowStockItems.length} items are low on stock!`;
+        } else {
+            alertDiv.classList.add('hidden');
+        }
+        
+        const filtered = state.inventory.filter(p => 
+            p.name.toLowerCase().includes(f.toLowerCase()) || 
+            (p.barcode && p.barcode.includes(f)) ||
+            (p.category && p.category.toLowerCase().includes(f.toLowerCase()))
+        );
+
+        // Group by category (case-insensitive)
         const groups = {};
-        filtered.forEach(p => { const cat = (p.category || 'Uncategorized').trim().toLowerCase(); if (!groups[cat]) groups[cat] = { name: titleCase(cat), items: [] }; groups[cat].items.push(p); });
+        filtered.forEach(p => {
+            const cat = (p.category || 'Uncategorized').trim().toLowerCase();
+            const displayName = titleCase(p.category || 'Uncategorized');
+            if (!groups[cat]) groups[cat] = { name: displayName, items: [] };
+            groups[cat].items.push(p);
+        });
+
         const sortedCats = Object.keys(groups).sort();
+        
+        if (filtered.length === 0) {
+            list.innerHTML = '<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No matching products</div>';
+            return;
+        }
+
         list.innerHTML = sortedCats.map(catKey => {
-            const group = groups[catKey]; const isCollapsed = inventoryState.collapsedCategories[catKey] === true && !f;
-            return `<div class="category-folder bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-sm ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory('${catKey}')" class="w-full px-4 py-3 bg-surface-container/50 flex justify-between items-center"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><h3 class="font-black text-xs uppercase">${group.name}</h3></div></button><div class="category-content divide-y divide-border-subtle">${group.items.map(p => `<div class="p-4 flex gap-3 ${p.stock <= 5 ? 'low-stock-row' : ''}"><div class="flex-1"> <h4 class="font-bold text-sm">${p.name}</h4><p class="text-[9px] font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p></div><div class="flex flex-col gap-1"><button onclick="openProductModal('${p.id}')" class="w-8 h-8 bg-primary-container text-primary rounded-lg flex items-center justify-center"><span class="material-symbols-outlined text-[18px]">edit</span></button></div></div>`).join('')}</div></div>`;
-        }).join('') || '<div class="text-center py-10 opacity-30">No products</div>';
+            const group = groups[catKey];
+            const isSearching = f.length > 0;
+            const isCollapsed = inventoryState.collapsedCategories[catKey] === true && !isSearching;
+            
+            return `
+                <div class="category-folder bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-sm ${isCollapsed ? 'collapsed' : ''}" data-cat="${catKey}">
+                    <button onclick="toggleCategory('${catKey}')" class="w-full px-4 py-3.5 bg-surface-container/50 flex justify-between items-center active:bg-primary-container transition-colors">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span>
+                            <div class="text-left">
+                                <h3 class="font-black text-xs text-primary uppercase tracking-wider">${group.name}</h3>
+                                <p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-primary/30">folder_open</span>
+                    </button>
+                    <div class="category-content divide-y divide-border-subtle">
+                        ${group.items.map(p => `
+                            <div class="p-4 flex gap-3 ${p.stock <= 5 ? 'low-stock-row' : ''}">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-sm truncate">${p.name}</h4>
+                                    <p class="text-[10px] font-medium opacity-50 mb-3">#${p.barcode || '---'}</p>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="bg-surface-container/60 rounded-lg p-2">
+                                            <p class="text-[8px] font-bold uppercase opacity-60">Stock</p>
+                                            <p class="text-xs font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p>
+                                        </div>
+                                        <div class="bg-surface-container/60 rounded-lg p-2">
+                                            <p class="text-[8px] font-bold uppercase opacity-60">Price</p>
+                                            <p class="text-xs font-black text-primary">₱${p.price.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-1 border-l pl-3">
+                                    <button onclick="openProductModal('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+                                    <button onclick="deleteProduct('${p.id}')" class="w-8 h-8 flex items-center justify-center bg-error/10 text-error rounded-lg active-scale"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
-    function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { btn.classList.toggle('ledger-tab-active', btn.id === 'tab-' + tab); }); renderLedger(); }
-    function openExpenseModal() { document.getElementById('exp-desc').value = ''; document.getElementById('exp-amt').value = ''; document.getElementById('expense-modal').classList.replace('hidden', 'flex'); }
+    // --- Ledger Logic ---
+    function switchLedgerTab(tab) {
+        activeLedgerTab = tab;
+        document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+            btn.classList.toggle('ledger-tab-active', btn.id === 'tab-' + tab);
+            btn.classList.toggle('text-on-surface-variant', btn.id !== 'tab-' + tab);
+        });
+        renderLedger();
+    }
+
+    function openExpenseModal() {
+        document.getElementById('exp-desc').value = '';
+        document.getElementById('exp-amt').value = '';
+        const modal = document.getElementById('expense-modal');
+        modal.classList.replace('hidden', 'flex');
+    }
+
     function saveExpense() {
-        const d = document.getElementById('exp-desc').value; const a = parseFloat(document.getElementById('exp-amt').value);
-        if (!d || isNaN(a)) return;
-        const tx = { id: 'EX-' + Date.now().toString().slice(-6), type: 'EX', desc: d, total: a, timestamp: new Date().toISOString() };
-        queueTransaction(tx); closeModal('expense-modal'); renderLedger();
+        const desc = document.getElementById('exp-desc').value;
+        const amt = parseFloat(document.getElementById('exp-amt').value);
+        if (!desc || isNaN(amt)) {
+            showToast("Description and valid amount required", "error");
+            return;
+        }
+        const expenseTrans = {
+            id: 'EX-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0'),
+            type: 'EX', desc, total: amt, timestamp: new Date().toISOString()
+        };
+        queueTransaction(expenseTrans);
+        closeModal('expense-modal');
+        showToast('Expense Saved', 'success');
+        if (activeLedgerTab === 'expense') renderLedger();
+        renderInsights();
     }
 
     function renderLedger() {
-        const container = document.getElementById('ledger-content'); const summary = document.getElementById('ledger-summary-container');
-        let html = ''; let total = 0;
+        const container = document.getElementById('ledger-content');
+        const summary = document.getElementById('ledger-summary-container');
+        if (!container || !summary) return;
+        let html = '';
+        let sumHtml = '';
         if (activeLedgerTab === 'cash') {
-            const sales = state.transactions.filter(t => ['SA', 'SA_SETTLEMENT', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
-            total = sales.reduce((a, b) => a + b.total, 0);
-            html = sales.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-xl flex justify-between items-center shadow-sm"><div><p class="font-black text-sm text-primary">${t.id}</p><p class="text-[10px] font-bold opacity-50">${new Date(t.timestamp).toLocaleDateString()}</p></div><div class="flex items-center gap-2"><p class="font-black text-lg text-secondary">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-8 h-8 bg-primary-container text-primary rounded-lg flex items-center justify-center"><span class="material-symbols-outlined text-[18px]">visibility</span></button></div></div>`).join('');
-            summary.innerHTML = `<div class="bg-primary p-4 rounded-xl text-white shadow-md"><p class="text-[9px] font-bold uppercase opacity-70">Total Cash Sales</p><h3 class="text-xl font-black">₱${total.toLocaleString()}</h3></div>`;
+            const sales = state.transactions.filter(t => (t.type === 'SA' || t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL')).reverse();
+            const total = sales.reduce((a, b) => a + b.total, 0);
+            sumHtml = `<div class="bg-primary p-4 rounded-xl text-white shadow-md">
+                        <p class="text-[9px] font-bold uppercase opacity-70">Total Cash Sales</p>
+                        <h3 class="text-xl font-black">₱${total.toLocaleString()}</h3>
+                      </div>`;
+            html = sales.map(t => `
+                <div class="bg-surface border border-border-subtle p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <div class="flex items-center gap-2">
+                             <p class="font-black text-sm text-primary">${t.id}</p>
+                             ${t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL' ? '<span class="text-[7px] bg-secondary text-white px-1 rounded uppercase">Settlement</span>' : ''}
+                             ${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant font-bold">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="text-right mr-2">
+                            <p class="font-black text-lg text-secondary">₱${t.total.toLocaleString()}</p>
+                        </div>
+                        <button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale">
+                            <span class="material-symbols-outlined text-[20px]">visibility</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('') || '<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No cash sales</div>';
         } else if (activeLedgerTab === 'credit') {
             const credits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
-            total = credits.reduce((a, b) => a + b.total, 0);
-            html = credits.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-xl flex justify-between items-center shadow-sm"><div><p class="font-black text-sm text-orange-600">${t.customer}</p><p class="text-[10px] opacity-50">${t.id}</p></div><div class="flex items-center gap-2"><p class="font-black text-lg text-orange-600">₱${t.total.toLocaleString()}</p><button onclick="payIndividualTicket('${t.id}')" class="bg-secondary text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Pay</button></div></div>`).join('');
-            summary.innerHTML = `<div class="bg-orange-600 p-4 rounded-xl text-white shadow-md"><p class="text-[9px] font-bold uppercase opacity-70">Total Credits</p><h3 class="text-xl font-black">₱${total.toLocaleString()}</h3></div>`;
+            
+            const grouped = credits.reduce((acc, curr) => {
+                const rawName = curr.customer || 'Guest';
+                const normalizedKey = rawName.trim().toLowerCase();
+                if (!acc[normalizedKey]) {
+                    acc[normalizedKey] = { 
+                        displayName: titleCase(rawName), 
+                        items: [], 
+                        total: 0 
+                    };
+                }
+                acc[normalizedKey].items.push(curr);
+                acc[normalizedKey].total += curr.total;
+                return acc;
+            }, {});
+
+            const totalBalance = credits.reduce((a, b) => a + b.total, 0);
+            sumHtml = `<div class="bg-orange-600 p-4 rounded-xl text-white shadow-md">
+                        <p class="text-[9px] font-bold uppercase opacity-70">Total Outstanding Credits</p>
+                        <h3 class="text-xl font-black">₱${totalBalance.toLocaleString()}</h3>
+                      </div>`;
+            if (Object.keys(grouped).length === 0) {
+                html = '<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No pending credits</div>';
+            } else {
+                html = Object.entries(grouped).map(([key, data]) => `
+                    <div class="space-y-2 mb-6">
+                        <div class="bg-white border-2 border-orange-500/20 p-4 rounded-2xl shadow-sm">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="text-base font-black text-primary uppercase truncate">${data.displayName}</h3>
+                                    <p class="text-[10px] font-bold text-on-surface-variant">${data.items.length} Pending Tickets</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] font-black text-orange-600 uppercase mb-0.5">Total Balance</p>
+                                    <p class="text-2xl font-black text-orange-600 tracking-tighter">₱${data.total.toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <button onclick="payFullBalance('${data.displayName.replace(/'/g, "\\'")}')" class="w-full bg-secondary text-white py-3 rounded-xl font-black text-xs uppercase shadow-md active-scale">
+                                Pay Full Balance
+                            </button>
+                        </div>
+                        <div class="space-y-1.5 pl-2 border-l-2 border-border-subtle">
+                            ${data.items.map(t => `
+                                <div class="bg-surface border border-border-subtle p-3 rounded-xl flex justify-between items-center text-xs">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-1">
+                                            <p class="font-black text-primary/60 truncate">${t.id}</p>
+                                            ${t._offline ? '<span class="text-[6px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                                        </div>
+                                        <p class="opacity-50 font-bold">${new Date(t.timestamp).toLocaleDateString()}</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <p class="font-black text-on-surface mr-1">₱${t.total.toLocaleString()}</p>
+                                        <button onclick="payIndividualTicket('${t.id}')" class="bg-secondary text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase active-scale shadow-sm">
+                                            Pay
+                                        </button>
+                                        <button onclick="viewTxDetails('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-primary/5 text-primary rounded-lg active-scale">
+                                            <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
         } else if (activeLedgerTab === 'expense') {
-            const expenses = state.transactions.filter(t => t.type === 'EX');
-            total = expenses.reduce((a, b) => a + b.total, 0);
-            html = expenses.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-xl flex justify-between items-center shadow-sm"><div><p class="font-black text-sm text-error">${t.desc}</p></div><p class="font-black text-lg text-error">₱${t.total.toLocaleString()}</p></div>`).join('');
-            summary.innerHTML = `<div class="bg-error p-4 rounded-xl text-white shadow-md"><p class="text-[9px] font-bold uppercase opacity-70">Total Expenses</p><h3 class="text-xl font-black">₱${total.toLocaleString()}</h3></div>`;
+            const expenses = state.transactions.filter(t => t.type === 'EX').reverse();
+            const totalExp = expenses.reduce((a, b) => a + b.total, 0);
+            sumHtml = `<div class="bg-error p-4 rounded-xl text-white shadow-md">
+                        <p class="text-[9px] font-bold uppercase opacity-70">Total Expenses</p>
+                        <h3 class="text-xl font-black">₱${totalExp.toLocaleString()}</h3>
+                      </div>`;
+            html = expenses.map(t => `
+                <div class="bg-surface border border-border-subtle p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div>
+                        <div class="flex items-center gap-1">
+                            <p class="font-black text-sm text-error">${t.id}</p>
+                            ${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-1 rounded uppercase">Pending</span>' : ''}
+                        </div>
+                        <p class="text-xs font-bold text-on-surface">${t.desc}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="text-right mr-2">
+                            <p class="font-black text-lg text-error">₱${t.total.toLocaleString()}</p>
+                        </div>
+                        <button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-lg active-scale">
+                            <span class="material-symbols-outlined text-[20px]">visibility</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('') || '<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No expenses recorded</div>';
         }
-        container.innerHTML = html || '<div class="text-center py-10 opacity-30">No records</div>';
+        summary.innerHTML = sumHtml;
+        container.innerHTML = html;
     }
 
     async function payIndividualTicket(id) {
         const t = state.transactions.find(tx => tx.id === id);
-        if (!t || !confirm(`Mark ${id} as paid?`)) return;
-        const sid = 'SA-IND-' + Date.now().toString().slice(-6);
-        const st = { id: sid, type: 'SA_CREDIT_INDIVIDUAL', total: t.total, timestamp: new Date().toISOString(), items: t.items, customer: t.customer, paid: true, originalTicket: t.id };
-        t.paid = true; t._offline = true; queueAction('update', 'transactions', t); queueTransaction(st);
-        lastTransactionId = sid; viewReceipt(sid); renderLedger();
+        if (!t) return;
+        if (!confirm(`Mark ticket ${id} as paid? (₱${t.total.toLocaleString()})`)) return;
+
+        const saleId = 'SA-IND-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        const saleTransaction = {
+            id: saleId,
+            type: 'SA_CREDIT_INDIVIDUAL',
+            total: t.total,
+            timestamp: new Date().toISOString(),
+            items: JSON.parse(JSON.stringify(t.items || [])),
+            customer: t.customer,
+            paid: true,
+            cashReceived: t.total,
+            change: 0,
+            originalTicket: t.id
+        };
+
+        t.paid = true;
+        t._offline = true; 
+        
+        queueAction('update', 'transactions', t);
+        queueTransaction(saleTransaction);
+
+        showToast('Individual ticket paid', 'success');
+        lastTransactionId = saleId;
+        viewReceipt(saleId);
+        renderLedger();
     }
 
-    function switchInsightPeriod(period) { insightPeriod = period; document.querySelectorAll('[id^="insight-tab-"]').forEach(btn => { btn.classList.toggle('ledger-tab-active', btn.id === 'insight-tab-' + period); }); document.getElementById('date-range-controls').classList.toggle('hidden', period !== 'range'); renderInsights(); }
+    function payFullBalance(customerName) {
+        const normalizedName = customerName.trim().toLowerCase();
+        const credits = state.transactions.filter(t => 
+            t.type === 'CR' && 
+            t.customer && 
+            t.customer.trim().toLowerCase() === normalizedName && 
+            !t.paid
+        );
+        
+        if (credits.length === 0) return;
+        const totalToPay = credits.reduce((a, b) => a + b.total, 0);
+        if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()} from ${customerName}?`)) return;
+        
+        credits.forEach(t => {
+            t.paid = true;
+            t._offline = true; 
+            queueAction('update', 'transactions', t);
+        });
+        
+        const settlementId = 'SET-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        const settlement = {
+            id: settlementId,
+            type: 'SA_SETTLEMENT',
+            customer: customerName,
+            total: totalToPay,
+            timestamp: new Date().toISOString(),
+            settledTickets: credits.map(c => ({ 
+                id: c.id, 
+                total: c.total, 
+                ts: c.timestamp,
+                items: JSON.parse(JSON.stringify(c.items || []))
+            })),
+            paid: true
+        };
+        
+        queueTransaction(settlement);
+        sync();
+        renderLedger();
+        showToast('Full balance paid', 'success');
+        lastTransactionId = settlementId;
+        viewReceipt(settlementId);
+    }
+
+    // --- Insights & Reports Logic ---
+    function switchInsightPeriod(period) {
+        insightPeriod = period;
+        document.querySelectorAll('[id^="insight-tab-"]').forEach(btn => {
+            const isActive = btn.id === 'insight-tab-' + period;
+            btn.classList.toggle('ledger-tab-active', isActive);
+            btn.classList.toggle('text-on-surface-variant', !isActive);
+        });
+        const controls = document.getElementById('date-range-controls');
+        if (controls) controls.classList.toggle('hidden', period !== 'range');
+        renderInsights();
+    }
 
     function getPeriodTransactions() {
-        const now = new Date(); let periodTransactions = state.transactions;
-        if (insightPeriod === 'day') { const ds = now.toISOString().split('T')[0]; periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(ds)); }
-        else if (insightPeriod === 'month') { const ms = now.toISOString().slice(0, 7); periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(ms)); }
-        else if (insightPeriod === 'range') { const s = document.getElementById('insight-start-date').value; const e = document.getElementById('insight-end-date').value; if (s && e) { periodTransactions = periodTransactions.filter(t => { const ts = t.timestamp.split('T')[0]; return ts >= s && ts <= e; }); } }
+        const now = new Date();
+        let periodTransactions = state.transactions;
+
+        if (insightPeriod === 'day') {
+            const todayStr = now.toISOString().split('T')[0];
+            periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(todayStr));
+        } else if (insightPeriod === 'month') {
+            const monthStr = now.toISOString().slice(0, 7);
+            periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(monthStr));
+        } else if (insightPeriod === 'range') {
+            const start = document.getElementById('insight-start-date').value;
+            const end = document.getElementById('insight-end-date').value;
+            if (start && end) {
+                periodTransactions = periodTransactions.filter(t => {
+                    const ts = t.timestamp.split('T')[0];
+                    return ts >= start && ts <= end;
+                });
+            }
+        }
         return periodTransactions;
     }
 
     function renderInsights() {
-        const pt = getPeriodTransactions();
-        const sales = pt.filter(t => ['SA', 'SA_SETTLEMENT', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
-        const revenue = sales.reduce((a, b) => a + b.total, 0);
-        const expenses = pt.filter(t => t.type === 'EX').reduce((a, b) => a + b.total, 0);
-        let cogs = 0; pt.filter(t => ['SA', 'CR', 'SA_CREDIT_INDIVIDUAL'].includes(t.type)).forEach(t => { if (t.items) t.items.forEach(i => cogs += ((i.cost || 0) * i.qty * (i.deduct || 1))); });
-        const net = revenue - cogs - expenses;
+        const lowStockItems = state.inventory.filter(p => p.stock <= 5);
+        const alertDiv = document.getElementById('restock-alerts-container');
+        const insightList = document.getElementById('insight-low-stock-list');
+        if (lowStockItems.length > 0) {
+            alertDiv.classList.remove('hidden');
+            insightList.innerHTML = lowStockItems.map(p => `
+                <div class="flex justify-between items-center bg-white/50 p-2 rounded-lg border border-yellow-200">
+                    <span class="text-xs font-bold text-yellow-900">${p.name}</span>
+                    <span class="text-xs font-black text-error">${p.stock} left</span>
+                </div>
+            `).join('');
+        } else {
+            alertDiv.classList.add('hidden');
+        }
+
+        const now = new Date();
+        let label = "Today";
+        let periodTransactions = getPeriodTransactions();
+
+        if (insightPeriod === 'day') {
+            label = "Today";
+        } else if (insightPeriod === 'month') {
+            label = "This Month";
+        } else if (insightPeriod === 'range') {
+            const start = document.getElementById('insight-start-date').value;
+            const end = document.getElementById('insight-end-date').value;
+            label = start && end ? `From ${start} to ${end}` : "Select Range";
+        }
+
+        const salesTransactions = periodTransactions.filter(t => ['SA', 'SA_SETTLEMENT', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
+        const revenue = salesTransactions.reduce((a, b) => a + b.total, 0);
+
+        const expenseTransactions = periodTransactions.filter(t => t.type === 'EX');
+        const totalExpenses = expenseTransactions.reduce((a, b) => a + b.total, 0);
+
+        let totalCogs = 0;
+        const stockMovingTransactions = periodTransactions.filter(t => ['SA', 'CR', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
+        stockMovingTransactions.forEach(t => {
+            if (t.items) {
+                t.items.forEach(item => {
+                    totalCogs += ((item.cost || 0) * item.qty * (item.deduct || 1));
+                });
+            }
+        });
+
+        const grossProfit = revenue - totalCogs;
+        const netProfit = grossProfit - totalExpenses;
+        const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+
+        const totalAssetValue = state.inventory.reduce((a, b) => a + (b.cost * b.stock), 0);
+
+        document.getElementById('insight-revenue-label').innerText = `Gross Revenue (${label})`;
         document.getElementById('daily-revenue').innerText = `₱${revenue.toLocaleString()}`;
-        document.getElementById('daily-profit').innerText = `₱${net.toLocaleString()}`;
-        document.getElementById('daily-cogs').innerText = `₱${cogs.toLocaleString()}`;
-        document.getElementById('daily-expenses').innerText = `₱${expenses.toLocaleString()}`;
-        const low = state.inventory.filter(p => p.stock <= 5);
-        document.getElementById('restock-alerts-container').classList.toggle('hidden', low.length === 0);
-        document.getElementById('insight-low-stock-list').innerHTML = low.map(p => `<div class="bg-white/50 p-2 text-xs font-bold border rounded-lg">${p.name}: ${p.stock} left</div>`).join('');
+        document.getElementById('daily-profit').innerText = `₱${netProfit.toLocaleString()}`;
+        document.getElementById('daily-margin').innerText = `${profitMargin.toFixed(1)}%`;
+        document.getElementById('daily-cogs').innerText = `₱${totalCogs.toLocaleString()}`;
+        document.getElementById('daily-expenses').innerText = `₱${totalExpenses.toLocaleString()}`;
+        
+        document.getElementById('inventory-value').innerText = `₱${totalAssetValue.toLocaleString()}`;
+        document.getElementById('inventory-count').innerText = `${state.inventory.length} items tracking`;
+        
+        const txList = document.getElementById('insight-transactions-list');
+        const recent = periodTransactions.slice(0, 10);
+        txList.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-2">Recent Period Activities (${label})</p>` + 
+        recent.map(t => `
+            <div class="bg-surface border border-border-subtle p-3 rounded-xl flex justify-between items-center shadow-sm mb-2">
+                <div>
+                    <div class="flex items-center gap-1">
+                        <p class="font-black text-xs text-primary">${t.id}</p>
+                        <span class="text-[6px] px-1 rounded uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">
+                            ${t.type === 'SA' ? 'Sale' : t.type === 'CR' ? 'Credit' : t.type === 'EX' ? 'Expense' : 'Settle'}
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-on-surface-variant font-bold">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span>
+                    <button onclick="viewTxDetails('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-primary/10 text-primary rounded-lg active-scale">
+                        <span class="material-symbols-outlined text-[18px]">visibility</span>
+                    </button>
+                </div>
+            </div>
+        `).join('') || `<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No records for this period</div>`;
     }
 
+    // --- Share and Export Logic ---
     async function shareReceipt() {
-        const re = document.getElementById('receipt-content'); const sb = document.getElementById('share-receipt-btn');
-        sb.disabled = true;
+        const tx = state.transactions.find(t => t.id === lastTransactionId);
+        if (!tx) return;
+
+        const receiptEl = document.getElementById('receipt-content');
+        if (!receiptEl) return;
+
+        const shareBtn = document.getElementById('share-receipt-btn');
+        const originalBtnHtml = shareBtn.innerHTML;
+        shareBtn.disabled = true;
+        shareBtn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Processing...`;
+
         try {
-            const canvas = await html2canvas(re, { scale: 2 });
-            canvas.toBlob(async (blob) => {
-                const file = new File([blob], 'receipt.png', { type: 'image/png' });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Receipt' }); }
-                else { const url = URL.createObjectURL(blob); const l = document.createElement('a'); l.href = url; l.download = 'receipt.png'; l.click(); }
-                sb.disabled = false;
+            const canvas = await html2canvas(receiptEl, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                backgroundColor: "#ffffff"
             });
-        } catch (e) { sb.disabled = false; }
-    }
 
-    function exportSalesCSV() {
-        const trans = getPeriodTransactions(); if (trans.length === 0) return;
-        const csv = ["Date,ID,Type,Total", ...trans.map(t => `${t.timestamp.split('T')[0]},${t.id},${t.type},${t.total}`)].join('\n');
-        const b = new Blob([csv], { type: 'text/csv' }); const u = URL.createObjectURL(b); const l = document.createElement('a');
-        l.href = u; l.download = 'sales.csv'; l.click();
-    }
+            canvas.toBlob(async (blob) => {
+                if (!blob) throw new Error("Canvas to Blob conversion failed");
 
-    function viewTxDetails(id) {
-        const tx = state.transactions.find(t => t.id === id); if (!tx) return;
-        lastTransactionId = id; document.getElementById('txmtitle').innerText = tx.id;
-        let h = `<div class="text-xs space-y-1 mb-4"><p><b>Date:</b> ${new Date(tx.timestamp).toLocaleString()}</p><p><b>Type:</b> ${tx.type}</p></div>`;
-        if (tx.items) h += `<div class="border-t pt-2">${tx.items.map(i => `<div class="flex justify-between text-xs"><span>${i.name} x${i.qty}</span><span>₱${(i.price * i.qty).toLocaleString()}</span></div>`).join('')}</div>`;
-        h += `<div class="border-t mt-2 pt-2 flex justify-between font-black"><span>TOTAL</span><span>₱${tx.total.toLocaleString()}</span></div>`;
-        document.getElementById('txdetail').innerHTML = h; document.getElementById('mod-tx').classList.replace('hidden', 'flex');
-    }
+                const fileName = `Villacart_Receipt_${tx.id}.png`;
+                const file = new File([blob], fileName, { type: 'image/png' });
 
-    async function deleteTransaction(id) {
-        const tx = state.transactions.find(t => t.id === id); if (!tx) return;
-        if (confirm('Void?')) {
-            if ((tx.type === 'SA' || tx.type === 'CR') && tx.items) { tx.items.forEach(i => { const p = state.inventory.find(iv => iv.id === i.id); if (p) p.stock += (i.qty * (i.deduct || 1)); }); }
-            state.transactions = state.transactions.filter(t => t.id !== id); queueAction('delete', 'transactions', { id }); sync(); renderLedger(); closeModal('mod-tx');
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: `Receipt ${tx.id}`,
+                            text: `Transaction: ${tx.id} - Date: ${new Date(tx.timestamp).toLocaleDateString()}`
+                        });
+                        showToast("Shared successfully", "success");
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error("Share failed", err);
+                            showToast("Sharing failed", "error");
+                        }
+                    }
+                } else {
+                    // Fallback for non-sharing browsers
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast("Downloaded as Image", "info");
+                }
+                
+                shareBtn.disabled = false;
+                shareBtn.innerHTML = originalBtnHtml;
+            }, 'image/png');
+        } catch (error) {
+            console.error("Receipt capture failed", error);
+            showToast("Failed to generate image", "error");
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = originalBtnHtml;
         }
     }
 
+    function exportSalesCSV() {
+        const trans = getPeriodTransactions();
+        if (trans.length === 0) {
+            showToast("No data to export", "error");
+            return;
+        }
+
+        const headers = ["Date", "Transaction ID", "Type", "Customer", "Total"];
+        const rows = trans.map(t => [
+            new Date(t.timestamp).toLocaleDateString(),
+            t.id,
+            t.type === 'SA' ? 'Sale' : t.type === 'CR' ? 'Credit' : t.type === 'EX' ? 'Expense' : 'Settlement',
+            t.customer || (t.desc || 'N/A'),
+            t.total
+        ]);
+
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        const dateName = new Date().toISOString().split('T')[0];
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Villacart_Sales_${insightPeriod}_${dateName}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("CSV Exported", "success");
+    }
+
+    // --- Transaction Detail Logic ---
+    function viewTxDetails(id) {
+        const tx = state.transactions.find(t => t.id === id);
+        if (!tx) return;
+        lastTransactionId = id;
+        document.getElementById('txmtitle').innerText = tx.id;
+        let html = `
+            <div class="p-3 bg-primary/5 rounded-xl border border-primary/10 mb-4">
+                <div class="flex justify-between text-xs mb-1"><span class="font-bold opacity-60">Date</span><span class="font-black">${new Date(tx.timestamp).toLocaleString()}</span></div>
+                <div class="flex justify-between text-xs mb-1"><span class="font-bold opacity-60">Type</span><span class="font-black uppercase">${tx.type === 'SA' ? 'Sale' : tx.type === 'CR' ? 'Credit' : tx.type === 'EX' ? 'Expense' : 'Settlement'}</span></div>
+                ${tx.customer ? `<div class="flex justify-between text-xs"><span class="font-bold opacity-60">Customer</span><span class="font-black">${tx.customer}</span></div>` : ''}
+                ${tx.desc ? `<div class="flex justify-between text-xs"><span class="font-bold opacity-60">Desc</span><span class="font-black">${tx.desc}</span></div>` : ''}
+            </div>
+        `;
+        if (tx.items && tx.items.length > 0) {
+            html += '<div class="space-y-2 mb-4">';
+            tx.items.forEach(item => {
+                html += `
+                    <div class="flex justify-between items-center text-xs border-b border-border-subtle pb-1">
+                        <span>${item.name} x${item.qty}</span>
+                        <span class="font-black">₱${(item.price * item.qty).toLocaleString()}</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        } else if (tx.settledTickets) {
+             html += '<div class="space-y-2 mb-4"><p class="text-[10px] font-black uppercase text-primary/60">Settled Tickets:</p>';
+             tx.settledTickets.forEach(st => {
+                html += `<div class="p-2 border border-border-subtle rounded-lg mb-1">
+                    <div class="flex justify-between items-center text-xs border-b border-border-subtle pb-1 mb-1">
+                        <span class="font-bold">${st.id}</span>
+                        <span class="font-black">₱${st.total.toLocaleString()}</span>
+                    </div>`;
+                if (st.items) {
+                    st.items.forEach(item => {
+                        html += `<div class="flex justify-between text-[10px] opacity-70">
+                            <span>${item.name} x${item.qty}</span>
+                            <span>₱${(item.price * item.qty).toLocaleString()}</span>
+                        </div>`;
+                    });
+                }
+                html += `</div>`;
+             });
+             html += '</div>';
+        }
+        html += `
+            <div class="flex justify-between items-center p-3 ${tx.type === 'EX' ? 'bg-error/10' : 'bg-secondary/10'} rounded-xl">
+                <span class="text-sm font-black ${tx.type === 'EX' ? 'text-error' : 'text-secondary'}">TOTAL</span>
+                <span class="text-xl font-black ${tx.type === 'EX' ? 'text-error' : 'text-secondary'}">₱${tx.total.toLocaleString()}</span>
+            </div>
+        `;
+        document.getElementById('txdetail').innerHTML = html;
+        const modal = document.getElementById('mod-tx');
+        modal.classList.replace('hidden', 'flex');
+    }
+
+    function printTx() {
+        if (!lastTransactionId) return;
+        viewReceipt(lastTransactionId);
+        closeModal('mod-tx');
+    }
+
+    function confirmDeleteTransaction() {
+        if (!lastTransactionId) return;
+        openPinModal({ action: 'delete', id: lastTransactionId });
+    }
+
+    // --- Transaction Deletion Logic ---
+    async function deleteTransaction(id) {
+        const tx = state.transactions.find(t => t.id === id);
+        if (!tx) return;
+
+        if (navigator.onLine) {
+            try {
+                await fbDelete('transactions', id);
+                showToast('Cloud record deleted', 'success');
+            } catch (e) {
+                console.error("Cloud deletion failed, queued for offline sync", e);
+            }
+        }
+
+        if ((tx.type === 'SA' || tx.type === 'CR') && tx.items) {
+            tx.items.forEach(item => {
+                const p = state.inventory.find(inv => inv.id === item.id);
+                if (p) {
+                    p.stock += (item.qty * (item.deduct || 1));
+                    p._offline = true; 
+                    queueAction('update', 'inventory', p);
+                }
+            });
+        }
+
+        state.transactions = state.transactions.filter(t => t.id !== id);
+        queueAction('delete', 'transactions', { id: id });
+        
+        sync();
+        renderInventory();
+        renderLedger();
+        renderInsights();
+        closeModal('mod-tx');
+        showToast('Transaction Voided', 'success');
+    }
+
+    // --- Receipt Logic ---
     function viewReceipt(id) {
-        const tx = state.transactions.find(t => t.id === id); if (!tx) return;
-        document.getElementById('rec-id').innerText = tx.id; document.getElementById('rec-date').innerText = new Date(tx.timestamp).toLocaleDateString();
+        const tx = state.transactions.find(t => t.id === id);
+        if (!tx) return;
+        lastTransactionId = id; // Store for sharing
+        if (tx.type === 'SA_SETTLEMENT' || tx.type === 'SA_CREDIT_INDIVIDUAL') {
+            buildSettlementRcpt(tx);
+            return;
+        }
+        document.getElementById('receipt-title').innerText = 'OFFICIAL RECEIPT';
+        document.getElementById('receipt-standard-fields').classList.remove('hidden');
+        document.getElementById('receipt-settlement-fields').classList.add('hidden');
+        document.getElementById('receipt-items-header').classList.remove('hidden');
+        document.getElementById('receipt-settlement-header').classList.add('hidden');
+        document.getElementById('rec-id').innerText = tx.id;
+        document.getElementById('rec-date').innerText = new Date(tx.timestamp).toLocaleDateString();
         document.getElementById('rec-total').innerText = `₱${tx.total.toLocaleString()}`;
-        document.getElementById('rec-items-list').innerHTML = (tx.items || []).map(i => `<div class="flex justify-between"><span>${i.name}</span><span>${i.qty}</span><span>₱${(i.price * i.qty).toLocaleString()}</span></div>`).join('');
-        document.getElementById('receipt-modal').classList.replace('hidden', 'flex');
+        const list = document.getElementById('rec-items-list');
+        list.innerHTML = '';
+        if (tx.items) {
+            tx.items.forEach(i => {
+                list.innerHTML += `
+                    <div class="flex justify-between">
+                        <span class="w-1/2">${i.name}</span>
+                        <span class="w-1/4 text-center">${i.qty}</span>
+                        <span class="w-1/4 text-right">₱${(i.price * i.qty).toLocaleString()}</span>
+                    </div>
+                `;
+            });
+        } else if (tx.desc) {
+            list.innerHTML = `<div class="flex justify-between"><span>${tx.desc}</span><span>₱${tx.total.toLocaleString()}</span></div>`;
+        }
+        document.getElementById('rec-cash-row').classList.toggle('hidden', tx.type !== 'SA');
+        document.getElementById('rec-change-row').classList.toggle('hidden', tx.type !== 'SA');
+        if (tx.type === 'SA') {
+            document.getElementById('rec-cash').innerText = `₱${(tx.cashReceived || 0).toLocaleString()}`;
+            document.getElementById('rec-change').innerText = `₱${(tx.change || 0).toLocaleString()}`;
+        }
+        document.getElementById('rec-customer-row').classList.toggle('hidden', !tx.customer);
+        if (tx.customer) document.getElementById('rec-customer').innerText = tx.customer;
+        const modal = document.getElementById('receipt-modal');
+        modal.classList.replace('hidden', 'flex');
     }
 
-    function printReceiptFromSuccess() { if (lastTransactionId) viewReceipt(lastTransactionId); closeModal('mod-success'); }
-    function closeSuccessAndNewSale() { closeModal('mod-success'); }
-    function togglePackFields() { const pf = document.getElementById('pack-fields'); pf.classList.toggle('hidden', !document.getElementById('p-has-pack').checked); }
-    function closeModal(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
+    function buildSettlementRcpt(tx) {
+        document.getElementById('receipt-title').innerText = 'CREDIT SETTLEMENT';
+        document.getElementById('receipt-standard-fields').classList.add('hidden');
+        document.getElementById('receipt-settlement-fields').classList.remove('hidden');
+        document.getElementById('receipt-items-header').classList.add('hidden');
+        document.getElementById('receipt-settlement-header').classList.remove('hidden');
+        document.getElementById('rec-set-customer').innerText = tx.customer || 'Guest';
+        document.getElementById('rec-set-date').innerText = new Date(tx.timestamp).toLocaleDateString();
+        document.getElementById('rec-total').innerText = `₱${tx.total.toLocaleString()}`;
+        const list = document.getElementById('rec-items-list');
+        list.innerHTML = '';
+        
+        if (tx.type === 'SA_CREDIT_INDIVIDUAL') {
+            list.innerHTML = `
+                <div class="mb-2 border-b border-black/10 pb-1">
+                    <div class="flex justify-between font-bold">
+                        <span class="w-1/3">${tx.originalTicket}</span>
+                        <span class="w-1/3 text-center">Settled</span>
+                        <span class="w-1/3 text-right">₱${tx.total.toLocaleString()}</span>
+                    </div>
+                    ${(tx.items || []).map(it => `
+                        <div class="flex justify-between text-[10px] opacity-60 ml-2">
+                            <span> - ${it.name} x${it.qty}</span>
+                            <span>₱${(it.price * it.qty).toLocaleString()}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (tx.settledTickets) {
+            tx.settledTickets.forEach(st => {
+                let ticketItemsHtml = "";
+                if (st.items && st.items.length > 0) {
+                    st.items.forEach(it => {
+                        ticketItemsHtml += `
+                            <div class="flex justify-between text-[10px] opacity-60 ml-2">
+                                <span> - ${it.name} x${it.qty}</span>
+                                <span>₱${(it.price * it.qty).toLocaleString()}</span>
+                            </div>
+                        `;
+                    });
+                }
+                list.innerHTML += `
+                    <div class="mb-2 border-b border-black/10 pb-1">
+                        <div class="flex justify-between font-bold">
+                            <span class="w-1/3">${st.id}</span>
+                            <span class="w-1/3 text-center">${new Date(st.ts).toLocaleDateString('en-US', {month:'numeric', day:'numeric'})}</span>
+                            <span class="w-1/3 text-right">₱${st.total.toLocaleString()}</span>
+                        </div>
+                        ${ticketItemsHtml}
+                    </div>
+                `;
+            });
+        }
+        document.getElementById('rec-cash-row').classList.add('hidden');
+        document.getElementById('rec-change-row').classList.add('hidden');
+        document.getElementById('rec-customer-row').classList.add('hidden');
+        const modal = document.getElementById('receipt-modal');
+        modal.classList.replace('hidden', 'flex');
+    }
+
+    function printReceiptFromSuccess() {
+        if (lastTransactionId) viewReceipt(lastTransactionId);
+        closeModal('mod-success');
+    }
+
+    function closeSuccessAndNewSale() {
+        closeModal('mod-success');
+    }
+
+    function togglePackFields() {
+        const packFields = document.getElementById('pack-fields');
+        const hasPack = document.getElementById('p-has-pack');
+        if (packFields && hasPack) packFields.classList.toggle('hidden', !hasPack.checked);
+    }
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) modal.classList.replace('flex', 'hidden');
+    }
     function showToast(m, t = 'info') {
-        const c = document.getElementById('toast-container'); const toast = document.createElement('div');
-        toast.className = `p-3 px-4 rounded-xl text-white text-xs font-bold transition-all ${t === 'success' ? 'bg-secondary' : 'bg-primary'}`;
-        toast.innerText = m; c.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
+        const c = document.getElementById('toast-container');
+        if (!c) return;
+        const toast = document.createElement('div');
+        toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`;
+        toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${m}</span>`;
+        c.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0'));
+        setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500);
     }
-    function startInvScanner() { showToast("Scanner Active", "info"); }
-    function stopInvScanner() { }
 
-    updateSyncUI(); switchScreen('pos'); updateCartUI(); loadAll();
+    // --- Scanner Quagga Logic ---
+    function startInvScanner() {
+        const preview = document.getElementById('scanner-preview-container');
+        const camArea = document.getElementById('inv-cam-area');
+        if (!preview || !camArea) return;
+        preview.classList.remove('hidden');
+        camArea.innerHTML = ''; 
+        Quagga.init({
+            inputStream: { name: "Live", type: "LiveStream", target: camArea, constraints: { facingMode: "environment" } },
+            decoder: { readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"] }
+        }, function(err) {
+            if (err) { showToast("Cam Error", "error"); stopInvScanner(); return; }
+            Quagga.start();
+            isQuaggaRunning = true;
+        });
+        Quagga.onDetected(function(result) {
+            if (result.codeResult.code) {
+                document.getElementById('p-barcode').value = result.codeResult.code;
+                showToast("Code: " + result.codeResult.code, "success");
+                stopInvScanner();
+            }
+        });
+    }
+    function stopInvScanner() {
+        if (isQuaggaRunning) { Quagga.stop(); isQuaggaRunning = false; }
+        document.getElementById('scanner-preview-container').classList.add('hidden');
+    }
+
+    // --- Init ---
+    updateSyncUI();
+    switchScreen('pos');
+    updateCartUI();
+    loadAll();
 </script>
 </body></html>
