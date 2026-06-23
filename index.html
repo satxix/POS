@@ -3,7 +3,7 @@
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>Villacart POS: Insights Optimized</title>
+<title>Villacart POS: Insights Optimized v2.6.8</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -120,7 +120,7 @@
 <div>
 <div class="flex items-center gap-2">
 <h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
-<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v2.6.2</span>
+<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v2.6.8</span>
 </div>
 <p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
 </div>
@@ -190,14 +190,14 @@
                     </div>
 </div>
 </div>
-<!-- Right Column: Current Order/Cart (Sticky on Desktop) -->
+<!-- Right Column: Current Order/Cart -->
 <div class="lg:sticky lg:top-4 bg-surface rounded-3xl border border-border-subtle flex flex-col shadow-lg overflow-hidden mt-4 lg:mt-0 lg:h-[calc(100vh-100px)]">
 <div class="px-5 py-4 bg-primary text-on-primary flex justify-between items-center">
 <div class="flex items-center gap-2">
 <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
 <h2 class="font-bold text-sm uppercase tracking-wider">Current Order</h2>
 </div>
-<button class="bg-white/10 hover:bg-white/20 text-white font-bold text-[10px] px-4 py-2 rounded-xl uppercase transition-colors" onclick="clearCart()">Clear</button>
+<button class="bg-white/10 text-white font-bold text-[10px] px-4 py-2 rounded-xl uppercase transition-colors active-scale" onclick="clearCart(event)">Clear</button>
 </div>
 <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3" id="cart-items"></div>
 <div class="p-6 bg-surface border-t border-border-subtle space-y-4">
@@ -243,7 +243,6 @@
 <input class="w-full pl-12 pr-4 py-3.5 bg-surface border border-border-subtle rounded-2xl focus:border-primary transition-all text-sm font-medium shadow-sm" oninput="renderInventory(this.value)" placeholder="Search inventory by name, barcode, or category..." type="text"/>
 </div>
 </div>
-<!-- Grid layout for inventory folders -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="inventory-list"></div>
 </div>
 <!-- LEDGER SCREEN -->
@@ -264,7 +263,6 @@
 <button class="flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="tab-expense" onclick="switchLedgerTab('expense')">Expenses</button>
 </div>
 <div class="mb-6 max-w-md" id="ledger-summary-container"></div>
-<!-- Grid layout for transaction cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative" id="ledger-content"></div>
 </div>
 <!-- INSIGHTS -->
@@ -523,7 +521,7 @@
 <label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Customer Name</label>
 <input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold text-primary" id="credit-customer" placeholder="Enter Full Name" type="text"/>
 </div>
-<button class="w-full bg-primary text-on-primary h-14 rounded-xl font-bold text-base mt-6 active-scale shadow-lg" id="confirm-checkout" onclick="confirmSale()">
+<button class="w-full bg-primary text-on-primary h-14 rounded-xl font-bold text-base mt-6 active-scale shadow-lg flex items-center justify-center gap-2" id="confirm-checkout" onclick="confirmSale()">
 <span class="material-symbols-outlined text-[24px]">check_circle</span>
 <span>Confirm Transaction</span>
 </button>
@@ -685,15 +683,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // --- Firebase Wrapper Functions ---
-    const fbGet = async (col) => {
-        const snap = await db.collection(col).get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    };
-    const fbAdd = (col, data) => db.collection(col).doc(data.id || undefined).set(data);
-    const fbUpdate = (col, id, data) => db.collection(col).doc(id).update(data);
-    const fbDelete = (col, id) => db.collection(col).doc(id).delete();
-
     // --- Data Storage ---
     const DB_KEY = 'saph_pos_v5_villacart';
     const QUEUE_KEY = 'saph_pos_v5_villacart_queue';
@@ -706,7 +695,6 @@
         favorites: new Array(8).fill(null)
     };
     
-    // Updated: Ensure favorites exists and is an array
     if (!state.favorites || !Array.isArray(state.favorites)) {
         state.favorites = new Array(8).fill(null);
     }
@@ -732,13 +720,11 @@
         collapsedCategories: {}
     };
 
-    // --- Helper Utils ---
     function titleCase(str) {
         if (!str) return 'Unknown';
         return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     }
 
-    // --- Real-Time Sync Enhancement ---
     function setupRealTimeSync() {
         db.collection('inventory').onSnapshot((snapshot) => {
             const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -777,10 +763,6 @@
         localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
         localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites));
         updateQueueBadge();
-    }
-
-    async function loadAll() {
-        setupRealTimeSync();
     }
 
     async function syncNow() {
@@ -855,7 +837,6 @@
         sync();
     }
 
-    // Bluetooth Scanner Logic
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' && e.key !== 'Enter') return;
         clearTimeout(scannerTimeout);
@@ -894,6 +875,7 @@
             const searchInput = document.getElementById('pos-search');
             if (searchInput) {
                 searchInput.value = "";
+                searchInput.blur();
                 document.getElementById('search-results-container').classList.add('hidden');
             }
         } else {
@@ -964,7 +946,6 @@
             </button>${removeBtnHtml}</div>`;
         }).join('');
 
-        // Updated: Add "Add Slot" button when in edit mode
         if (favoritesEditMode) {
             html += `<button onclick="addFavoriteSlot()" class="h-16 md:h-32 border-2 border-primary/20 bg-primary/5 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:bg-primary/10 transition-colors">
                 <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary">add_circle</span>
@@ -1089,7 +1070,20 @@
     }
 
     function updateQty(idx, delta) { state.cart[idx].qty += delta; if (state.cart[idx].qty <= 0) state.cart.splice(idx, 1); updateCartUI(); }
-    function clearCart() { state.cart = []; updateCartUI(); }
+    
+    function clearCart(event) { 
+        if (document.activeElement) document.activeElement.blur();
+        const searchInput = document.getElementById('pos-search');
+        if (searchInput) searchInput.blur();
+        
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        state.cart = []; 
+        updateCartUI(); 
+        scannerBuffer = "";
+    }
 
     function switchPayMode(mode) {
         currentPayMode = mode;
@@ -1101,7 +1095,21 @@
         else { btnCredit.className = "flex-1 py-3 border-2 border-orange-600 bg-orange-600 text-white rounded-xl font-bold text-xs"; btnCash.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs"; creditArea.classList.remove('hidden'); cashArea.classList.add('hidden'); }
     }
 
-    function openReview() { if (state.cart.length === 0) return; const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); document.getElementById('rev-total').innerText = `₱${total.toLocaleString()}`; document.getElementById('cash-input').value = ''; document.getElementById('credit-customer').value = ''; switchPayMode('cash'); const modal = document.getElementById('review-modal'); modal.classList.replace('hidden', 'flex'); }
+    function openReview() { 
+        if (document.activeElement) document.activeElement.blur();
+        const searchInput = document.getElementById('pos-search');
+        if (searchInput) searchInput.blur();
+
+        if (state.cart.length === 0) return; 
+        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); 
+        document.getElementById('rev-total').innerText = `₱${total.toLocaleString()}`; 
+        document.getElementById('cash-input').value = ''; 
+        document.getElementById('credit-customer').value = ''; 
+        switchPayMode('cash'); 
+        const modal = document.getElementById('review-modal'); 
+        modal.classList.replace('hidden', 'flex'); 
+    }
+
     function setCash(v) { document.getElementById('cash-input').value = v; calculateChange(); }
     function setExact() { const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); document.getElementById('cash-input').value = total; calculateChange(); }
     function calculateChange() {
@@ -1113,6 +1121,10 @@
     }
 
     function confirmSale() {
+        if (document.activeElement) document.activeElement.blur();
+        const searchInput = document.getElementById('pos-search');
+        if (searchInput) searchInput.blur();
+
         const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
         const cashVal = parseFloat(document.getElementById('cash-input').value) || 0;
         const type = currentPayMode === 'cash' ? 'SA' : 'CR';
@@ -1131,7 +1143,7 @@
         document.getElementById('p-barcode').value = p ? p.barcode : ''; document.getElementById('p-name').value = p ? p.name : '';
         document.getElementById('p-category').value = p ? p.category : ''; document.getElementById('p-cost').value = p ? p.cost : '';
         document.getElementById('p-price').value = p ? p.price : ''; document.getElementById('p-stock').value = p ? p.stock : '';
-        document.getElementById('p-has-pack').checked = p && !!p.packPrice; document.getElementById('p-has-pack').checked = p && !!p.packPrice; document.getElementById('p-pack-size').value = p ? p.packSize : '';
+        document.getElementById('p-has-pack').checked = p && !!p.packPrice; document.getElementById('p-pack-size').value = p ? p.packSize : '';
         document.getElementById('p-pack-price').value = p ? p.packPrice : ''; togglePackFields();
         document.getElementById('product-modal-title').innerText = id ? "Edit Product" : "Add New Product";
         document.getElementById('product-modal').classList.replace('hidden', 'flex');
@@ -1157,13 +1169,22 @@
         document.getElementById('low-stock-alert-text').innerText = `${lowStockItems.length} items are low on stock!`;
         const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(f.toLowerCase()) || (p.barcode && p.barcode.includes(f)) || (p.category && p.category.toLowerCase().includes(f.toLowerCase())));
         const groups = {};
-        filtered.forEach(p => { const cat = (p.category || 'Uncategorized').trim().toLowerCase(); if (!groups[cat]) groups[cat] = { name: titleCase(p.category || 'Uncategorized'), items: [] }; groups[cat].items.push(p); if (inventoryState.collapsedCategories[cat] === undefined) inventoryState.collapsedCategories[cat] = true; });
+        filtered.forEach(p => { 
+            const cat = (p.category || 'Uncategorized').trim().toLowerCase(); 
+            if (!groups[cat]) groups[cat] = { name: titleCase(p.category || 'Uncategorized'), items: [] }; 
+            groups[cat].items.push(p); 
+            if (inventoryState.collapsedCategories[cat] === undefined) inventoryState.collapsedCategories[cat] = true; 
+        });
         const sortedCats = Object.keys(groups).sort();
         if (filtered.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No matching products</div>'; return; }
+        
         list.innerHTML = sortedCats.map(catKey => {
             const group = groups[catKey];
             const isCollapsed = inventoryState.collapsedCategories[catKey] === true && f.length === 0;
-            return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory('${catKey}')" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${group.name}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${group.items.map(p => `<div class="p-4 flex gap-3 ${p.stock <= 5 ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate">${p.name}</h4><p class="text-[10px] font-medium opacity-50 mb-3">#${p.barcode || '---'}</p><div class="grid grid-cols-2 gap-2"><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-bold uppercase opacity-60">Stock</p><p class="text-xs font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-bold uppercase opacity-60">Price</p><p class="text-xs font-black text-primary">₱${p.price.toLocaleString()}</p></div></div></div><div class="flex flex-col gap-1.5 border-l pl-3"><button onclick="openProductModal('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="deleteProduct('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`).join('')}</div></div>`;
+            return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory('${catKey}')" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${group.name}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${group.items.map(p => {
+                const marginVal = p.price > 0 ? (((p.price - p.cost) / p.price) * 100).toFixed(1) : 0;
+                return `<div class="p-4 flex gap-3 ${p.stock <= 5 ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate uppercase">${p.name}</h4><p class="text-[10px] font-medium opacity-50 mb-3 tracking-tight">#${p.barcode || '---'}</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-2"><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Stock</p><p class="text-xs font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Cost</p><p class="text-xs font-black text-on-surface">₱${(p.cost || 0).toLocaleString()}</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Retail</p><p class="text-xs font-black text-primary">₱${p.price.toLocaleString()}</p></div><div class="bg-secondary/5 rounded-xl p-2 border border-secondary/10"><p class="text-[8px] font-black uppercase text-secondary">Margin</p><p class="text-xs font-black text-secondary">${marginVal}%</p></div></div></div><div class="flex flex-col gap-1.5 border-l pl-3 justify-center"><button onclick="openProductModal('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="deleteProduct('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`;
+            }).join('')}</div></div>`;
         }).join('');
     }
 
@@ -1217,7 +1238,20 @@
         if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()}?`)) return;
         credits.forEach(t => { t.paid = true; t._offline = true; queueAction('update', 'transactions', t); });
         const settlementId = 'SET-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        const settlement = { id: settlementId, type: 'SA_SETTLEMENT', customer: customerName, total: totalToPay, timestamp: new Date().toISOString(), settledTickets: credits.map(c => ({ id: c.id, total: c.total, ts: c.timestamp, items: JSON.parse(JSON.stringify(c.items || [])) })), paid: true };
+        const settlement = { 
+            id: settlementId, 
+            type: 'SA_SETTLEMENT', 
+            customer: customerName, 
+            total: totalToPay, 
+            timestamp: new Date().toISOString(), 
+            settledTickets: credits.map(c => ({ 
+                id: c.id, 
+                total: c.total, 
+                ts: c.timestamp, 
+                items: JSON.parse(JSON.stringify(c.items || [])) 
+            })), 
+            paid: true 
+        };
         queueTransaction(settlement); sync(); renderLedger(); showToast('Balance paid', 'success'); lastTransactionId = settlementId; viewReceipt(settlementId);
     }
 
@@ -1289,8 +1323,13 @@
     }
 
     function printTx() { if (!lastTransactionId) return; viewReceipt(lastTransactionId); closeModal('mod-tx'); }
-    function confirmDeleteTransaction() { if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
+    function confirmDeleteTransaction() { 
+        if (document.activeElement) document.activeElement.blur();
+        if (!lastTransactionId) return; 
+        openPinModal({ action: 'delete', id: lastTransactionId }); 
+    }
     async function deleteTransaction(id) {
+        if (document.activeElement) document.activeElement.blur();
         const tx = state.transactions.find(t => t.id === id); if (!tx) return;
         if (navigator.onLine) await fbDelete('transactions', id).catch(e => {});
         if (tx.items) tx.items.forEach(item => { const p = state.inventory.find(inv => inv.id === item.id); if (p) { p.stock += (item.qty * (item.deduct || 1)); queueAction('update', 'inventory', p); } });
@@ -1319,9 +1358,37 @@
         document.getElementById('rec-set-customer').innerText = tx.customer || 'Guest'; document.getElementById('rec-set-date').innerText = new Date(tx.timestamp).toLocaleDateString();
         document.getElementById('rec-total').innerText = `₱${tx.total.toLocaleString()}`;
         const list = document.getElementById('rec-items-list'); list.innerHTML = '';
-        if (tx.type === 'SA_CREDIT_INDIVIDUAL') list.innerHTML = `<div class="mb-2"><div class="flex justify-between font-bold"><span>${tx.originalTicket}</span><span>₱${tx.total.toLocaleString()}</span></div></div>`;
-        else if (tx.settledTickets) list.innerHTML = tx.settledTickets.map(st => `<div class="flex justify-between font-bold"><span>${st.id}</span><span>₱${st.total.toLocaleString()}</span></div>`).join('');
-        document.getElementById('rec-cash-row').classList.add('hidden'); document.getElementById('rec-change-row').classList.add('hidden'); document.getElementById('rec-customer-row').classList.add('hidden');
+        
+        let ticketsToProcess = [];
+        if (tx.type === 'SA_CREDIT_INDIVIDUAL') {
+            ticketsToProcess = [{ id: tx.originalTicket, total: tx.total, ts: tx.timestamp, items: tx.items || [] }];
+        } else if (tx.settledTickets) {
+            ticketsToProcess = tx.settledTickets;
+        }
+
+        list.innerHTML = ticketsToProcess.map(st => {
+            let itemsHtml = (st.items || []).map(item => `
+                <div class="flex justify-between pl-4 opacity-60 text-[10px]">
+                    <span>${item.name} x${item.qty}</span>
+                    <span>₱${(item.price * item.qty).toLocaleString()}</span>
+                </div>
+            `).join('');
+            
+            return `
+                <div class="mb-3 border-b border-black/10 pb-2 last:border-0">
+                    <div class="flex justify-between font-bold">
+                        <span>${st.id}</span>
+                        <span>₱${st.total.toLocaleString()}</span>
+                    </div>
+                    <div class="text-[10px] opacity-40 mb-1">${new Date(st.ts).toLocaleDateString()}</div>
+                    ${itemsHtml}
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('rec-cash-row').classList.add('hidden'); 
+        document.getElementById('rec-change-row').classList.add('hidden'); 
+        document.getElementById('rec-customer-row').classList.add('hidden');
         document.getElementById('receipt-modal').classList.replace('hidden', 'flex');
     }
 
@@ -1333,7 +1400,6 @@
     function startInvScanner() { const preview = document.getElementById('scanner-preview-container'); const camArea = document.getElementById('inv-cam-area'); preview.classList.remove('hidden'); camArea.innerHTML = ''; Quagga.init({ inputStream: { target: camArea, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader", "code_128_reader"] } }, (err) => { if (err) return; Quagga.start(); isQuaggaRunning = true; }); Quagga.onDetected((res) => { if (res.codeResult.code) { document.getElementById('p-barcode').value = res.codeResult.code; stopInvScanner(); } }); }
     function stopInvScanner() { if (isQuaggaRunning) { Quagga.stop(); isQuaggaRunning = false; } document.getElementById('scanner-preview-container').classList.add('hidden'); }
 
-    // Initial Start
     updateSyncUI(); switchScreen('pos'); updateCartUI(); loadAll();
 </script>
 </body></html>
