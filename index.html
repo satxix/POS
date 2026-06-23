@@ -118,7 +118,10 @@
 <span class="material-symbols-outlined text-primary text-[20px] font-bold">diamond</span>
 </div>
 <div>
+<div class="flex items-center gap-2">
 <h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
+<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v2.6.1</span>
+</div>
 <p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
 </div>
 </div>
@@ -177,7 +180,7 @@
                             </p>
 <button class="text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors" id="fav-mode-btn" onclick="toggleFavoritesMode()">Edit Slots</button>
 </div>
-<div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-4 xl:grid-cols-6 gap-3" id="favorites-grid">
+<div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3" id="favorites-grid">
 <!-- Favorite buttons will be rendered here -->
 </div>
 </div>
@@ -339,7 +342,6 @@
 </div>
 </div>
 </main>
-<!-- All Modals preserved exactly as in DOCUMENT_21 -->
 <!-- SCAN CHOICE MODAL -->
 <div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[230] hidden items-center justify-center p-4" id="scan-choice-modal">
 <div class="bg-surface w-full max-w-[340px] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
@@ -387,7 +389,10 @@
 </div>
 <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1" id="fav-picker-list"></div>
 <div class="p-3 border-t border-border-subtle text-center">
-<button class="text-xs font-black text-error uppercase hover:underline" onclick="clearFavoriteSlot()">Clear Slot</button>
+<div class="flex gap-2">
+<button class="flex-1 bg-surface-container text-xs font-black text-error uppercase py-2 rounded-lg hover:bg-error/10 transition-colors" onclick="clearFavoriteSlot()">Clear Slot</button>
+<button class="flex-1 bg-error/10 text-xs font-black text-error uppercase py-2 rounded-lg hover:bg-error/20 transition-colors hidden" id="fav-remove-slot-btn" onclick="removeFavoriteSlotAction()">Delete Slot</button>
+</div>
 </div>
 </div>
 </div>
@@ -701,9 +706,14 @@
         favorites: new Array(8).fill(null)
     };
     
-    if (!state.favorites) state.favorites = new Array(8).fill(null);
+    // Updated: Ensure favorites exists and is an array
+    if (!state.favorites || !Array.isArray(state.favorites)) {
+        state.favorites = new Array(8).fill(null);
+    }
     const localFavs = JSON.parse(localStorage.getItem(FAV_KEY));
-    if (localFavs) state.favorites = localFavs;
+    if (localFavs && Array.isArray(localFavs)) {
+        state.favorites = localFavs;
+    }
 
     let offlineQueue = JSON.parse(localStorage.getItem(QUEUE_KEY)) || [];
     let isSyncing = false;
@@ -917,24 +927,52 @@
         renderFavorites();
     }
 
+    function addFavoriteSlot() {
+        state.favorites.push(null);
+        sync();
+        renderFavorites();
+        showToast("Slot added", "success");
+    }
+
+    function removeFavoriteSlot(index, event) {
+        if (event) event.stopPropagation();
+        state.favorites.splice(index, 1);
+        sync();
+        renderFavorites();
+        showToast("Slot removed", "info");
+    }
+
     function renderFavorites() {
         const grid = document.getElementById('favorites-grid');
         if (!grid) return;
-        grid.innerHTML = state.favorites.map((fav, index) => {
+        
+        let html = state.favorites.map((fav, index) => {
+            const removeBtnHtml = favoritesEditMode ? `<button onclick="removeFavoriteSlot(${index}, event)" class="absolute top-1 right-1 bg-error text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md active:scale-90 z-10"><span class="material-symbols-outlined text-[14px]">close</span></button>` : '';
+            
             if (!fav) {
-                return `<button onclick="openFavoritesPicker(${index})" class="h-20 border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors">
+                return `<div class="relative h-20"><button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors">
                     <span class="material-symbols-outlined text-[20px] text-primary/30 group-hover:text-primary transition-colors">add</span>
                     <span class="text-[7px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
-                </button>`;
+                </button>${removeBtnHtml}</div>`;
             }
             const product = state.inventory.find(p => p.id === fav.id);
-            if (!product) return `<button onclick="openFavoritesPicker(${index})" class="h-20 border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50"><span class="material-symbols-outlined">error</span></button>`;
-            return `<button onclick="handleFavoriteClick(${index})" class="relative h-20 bg-surface border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-2 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all">
-                <span class="text-[9px] font-black text-primary leading-tight line-clamp-2 text-center uppercase">${product.name}</span>
-                <span class="text-[10px] font-black text-secondary mt-1">₱${product.price.toLocaleString()}</span>
+            if (!product) return `<div class="relative h-20"><button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50"><span class="material-symbols-outlined">error</span></button>${removeBtnHtml}</div>`;
+            return `<div class="relative h-20"><button onclick="handleFavoriteClick(${index})" class="relative w-full h-full bg-surface border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-2 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all">
+                <span class="text-[10px] font-black text-primary leading-tight line-clamp-2 text-center uppercase">${product.name}</span>
+                <span class="text-[12px] font-black text-secondary mt-1">₱${product.price.toLocaleString()}</span>
                 ${favoritesEditMode ? `<div class="absolute inset-0 bg-primary/80 flex items-center justify-center text-white"><span class="material-symbols-outlined">edit</span></div>` : ''}
-            </button>`;
+            </button>${removeBtnHtml}</div>`;
         }).join('');
+
+        // Updated: Add "Add Slot" button when in edit mode
+        if (favoritesEditMode) {
+            html += `<button onclick="addFavoriteSlot()" class="h-20 border-2 border-primary/20 bg-primary/5 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:bg-primary/10 transition-colors">
+                <span class="material-symbols-outlined text-[20px] text-primary">add_circle</span>
+                <span class="text-[7px] font-black uppercase text-primary">Add New Slot</span>
+            </button>`;
+        }
+        
+        grid.innerHTML = html;
     }
 
     function handleFavoriteClick(index) {
@@ -951,6 +989,7 @@
     function openFavoritesPicker(index) {
         currentFavSlotIndex = index;
         document.getElementById('fav-picker-search').value = '';
+        document.getElementById('fav-remove-slot-btn').classList.toggle('hidden', !favoritesEditMode);
         renderFavPickerList();
         closeModal('fav-picker-modal');
         document.getElementById('fav-picker-modal').classList.replace('hidden', 'flex');
@@ -965,6 +1004,7 @@
 
     function assignFavorite(productId) { if (currentFavSlotIndex === null) return; state.favorites[currentFavSlotIndex] = { id: productId }; sync(); renderFavorites(); closeModal('fav-picker-modal'); showToast("Slot updated", "success"); }
     function clearFavoriteSlot() { if (currentFavSlotIndex === null) return; state.favorites[currentFavSlotIndex] = null; sync(); renderFavorites(); closeModal('fav-picker-modal'); showToast("Slot cleared", "info"); }
+    function removeFavoriteSlotAction() { if (currentFavSlotIndex === null) return; removeFavoriteSlot(currentFavSlotIndex); closeModal('fav-picker-modal'); }
 
     function updateSyncUI() {
         const pill = document.getElementById('sync-pill');
@@ -1042,7 +1082,7 @@
         container.innerHTML = state.cart.map((item, idx) => {
             const lineTotal = item.price * item.qty;
             total += lineTotal;
-            return `<div class="bg-surface-container/50 border border-border-subtle p-4 rounded-2xl flex justify-between items-center shadow-sm"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 mb-1.5"><span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">${item.type}</span><h4 class="font-bold text-xs truncate">${item.name}</h4></div><p class="text-[10px] font-bold opacity-50">₱${item.price.toLocaleString()} x ${item.qty}</p></div><div class="flex items-center gap-4"><span class="font-black text-sm whitespace-nowrap">₱${lineTotal.toLocaleString()}</span><div class="flex items-center bg-white border border-border-subtle rounded-xl shadow-sm"><button onclick="updateQty(${idx}, -1)" class="w-9 h-9 flex items-center justify-center text-error active-scale"><span class="material-symbols-outlined text-[20px]">remove_circle</span></button><span class="px-3 text-xs font-black min-w-[24px] text-center">${item.qty}</span><button onclick="updateQty(${idx}, 1)" class="w-9 h-9 flex items-center justify-center text-secondary active-scale"><span class="material-symbols-outlined text-[20px]">add_circle</span></button></div></div></div>`;
+            return `<div class="bg-surface-container/50 border border-border-subtle p-4 rounded-2xl flex justify-between items-center shadow-sm"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 mb-1.5"><span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">${item.type}</span><h4 class="font-bold text-sm truncate">${item.name}</h4></div><p class="text-xs font-bold opacity-50">₱${item.price.toLocaleString()} x ${item.qty}</p></div><div class="flex items-center gap-4"><span class="font-black text-base whitespace-nowrap">₱${lineTotal.toLocaleString()}</span><div class="flex items-center bg-white border border-border-subtle rounded-xl shadow-sm"><button onclick="updateQty(${idx}, -1)" class="w-9 h-9 flex items-center justify-center text-error active-scale"><span class="material-symbols-outlined text-[20px]">remove_circle</span></button><span class="px-3 text-xs font-black min-w-[24px] text-center">${item.qty}</span><button onclick="updateQty(${idx}, 1)" class="w-9 h-9 flex items-center justify-center text-secondary active-scale"><span class="material-symbols-outlined text-[20px]">add_circle</span></button></div></div></div>`;
         }).join('');
         document.getElementById('cart-subtotal').innerText = `₱${total.toLocaleString()}`;
         document.getElementById('cart-total').innerText = `₱${total.toLocaleString()}`;
@@ -1091,7 +1131,7 @@
         document.getElementById('p-barcode').value = p ? p.barcode : ''; document.getElementById('p-name').value = p ? p.name : '';
         document.getElementById('p-category').value = p ? p.category : ''; document.getElementById('p-cost').value = p ? p.cost : '';
         document.getElementById('p-price').value = p ? p.price : ''; document.getElementById('p-stock').value = p ? p.stock : '';
-        document.getElementById('p-has-pack').checked = p && !!p.packPrice; document.getElementById('p-pack-size').value = p ? p.packSize : '';
+        document.getElementById('p-has-pack').checked = p && !!p.packPrice; document.getElementById('p-has-pack').checked = p && !!p.packPrice; document.getElementById('p-pack-size').value = p ? p.packSize : '';
         document.getElementById('p-pack-price').value = p ? p.packPrice : ''; togglePackFields();
         document.getElementById('product-modal-title').innerText = id ? "Edit Product" : "Add New Product";
         document.getElementById('product-modal').classList.replace('hidden', 'flex');
