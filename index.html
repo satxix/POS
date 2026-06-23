@@ -3,7 +3,7 @@
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>Villacart POS: Insights Optimized v2.6.9</title>
+<title>Villacart POS: v3.2.0 Robust Direct-Sync</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -120,17 +120,20 @@
 <div>
 <div class="flex items-center gap-2">
 <h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
-<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v2.6.9</span>
+<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v3.2.0</span>
 </div>
 <p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
 </div>
 </div>
 <div class="flex items-center gap-2">
+<div class="flex flex-col items-center">
 <div class="flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-all cursor-pointer relative group" id="sync-pill" onclick="showSyncInfo()">
 <span class="w-2 h-2 rounded-full bg-green-400" id="sync-dot"></span>
 <span class="material-symbols-outlined text-[14px] hidden" id="sync-spinner">sync</span>
 <span id="sync-text">Online</span>
 <span class="absolute -top-1 -right-1 bg-orange-500 text-white text-[8px] h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full hidden border border-primary shadow-sm" id="queue-badge">0</span>
+</div>
+<span class="text-[7px] text-red-300 font-black uppercase mt-0.5 hidden truncate max-w-[120px]" id="sync-error-label">Sync Error</span>
 </div>
 <button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors">notifications</button>
 </div>
@@ -180,9 +183,7 @@
                             </p>
 <button class="text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors" id="fav-mode-btn" onclick="toggleFavoritesMode()">Edit Slots</button>
 </div>
-<div class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3" id="favorites-grid">
-<!-- Favorite buttons will be rendered here -->
-</div>
+<div class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3" id="favorites-grid"></div>
 </div>
 <div class="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-primary/60 mt-2">
 <span class="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
@@ -267,15 +268,15 @@
 </div>
 <!-- INSIGHTS -->
 <div class="screen-transition hidden p-4 lg:p-8 max-w-[1400px] mx-auto" id="screen-insights">
-<div class="flex justify-between items-center mb-6">
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
 <h2 class="text-2xl font-black text-primary uppercase">Analytics &amp; Reports</h2>
-<div class="flex gap-2">
-<button class="bg-on-surface-variant/10 text-on-surface-variant h-11 px-5 rounded-2xl font-bold text-xs uppercase flex items-center gap-2 active-scale border border-border-subtle" onclick="troubleshootConnection()">
-<span class="material-symbols-outlined text-[20px]">refresh</span>
+<div class="flex flex-wrap gap-2">
+<button class="bg-on-surface-variant/10 text-on-surface-variant h-11 px-4 sm:px-5 rounded-2xl font-bold text-[10px] sm:text-xs uppercase flex items-center gap-2 active-scale border border-border-subtle" onclick="troubleshootConnection()">
+<span class="material-symbols-outlined text-[18px] sm:text-[20px]">refresh</span>
                     Troubleshoot
                 </button>
-<button class="bg-secondary text-white h-11 px-5 rounded-2xl font-bold text-xs uppercase flex items-center gap-2 active-scale shadow-md" onclick="exportSalesCSV()">
-<span class="material-symbols-outlined text-[20px]">download</span>
+<button class="bg-secondary text-white h-11 px-4 sm:px-5 rounded-2xl font-bold text-[10px] sm:text-xs uppercase flex items-center gap-2 active-scale shadow-md" onclick="exportSalesCSV()">
+<span class="material-symbols-outlined text-[18px] sm:text-[20px]">download</span>
                     Export CSV
                 </button>
 </div>
@@ -611,9 +612,7 @@
 <span class="w-1/4 text-right">Price</span>
 </div>
 <div class="border-b border-black border-dashed mb-2 pb-1 flex justify-between font-bold hidden" id="receipt-settlement-header">
-<span class="w-1/3">Ticket ID</span>
-<span class="w-1/3 text-center">Date</span>
-<span class="w-1/3 text-right">Amt</span>
+<span class="w-full text-left uppercase">Settlement Breakdown</span>
 </div>
 <div class="mb-3 space-y-1" id="rec-items-list"></div>
 <div class="border-t border-black pt-2 space-y-1">
@@ -628,10 +627,6 @@
 <div class="flex justify-between" id="rec-change-row">
 <span>Change:</span>
 <span id="rec-change">₱0.00</span>
-</div>
-<div class="flex justify-between hidden font-bold" id="rec-remaining-row">
-<span>Remaining Balance:</span>
-<span>₱0.00</span>
 </div>
 <div class="flex justify-between hidden" id="rec-customer-row">
 <span>Customer:</span>
@@ -741,41 +736,58 @@
 
         inventoryUnsubscribe = db.collection('inventory').onSnapshot((snapshot) => {
             const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const offlineProdIds = new Set(state.inventory.filter(p => p._offline).map(p => p.id));
-            const pendingInv = state.inventory.filter(p => p._offline);
-            const filteredCloudInv = cloudInv.filter(p => !offlineProdIds.has(p.id));
-            state.inventory = [...pendingInv, ...filteredCloudInv];
+            
+            // Version 3.2: Optimized Filtering - keep offline versions until they disappear from queue
+            const offlineIds = new Set(offlineQueue.filter(q => q.table === 'inventory').map(q => q.data.id));
+            const cloudIds = new Set(cloudInv.map(p => p.id));
+            
+            const filteredCloudInv = cloudInv.filter(p => !offlineIds.has(p.id));
+            const activeOfflineInv = state.inventory.filter(p => p._offline && offlineIds.has(p.id));
+            
+            state.inventory = [...activeOfflineInv, ...filteredCloudInv];
+            
             updateLastSyncedTime();
             sync();
             renderInventory();
             renderFavorites();
             syncErrorMsg = null;
+            updateSyncUI();
         }, (error) => {
             syncErrorMsg = error.message;
-            showToast(`Inventory Sync Error: ${error.message}`, "error");
+            updateSyncUI();
         });
 
         transactionsUnsubscribe = db.collection('transactions').onSnapshot((snapshot) => {
             const cloudTrans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const offlineIds = new Set(state.transactions.filter(t => t._offline).map(t => t.id));
-            const deletedIds = offlineQueue.filter(op => op.type === 'delete' && op.table === 'transactions').map(op => op.data.id);
-            const pendingTrans = state.transactions.filter(t => t._offline && !deletedIds.includes(t.id));
-            const filteredCloudTrans = cloudTrans.filter(t => !offlineIds.has(t.id) && !deletedIds.includes(t.id));
-            state.transactions = [...pendingTrans, ...filteredCloudTrans].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            // Version 3.2: Robust deduplication logic
+            const offlineIds = new Set(offlineQueue.filter(q => q.table === 'transactions').map(q => q.data.id));
+            const cloudIds = new Set(cloudTrans.map(t => t.id));
+
+            const filteredCloudTrans = cloudTrans.filter(t => !offlineIds.has(t.id));
+            const activeOfflineTrans = state.transactions.filter(t => t._offline && offlineIds.has(t.id));
+            
+            const mergedMap = new Map();
+            filteredCloudTrans.forEach(t => mergedMap.set(t.id, t));
+            activeOfflineTrans.forEach(t => mergedMap.set(t.id, t));
+            
+            state.transactions = Array.from(mergedMap.values()).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
             updateLastSyncedTime();
             sync();
             renderLedger();
             renderInsights();
             syncErrorMsg = null;
+            updateSyncUI();
         }, (error) => {
             syncErrorMsg = error.message;
-            showToast(`Transaction Sync Error: ${error.message}`, "error");
+            updateSyncUI();
         });
     }
 
     function troubleshootConnection() {
         showToast("Re-syncing with Cloud...", "info");
-        state.transactions = []; // Clear local cache to force fetch
+        state.transactions = [];
         sync();
         setupRealTimeSync();
         setTimeout(() => {
@@ -787,8 +799,8 @@
 
     function showSyncInfo() {
         const status = navigator.onLine ? "ONLINE" : "OFFLINE";
-        const msg = syncErrorMsg ? `ERROR: ${syncErrorMsg}` : `All systems functional. Queue: ${offlineQueue.length} items.`;
-        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nTap Troubleshoot in Insights screen if you notice missing data.`);
+        const msg = syncErrorMsg ? `LAST ERROR: ${syncErrorMsg}` : `All systems functional. Queue: ${offlineQueue.length} items.`;
+        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v3.2.0`);
     }
 
     function updateLastSyncedTime() {
@@ -805,56 +817,74 @@
     }
 
     async function syncNow() {
-        if (!navigator.onLine || isSyncing) return;
+        if (!navigator.onLine || isSyncing || offlineQueue.length === 0) return;
         isSyncing = true;
         updateSyncUI();
+        
+        const tempQueue = [...offlineQueue];
+        const failedIndices = [];
+
         try {
-            if (offlineQueue.length > 0) {
-                const batch = db.batch();
-                const syncedTransIds = [];
-                const syncedInvIds = [];
-                for (const task of offlineQueue) {
-                    const col = task.table;
-                    const targetId = task.data.id;
-                    if (!targetId) continue;
-                    const docRef = db.collection(col).doc(targetId);
-                    if (task.type === 'add' || task.type === 'new_transaction') {
-                        const dataToSync = { ...task.data };
-                        delete dataToSync._offline;
-                        batch.set(docRef, dataToSync);
-                        if (col === 'transactions') syncedTransIds.push(targetId);
-                        if (col === 'inventory') syncedInvIds.push(targetId);
-                    } else if (task.type === 'update') {
-                        const updateData = { ...task.data };
-                        delete updateData.id; 
-                        delete updateData._offline;
-                        batch.update(docRef, updateData);
-                        if (col === 'transactions') syncedTransIds.push(targetId);
-                        if (col === 'inventory') syncedInvIds.push(targetId);
-                    } else if (task.type === 'delete') {
-                        batch.delete(docRef);
+            // Version 3.2: Sequential Direct Sync to prevent Batch Failures
+            for (let i = 0; i < tempQueue.length; i++) {
+                const task = tempQueue[i];
+                const col = task.table;
+                const id = task.data.id;
+                const data = { ...task.data };
+                delete data._offline;
+
+                try {
+                    if (task.type === 'delete') {
+                        await db.collection(col).doc(id).delete();
+                    } else {
+                        await db.collection(col).doc(id).set(data, { merge: true });
                     }
+                } catch (e) {
+                    console.error(`Sync item ${id} failed:`, e);
+                    failedIndices.push(i);
+                    syncErrorMsg = e.message;
                 }
-                await batch.commit();
-                state.transactions.forEach(t => { if (syncedTransIds.includes(t.id)) delete t._offline; });
-                state.inventory.forEach(p => { if (syncedInvIds.includes(p.id)) delete p._offline; });
-                offlineQueue = [];
             }
+            
+            // Remove successfully synced items from real queue
+            offlineQueue = offlineQueue.filter((_, idx) => failedIndices.includes(idx));
             sync();
-            updateLastSyncedTime();
-            showToast("Cloud sync complete", "success");
-            syncErrorMsg = null;
+            
+            if (failedIndices.length === 0) {
+                showToast("Cloud sync complete", "success");
+                syncErrorMsg = null;
+            } else {
+                showToast(`Sync partial: ${failedIndices.length} failed`, "error");
+            }
         } catch (err) {
-            console.error("Sync failed", err);
+            console.error("Critical sync loop error:", err);
             syncErrorMsg = err.message;
-            showToast(`Sync Error: ${err.message}`, "error");
         } finally {
             isSyncing = false;
             updateSyncUI();
+            renderLedger(); 
+            renderInsights();
+        }
+    }
+
+    // Version 3.2: New Direct Sync Function for critical transactions
+    async function directSync(table, data) {
+        if (!navigator.onLine) return false;
+        const cleanData = { ...data };
+        delete cleanData._offline;
+        try {
+            await db.collection(table).doc(data.id).set(cleanData, { merge: true });
+            return true;
+        } catch (e) {
+            console.error("Direct sync failed", e);
+            syncErrorMsg = e.message;
+            updateSyncUI();
+            return false;
         }
     }
 
     function queueAction(type, table, data) {
+        if (!data || !data.id) return; 
         const task = { type, table, data, ts: Date.now() };
         offlineQueue.push(task);
         sync();
@@ -862,10 +892,28 @@
     }
 
     function queueTransaction(transaction) {
+        if (!transaction || !transaction.id) return; 
         transaction._offline = true;
-        state.transactions.unshift(transaction);
-        queueAction('new_transaction', 'transactions', transaction);
-        if (transaction.items && (transaction.type !== 'SA_SETTLEMENT' && transaction.type !== 'SA_CREDIT_INDIVIDUAL')) {
+        
+        const exists = state.transactions.findIndex(t => t.id === transaction.id);
+        if (exists !== -1) state.transactions[exists] = transaction;
+        else state.transactions.unshift(transaction);
+        
+        // Try direct sync first for transactions
+        directSync('transactions', transaction).then(success => {
+            if (success) {
+                delete transaction._offline;
+                sync();
+            } else {
+                queueAction('new_transaction', 'transactions', transaction);
+            }
+        });
+        
+        // Stock deduction (only for standard sales/credits, not settlements/expenses)
+        // Settlement transactions have SA- prefix but also have notes referring to original CR- tickets
+        const isSettlement = transaction.notes && transaction.notes.includes('CR-');
+        
+        if (transaction.items && transaction.items.length > 0 && (transaction.id.startsWith('SA-') || transaction.id.startsWith('CR-')) && !isSettlement) {
             transaction.items.forEach(item => {
                 const p = state.inventory.find(inv => inv.id === item.id);
                 if (p) {
@@ -1033,13 +1081,36 @@
         const dot = document.getElementById('sync-dot');
         const text = document.getElementById('sync-text');
         const spinner = document.getElementById('sync-spinner');
+        const errLabel = document.getElementById('sync-error-label');
         if (!pill) return;
+        
+        if (syncErrorMsg) {
+            errLabel.classList.remove('hidden');
+            errLabel.innerText = syncErrorMsg;
+            pill.classList.add('ring-2', 'ring-red-500/50');
+        } else {
+            errLabel.classList.add('hidden');
+            pill.classList.remove('ring-2', 'ring-red-500/50');
+        }
+
         if (!navigator.onLine) {
             pill.classList.replace('bg-white/10', 'bg-red-500/20'); pill.classList.replace('border-white/20', 'border-red-500/40');
             dot.classList.replace('bg-green-400', 'bg-red-500'); text.innerText = "Offline"; spinner.classList.add('hidden'); return;
         }
-        if (isSyncing) { dot.classList.add('hidden'); spinner.classList.remove('hidden'); spinner.classList.add('animate-spin-custom'); text.innerText = "Syncing..."; }
-        else { pill.classList.remove('bg-red-500/20', 'border-red-500/40'); pill.classList.add('bg-white/10', 'border-white/20'); dot.classList.remove('hidden'); dot.classList.replace('bg-green-400', 'bg-green-400'); spinner.classList.add('hidden'); text.innerText = "Online"; }
+        if (isSyncing) { 
+            dot.classList.add('hidden'); 
+            spinner.classList.remove('hidden'); 
+            spinner.classList.add('animate-spin-custom'); 
+            text.innerText = "Syncing..."; 
+        }
+        else { 
+            pill.classList.remove('bg-red-500/20', 'border-red-500/40'); 
+            pill.classList.add('bg-white/10', 'border-white/20'); 
+            dot.classList.remove('hidden'); 
+            dot.classList.replace('bg-red-500', 'bg-green-400'); 
+            spinner.classList.add('hidden'); 
+            text.innerText = "Online"; 
+        }
         updateQueueBadge();
     }
 
@@ -1174,7 +1245,20 @@
         const customer = document.getElementById('credit-customer').value;
         if (type === 'CR' && !customer) { showToast('Customer name required', 'error'); return; }
         if (type === 'SA' && cashVal < total) { showToast('Insufficient cash', 'error'); return; }
-        const transaction = { id, type, total, timestamp: new Date().toISOString(), items: JSON.parse(JSON.stringify(state.cart)), customer: customer ? customer.trim() : null, paid: (type === 'SA'), cashReceived: cashVal, change: type === 'SA' ? (cashVal - total) : 0 };
+        
+        const transaction = { 
+            id, 
+            type, 
+            total, 
+            timestamp: new Date().toISOString(), 
+            items: JSON.parse(JSON.stringify(state.cart)), 
+            customer: customer ? customer.trim() : null, 
+            paid: (type === 'SA'), 
+            cashReceived: cashVal, 
+            change: type === 'SA' ? (cashVal - total) : 0,
+            notes: "" 
+        };
+        
         queueTransaction(transaction);
         lastTransactionId = id; clearCart(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
@@ -1193,9 +1277,21 @@
     function saveProduct() {
         const name = document.getElementById('p-name').value; if (!name) { showToast('Product name is required', 'error'); return; }
         const data = { id: window._editId || Date.now().toString(), barcode: document.getElementById('p-barcode').value, name: name, category: document.getElementById('p-category').value, cost: parseFloat(document.getElementById('p-cost').value) || 0, price: parseFloat(document.getElementById('p-price').value) || 0, stock: parseInt(document.getElementById('p-stock').value) || 0, packPrice: document.getElementById('p-has-pack').checked ? parseFloat(document.getElementById('p-pack-price').value) : null, packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null, _offline: true };
-        if (window._editId) { const idx = state.inventory.findIndex(i => i.id === window._editId); state.inventory[idx] = data; queueAction('update', 'inventory', data); }
-        else { state.inventory.push(data); queueAction('add', 'inventory', data); }
-        sync(); renderInventory(); closeModal('product-modal'); showToast('Product Saved', 'success');
+        
+        // Use direct sync for inventory edits too
+        directSync('inventory', data).then(success => {
+            if (success) delete data._offline;
+            if (window._editId) { 
+                const idx = state.inventory.findIndex(i => i.id === window._editId); 
+                state.inventory[idx] = data; 
+                if (!success) queueAction('update', 'inventory', data); 
+            }
+            else { 
+                state.inventory.push(data); 
+                if (!success) queueAction('add', 'inventory', data); 
+            }
+            sync(); renderInventory(); closeModal('product-modal'); showToast('Product Saved', 'success');
+        });
     }
 
     function deleteProduct(id) { if (confirm('Delete this product?')) { state.inventory = state.inventory.filter(i => i.id !== id); queueAction('delete', 'inventory', { id }); sync(); renderInventory(); showToast('Product Deleted', 'info'); } }
@@ -1234,7 +1330,7 @@
     function saveExpense() {
         const desc = document.getElementById('exp-desc').value; const amt = parseFloat(document.getElementById('exp-amt').value);
         if (!desc || isNaN(amt)) { showToast("Required fields missing", "error"); return; }
-        const expenseTrans = { id: 'EX-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0'), type: 'EX', desc, total: amt, timestamp: new Date().toISOString() };
+        const expenseTrans = { id: 'EX-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0'), type: 'EX', desc, total: amt, timestamp: new Date().toISOString(), notes: "" };
         queueTransaction(expenseTrans); closeModal('expense-modal'); showToast('Expense Saved', 'success'); if (activeLedgerTab === 'expense') renderLedger(); renderInsights();
     }
 
@@ -1243,10 +1339,10 @@
         if (!container || !summary) return;
         let html = ''; let sumHtml = '';
         if (activeLedgerTab === 'cash') {
-            const sales = state.transactions.filter(t => (t.type === 'SA' || t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL')).reverse();
+            const sales = state.transactions.filter(t => (t.type === 'SA' || (t.notes && t.notes.includes('CR-')))).reverse();
             const total = sales.reduce((a, b) => a + b.total, 0);
             sumHtml = `<div class="bg-primary p-6 rounded-3xl text-white shadow-lg"><p class="text-[10px] font-bold uppercase opacity-70 tracking-widest mb-1">Total Cash Sales</p><h3 class="text-2xl font-black">₱${total.toLocaleString()}</h3></div>`;
-            html = sales.map(t => `<div class="bg-surface border border-border-subtle p-5 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-sm text-primary">${t.id}</p>${t.type === 'SA_SETTLEMENT' || t.type === 'SA_CREDIT_INDIVIDUAL' ? '<span class="text-[7px] bg-secondary text-white px-2 py-0.5 rounded-full uppercase font-bold">Settlement</span>' : ''}${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-[10px] text-on-surface-variant font-bold mt-1">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-3"><p class="font-black text-xl text-secondary">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale"><span class="material-symbols-outlined">visibility</span></button></div></div>`).join('') || '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No records</div>';
+            html = sales.map(t => `<div class="bg-surface border border-border-subtle p-5 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-sm text-primary">${t.id}</p>${(t.notes && t.notes.includes('CR-')) ? '<span class="text-[7px] bg-secondary text-white px-2 py-0.5 rounded-full uppercase font-bold">Settlement</span>' : ''}${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-[10px] text-on-surface-variant font-bold mt-1">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-3"><p class="font-black text-xl text-secondary">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale"><span class="material-symbols-outlined">visibility</span></button></div></div>`).join('') || '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No records</div>';
         } else if (activeLedgerTab === 'credit') {
             const credits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
             const grouped = credits.reduce((acc, curr) => { const rawName = curr.customer || 'Guest'; const normalizedKey = rawName.trim().toLowerCase(); if (!acc[normalizedKey]) acc[normalizedKey] = { displayName: titleCase(rawName), items: [], total: 0 }; acc[normalizedKey].items.push(curr); acc[normalizedKey].total += curr.total; return acc; }, {});
@@ -1258,42 +1354,89 @@
             const expenses = state.transactions.filter(t => t.type === 'EX').reverse();
             const totalExp = expenses.reduce((a, b) => a + b.total, 0);
             sumHtml = `<div class="bg-error p-6 rounded-3xl text-white shadow-lg"><p class="text-[10px] font-bold uppercase opacity-70 tracking-widest mb-1">Total Expenses</p><h3 class="text-2xl font-black">₱${totalExp.toLocaleString()}</h3></div>`;
-            html = expenses.map(t => `<div class="bg-surface border border-border-subtle p-5 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-sm text-error">${t.id}</p>${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-xs font-bold text-on-surface mt-1 truncate max-w-[150px]">${t.desc}</p></div><div class="flex items-center gap-3"><p class="font-black text-xl text-error">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale"><span class="material-symbols-outlined">visibility</span></button></div></div>`).join('') || '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No records</div>';
+            html = expenses.map(t => `<div class="bg-surface border border-border-subtle p-5 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-sm text-error">${t.id}</p>${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-xs font-bold text-on-surface mt-1 truncate max-w-[150px]">${t.desc || t.notes || 'Expense'}</p></div><div class="flex items-center gap-3"><p class="font-black text-xl text-error">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale"><span class="material-symbols-outlined">visibility</span></button></div></div>`).join('') || '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No records</div>';
         }
         summary.innerHTML = sumHtml; container.innerHTML = html;
     }
 
+    // Version 3.2: Settlement with Direct Sync
     async function payIndividualTicket(id) {
         const t = state.transactions.find(tx => tx.id === id); if (!t) return;
         if (!confirm(`Mark ticket ${id} as paid?`)) return;
-        const saleId = 'SA-IND-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        const saleTransaction = { id: saleId, type: 'SA_CREDIT_INDIVIDUAL', total: t.total, timestamp: new Date().toISOString(), items: JSON.parse(JSON.stringify(t.items || [])), customer: t.customer, paid: true, cashReceived: t.total, change: 0, originalTicket: t.id };
-        t.paid = true; t._offline = true; queueAction('update', 'transactions', t); queueTransaction(saleTransaction);
-        showToast('Ticket paid', 'success'); lastTransactionId = saleId; viewReceipt(saleId); renderLedger();
+        
+        t.paid = true; 
+        t._offline = true; 
+        
+        const settlementId = 'SA-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        const saleTransaction = { 
+            id: settlementId, 
+            type: 'SA', 
+            total: t.total, 
+            timestamp: new Date().toISOString(), 
+            items: JSON.parse(JSON.stringify(t.items || [])), 
+            customer: t.customer, 
+            paid: true, 
+            cashReceived: t.total, 
+            change: 0, 
+            notes: t.id // Reference to original CR ticket
+        };
+        
+        // Mark original as paid in cloud immediately
+        await directSync('transactions', t);
+        
+        // Create settlement record
+        queueTransaction(saleTransaction);
+        showToast('Ticket paid', 'success'); 
+        lastTransactionId = settlementId; 
+        viewReceipt(settlementId); 
+        renderLedger();
     }
 
-    function payFullBalance(customerName) {
+    async function payFullBalance(customerName) {
         const normalizedName = customerName.trim().toLowerCase();
         const credits = state.transactions.filter(t => t.type === 'CR' && t.customer && t.customer.trim().toLowerCase() === normalizedName && !t.paid);
-        if (credits.length === 0) return; const totalToPay = credits.reduce((a, b) => a + b.total, 0);
+        if (credits.length === 0) return; 
+        const totalToPay = credits.reduce((a, b) => a + b.total, 0);
         if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()}?`)) return;
-        credits.forEach(t => { t.paid = true; t._offline = true; queueAction('update', 'transactions', t); });
-        const settlementId = 'SET-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        
+        // Aggregating all items from all credits
+        const aggregatedItemsMap = {};
+        for (const t of credits) {
+            if (t.items && Array.isArray(t.items)) {
+                t.items.forEach(item => {
+                    const key = `${item.id}-${item.type}-${t.id}`; // Keyed by item AND original ticket to preserve structure in rendering
+                    if (aggregatedItemsMap[key]) {
+                        aggregatedItemsMap[key].qty += item.qty;
+                    } else {
+                        aggregatedItemsMap[key] = { ...item, originalTicketId: t.id };
+                    }
+                });
+            }
+            // Mark individual credit as paid
+            t.paid = true;
+            t._offline = true;
+            await directSync('transactions', t);
+        }
+
+        const settlementId = 'SA-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
         const settlement = { 
             id: settlementId, 
-            type: 'SA_SETTLEMENT', 
+            type: 'SA',
             customer: customerName, 
             total: totalToPay, 
-            timestamp: new Date().toISOString(), 
-            settledTickets: credits.map(c => ({ 
-                id: c.id, 
-                total: c.total, 
-                ts: c.timestamp, 
-                items: JSON.parse(JSON.stringify(c.items || [])) 
-            })), 
-            paid: true 
+            timestamp: new Date().toISOString(),
+            items: Object.values(aggregatedItemsMap),
+            notes: credits.map(c => c.id).join(', '), // List of settled CR tickets
+            paid: true,
+            cashReceived: totalToPay,
+            change: 0
         };
-        queueTransaction(settlement); sync(); renderLedger(); showToast('Balance paid', 'success'); lastTransactionId = settlementId; viewReceipt(settlementId);
+        
+        queueTransaction(settlement); 
+        renderLedger(); 
+        showToast('Balance paid', 'success'); 
+        lastTransactionId = settlementId; 
+        viewReceipt(settlementId);
     }
 
     function switchInsightPeriod(period) { insightPeriod = period; document.querySelectorAll('[id^="insight-tab-"]').forEach(btn => { const isActive = btn.id === 'insight-tab-' + period; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); document.getElementById('date-range-controls').classList.toggle('hidden', period !== 'range'); renderInsights(); }
@@ -1314,41 +1457,40 @@
         if (lowStockList) lowStockList.innerHTML = lowStockItems.map(p => `<div class="flex justify-between items-center bg-white/70 p-3 rounded-2xl border border-yellow-200 shadow-sm"><span class="text-xs font-black text-yellow-900">${p.name}</span><span class="text-[10px] font-black text-error bg-error/10 px-2 py-0.5 rounded-full">${p.stock} left</span></div>`).join('');
         let label = insightPeriod === 'day' ? 'Today' : insightPeriod === 'month' ? 'This Month' : 'Selected Range';
         let periodTransactions = getPeriodTransactions();
-        const salesTransactions = periodTransactions.filter(t => ['SA', 'SA_SETTLEMENT', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
+        const salesTransactions = periodTransactions.filter(t => t.type === 'SA');
         const revenue = salesTransactions.reduce((a, b) => a + b.total, 0);
         const totalExpenses = periodTransactions.filter(t => t.type === 'EX').reduce((a, b) => a + b.total, 0);
         let totalCogs = 0;
-        periodTransactions.filter(t => ['SA', 'CR', 'SA_CREDIT_INDIVIDUAL'].includes(t.type)).forEach(t => { if (t.items) t.items.forEach(item => { totalCogs += ((item.cost || 0) * item.qty * (item.deduct || 1)); }); });
+        periodTransactions.filter(t => ['SA', 'CR'].includes(t.type)).forEach(t => { 
+            // Don't double count COGS for settlement transactions
+            const isSettlement = t.notes && t.notes.includes('CR-');
+            if (t.items && !isSettlement) {
+                t.items.forEach(item => { totalCogs += ((item.cost || 0) * item.qty * (item.deduct || 1)); }); 
+            }
+        });
         const netProfit = (revenue - totalCogs) - totalExpenses;
         const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
         
         const revLabel = document.getElementById('insight-revenue-label');
         if (revLabel) revLabel.innerText = `Gross Revenue (${label})`;
-        
         const revEl = document.getElementById('daily-revenue');
         if (revEl) revEl.innerText = `₱${revenue.toLocaleString()}`;
-        
         const profEl = document.getElementById('daily-profit');
         if (profEl) profEl.innerText = `₱${netProfit.toLocaleString()}`;
-        
         const margEl = document.getElementById('daily-margin');
         if (margEl) margEl.innerText = `${profitMargin.toFixed(1)}%`;
-        
         const cogsEl = document.getElementById('daily-cogs');
         if (cogsEl) cogsEl.innerText = `₱${totalCogs.toLocaleString()}`;
-        
         const expEl = document.getElementById('daily-expenses');
         if (expEl) expEl.innerText = `₱${totalExpenses.toLocaleString()}`;
-        
         const invValEl = document.getElementById('inventory-value');
         if (invValEl) invValEl.innerText = `₱${state.inventory.reduce((a, b) => a + (b.cost * b.stock), 0).toLocaleString()}`;
-        
         const invCntEl = document.getElementById('inventory-count');
         if (invCntEl) invCntEl.innerText = `${state.inventory.length} items tracking`;
         
         const recent = periodTransactions.slice(0, 10);
         const txList = document.getElementById('insight-transactions-list');
-        if (txList) txList.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities (${label})</p>` + recent.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2 hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-xs text-primary">${t.id}</p><span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">${t.type}</span></div><p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-4"><span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span><button onclick="viewTxDetails('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button></div></div>`).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`;
+        if (txList) txList.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities (${label})</p>` + recent.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2 hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-xs text-primary">${t.id}</p><span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">${(t.notes && t.notes.includes('CR-')) ? 'SA (SET)' : t.type}</span>${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-4"><span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span><button onclick="viewTxDetails('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button></div></div>`).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`;
     }
 
     async function shareReceipt() {
@@ -1369,89 +1511,94 @@
 
     function exportSalesCSV() {
         const trans = getPeriodTransactions(); if (trans.length === 0) return;
-        const csvContent = ["Date,ID,Type,Customer,Total", ...trans.map(t => `${new Date(t.timestamp).toLocaleDateString()},${t.id},${t.type},${t.customer || 'N/A'},${t.total}`)].join("\n");
+        const csvContent = ["Date,ID,Type,Customer,Total,Notes", ...trans.map(t => `${new Date(t.timestamp).toLocaleDateString()},${t.id},${t.type},${t.customer || 'N/A'},${t.total},${t.notes || ''}`)].join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv' }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `Villacart_Sales.csv`; link.click(); showToast("Exported", "success");
     }
 
     function viewTxDetails(id) {
         const tx = state.transactions.find(t => t.id === id); if (!tx) return; lastTransactionId = id;
         document.getElementById('txmtitle').innerText = tx.id;
-        let html = `<div class="p-4 bg-primary/5 rounded-2xl border border-primary/10 mb-5"><div class="flex justify-between text-xs mb-1.5"><span class="font-bold opacity-60">Date</span><span class="font-black">${new Date(tx.timestamp).toLocaleString()}</span></div><div class="flex justify-between text-xs mb-1.5"><span class="font-bold opacity-60">Type</span><span class="font-black uppercase">${tx.type}</span></div>${tx.customer ? `<div class="flex justify-between text-xs"><span class="font-bold opacity-60">Customer</span><span class="font-black">${tx.customer}</span></div>` : ''}</div>`;
-        if (tx.items) html += `<div class="space-y-2 mb-5">${tx.items.map(item => `<div class="flex justify-between text-xs border-b border-border-subtle pb-2"><span>${item.name} x${item.qty}</span><span class="font-black">₱${(item.price * item.qty).toLocaleString()}</span></div>`).join('')}</div>`;
+        let html = `<div class="p-4 bg-primary/5 rounded-2xl border border-primary/10 mb-5"><div class="flex justify-between text-xs mb-1.5"><span class="font-bold opacity-60">Date</span><span class="font-black">${new Date(tx.timestamp).toLocaleString()}</span></div><div class="flex justify-between text-xs mb-1.5"><span class="font-bold opacity-60">Type</span><span class="font-black uppercase">${(tx.notes && tx.notes.includes('CR-')) ? 'Settlement' : tx.type}</span></div>${tx.customer ? `<div class="flex justify-between text-xs"><span class="font-bold opacity-60">Customer</span><span class="font-black">${tx.customer}</span></div>` : ''}</div>`;
+        if (tx.items && tx.items.length > 0) html += `<div class="space-y-2 mb-5">${tx.items.map(item => `<div class="flex justify-between text-xs border-b border-border-subtle pb-2"><span>${item.name} x${item.qty}</span><span class="font-black">₱${(item.price * item.qty).toLocaleString()}</span></div>`).join('')}</div>`;
+        else if (tx.notes && tx.notes.includes('CR-')) html += `<div class="p-3 bg-surface-container/50 rounded-xl mb-5"><p class="text-[10px] font-bold text-on-surface-variant uppercase mb-1">Settled Tickets</p><p class="text-xs font-black text-primary">${tx.notes}</p></div>`;
         html += `<div class="flex justify-between items-center p-4 ${tx.type === 'EX' ? 'bg-error/10 text-error' : 'bg-secondary/10 text-secondary'} rounded-2xl"><span class="text-xs font-black">TOTAL</span><span class="text-2xl font-black">₱${tx.total.toLocaleString()}</span></div>`;
         document.getElementById('txdetail').innerHTML = html; closeModal('mod-tx'); document.getElementById('mod-tx').classList.replace('hidden', 'flex');
     }
 
     function printTx() { if (!lastTransactionId) return; viewReceipt(lastTransactionId); closeModal('mod-tx'); }
-    function confirmDeleteTransaction() { 
-        if (document.activeElement) document.activeElement.blur();
-        if (!lastTransactionId) return; 
-        openPinModal({ action: 'delete', id: lastTransactionId }); 
-    }
+    function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
+    
+    // Version 3.2: Improved Delete with Inventory Safety
     async function deleteTransaction(id) {
         if (document.activeElement) document.activeElement.blur();
         const tx = state.transactions.find(t => t.id === id); if (!tx) return;
-        if (navigator.onLine) {
-            try {
-                await db.collection('transactions').doc(id).delete();
-            } catch (e) {
-                console.error("Firebase delete failed", e);
-            }
+        
+        if (navigator.onLine) { try { await db.collection('transactions').doc(id).delete(); } catch (e) { console.error("Firebase delete failed", e); } }
+        
+        // Restore stock only if standard transaction (not settlement, not expense)
+        const isSettlement = tx.notes && tx.notes.includes('CR-');
+        
+        if (tx.items && (tx.id.startsWith('SA-') || tx.id.startsWith('CR-')) && !isSettlement && tx.type !== 'EX') {
+            tx.items.forEach(item => { 
+                const p = state.inventory.find(inv => inv.id === item.id); 
+                if (p) { 
+                    p.stock += (item.qty * (item.deduct || 1)); 
+                    queueAction('update', 'inventory', p); 
+                } 
+            });
         }
-        if (tx.items) tx.items.forEach(item => { const p = state.inventory.find(inv => inv.id === item.id); if (p) { p.stock += (item.qty * (item.deduct || 1)); queueAction('update', 'inventory', p); } });
-        state.transactions = state.transactions.filter(t => t.id !== id); queueAction('delete', 'transactions', { id }); sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
+        
+        state.transactions = state.transactions.filter(t => t.id !== id); 
+        queueAction('delete', 'transactions', { id }); 
+        sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); 
+        showToast('Voided', 'success');
     }
 
     function viewReceipt(id) {
         const tx = state.transactions.find(t => t.id === id); if (!tx) return; lastTransactionId = id;
-        if (tx.type === 'SA_SETTLEMENT' || tx.type === 'SA_CREDIT_INDIVIDUAL') { buildSettlementRcpt(tx); return; }
+        if (tx.notes && tx.notes.includes('CR-') && tx.type === 'SA') { buildSettlementRcpt(tx); return; }
         document.getElementById('receipt-title').innerText = 'OFFICIAL RECEIPT';
         document.getElementById('receipt-standard-fields').classList.remove('hidden'); document.getElementById('receipt-settlement-fields').classList.add('hidden');
         document.getElementById('receipt-items-header').classList.remove('hidden'); document.getElementById('receipt-settlement-header').classList.add('hidden');
         document.getElementById('rec-id').innerText = tx.id; document.getElementById('rec-date').innerText = new Date(tx.timestamp).toLocaleDateString();
         document.getElementById('rec-total').innerText = `₱${tx.total.toLocaleString()}`;
-        document.getElementById('rec-items-list').innerHTML = tx.items ? tx.items.map(i => `<div class="flex justify-between"><span class="w-1/2">${i.name}</span><span class="w-1/4 text-center">${i.qty}</span><span class="w-1/4 text-right">₱${(i.price * i.qty).toLocaleString()}</span></div>`).join('') : `<div>${tx.desc || ''}</div>`;
+        document.getElementById('rec-items-list').innerHTML = tx.items && tx.items.length > 0 ? tx.items.map(i => `<div class="flex justify-between"><span class="w-1/2">${i.name}</span><span class="w-1/4 text-center">${i.qty}</span><span class="w-1/4 text-right">₱${(i.price * i.qty).toLocaleString()}</span></div>`).join('') : `<div>${tx.desc || tx.notes || ''}</div>`;
         document.getElementById('rec-cash-row').classList.toggle('hidden', tx.type !== 'SA'); document.getElementById('rec-change-row').classList.toggle('hidden', tx.type !== 'SA');
         if (tx.type === 'SA') { document.getElementById('rec-cash').innerText = `₱${(tx.cashReceived || 0).toLocaleString()}`; document.getElementById('rec-change').innerText = `₱${(tx.change || 0).toLocaleString()}`; }
         document.getElementById('rec-customer-row').classList.toggle('hidden', !tx.customer); if (tx.customer) document.getElementById('rec-customer').innerText = tx.customer;
         document.getElementById('receipt-modal').classList.replace('hidden', 'flex');
     }
 
+    // Version 3.2: Improved Settlement Receipt layout with per-ticket breakdown
     function buildSettlementRcpt(tx) {
         document.getElementById('receipt-title').innerText = 'CREDIT SETTLEMENT';
         document.getElementById('receipt-standard-fields').classList.add('hidden'); document.getElementById('receipt-settlement-fields').classList.remove('hidden');
-        document.getElementById('receipt-items-header').classList.add('hidden'); document.getElementById('receipt-settlement-header').classList.remove('hidden');
+        document.getElementById('receipt-items-header').classList.add('hidden'); // Hide generic header
+        document.getElementById('receipt-settlement-header').classList.remove('hidden');
         document.getElementById('rec-set-customer').innerText = tx.customer || 'Guest'; document.getElementById('rec-set-date').innerText = new Date(tx.timestamp).toLocaleDateString();
         document.getElementById('rec-total').innerText = `₱${tx.total.toLocaleString()}`;
-        const list = document.getElementById('rec-items-list'); list.innerHTML = '';
         
-        let ticketsToProcess = [];
-        if (tx.type === 'SA_CREDIT_INDIVIDUAL') {
-            ticketsToProcess = [{ id: tx.originalTicket, total: tx.total, ts: tx.timestamp, items: tx.items || [] }];
-        } else if (tx.settledTickets) {
-            ticketsToProcess = tx.settledTickets;
+        const itemsList = document.getElementById('rec-items-list');
+        let html = '';
+        
+        if (tx.items && tx.items.length > 0) {
+            // Group items by original ticket ID
+            const ticketGroups = {};
+            tx.items.forEach(item => {
+                const ticketId = item.originalTicketId || tx.notes || 'Original Order';
+                if (!ticketGroups[ticketId]) ticketGroups[ticketId] = [];
+                ticketGroups[ticketId].push(item);
+            });
+
+            for (const ticketId in ticketGroups) {
+                html += `<div class="mt-4 mb-1.5 border-b border-black pb-0.5"><span class="font-bold uppercase text-[10px]">Ticket: ${ticketId}</span></div>`;
+                html += ticketGroups[ticketId].map(i => `<div class="flex justify-between py-0.5"><span class="w-1/2">${i.name}</span><span class="w-1/4 text-center">${i.qty}</span><span class="w-1/4 text-right">₱${(i.price * i.qty).toLocaleString()}</span></div>`).join('');
+            }
+        } else {
+            html = `<div class="p-2 bg-gray-50 border border-gray-200 rounded text-[9px]"><p class="font-mono break-all">Settled: ${tx.notes}</p></div>`;
         }
-
-        list.innerHTML = ticketsToProcess.map(st => {
-            let itemsHtml = (st.items || []).map(item => `
-                <div class="flex justify-between pl-4 opacity-60 text-[10px]">
-                    <span>${item.name} x${item.qty}</span>
-                    <span>₱${(item.price * item.qty).toLocaleString()}</span>
-                </div>
-            `).join('');
-            
-            return `
-                <div class="mb-3 border-b border-black/10 pb-2 last:border-0">
-                    <div class="flex justify-between font-bold">
-                        <span>${st.id}</span>
-                        <span>₱${st.total.toLocaleString()}</span>
-                    </div>
-                    <div class="text-[10px] opacity-40 mb-1">${new Date(st.ts).toLocaleDateString()}</div>
-                    ${itemsHtml}
-                </div>
-            `;
-        }).join('');
-
+        
+        itemsList.innerHTML = html;
         document.getElementById('rec-cash-row').classList.add('hidden'); 
         document.getElementById('rec-change-row').classList.add('hidden'); 
         document.getElementById('rec-customer-row').classList.add('hidden');
@@ -1468,8 +1615,7 @@
 
     function loadAll() {
         if (!firebase || !db) {
-            showToast("Firebase SDK missing! Attempting reload...", "error");
-            setTimeout(() => window.location.reload(), 3000);
+            showToast("Firebase SDK missing!", "error");
             return;
         }
         setupRealTimeSync();
@@ -1477,7 +1623,6 @@
         updateCartUI();
         updateSyncUI();
     }
-
     loadAll();
 </script>
 </body></html>
