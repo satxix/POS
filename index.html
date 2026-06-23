@@ -120,7 +120,7 @@
 <div>
 <div class="flex items-center gap-2">
 <h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
-<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v2.6.1</span>
+<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v2.6.2</span>
 </div>
 <p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
 </div>
@@ -180,7 +180,7 @@
                             </p>
 <button class="text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors" id="fav-mode-btn" onclick="toggleFavoritesMode()">Edit Slots</button>
 </div>
-<div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3" id="favorites-grid">
+<div class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3" id="favorites-grid">
 <!-- Favorite buttons will be rendered here -->
 </div>
 </div>
@@ -950,25 +950,25 @@
             const removeBtnHtml = favoritesEditMode ? `<button onclick="removeFavoriteSlot(${index}, event)" class="absolute top-1 right-1 bg-error text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md active:scale-90 z-10"><span class="material-symbols-outlined text-[14px]">close</span></button>` : '';
             
             if (!fav) {
-                return `<div class="relative h-20"><button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors">
-                    <span class="material-symbols-outlined text-[20px] text-primary/30 group-hover:text-primary transition-colors">add</span>
-                    <span class="text-[7px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
+                return `<div class="relative h-16 md:h-32"><button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors">
+                    <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary/30 group-hover:text-primary transition-colors">add</span>
+                    <span class="text-[7px] md:text-[10px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
                 </button>${removeBtnHtml}</div>`;
             }
             const product = state.inventory.find(p => p.id === fav.id);
-            if (!product) return `<div class="relative h-20"><button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50"><span class="material-symbols-outlined">error</span></button>${removeBtnHtml}</div>`;
-            return `<div class="relative h-20"><button onclick="handleFavoriteClick(${index})" class="relative w-full h-full bg-surface border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-2 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all">
-                <span class="text-[10px] font-black text-primary leading-tight line-clamp-2 text-center uppercase">${product.name}</span>
-                <span class="text-[12px] font-black text-secondary mt-1">₱${product.price.toLocaleString()}</span>
+            if (!product) return `<div class="relative h-16 md:h-32"><button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50"><span class="material-symbols-outlined">error</span></button>${removeBtnHtml}</div>`;
+            return `<div class="relative h-16 md:h-32"><button onclick="handleFavoriteClick(${index})" class="relative w-full h-full bg-surface border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-2 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all">
+                <span class="text-[10px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${product.name}</span>
+                <span class="text-[12px] md:text-[16px] font-black text-secondary mt-1">₱${product.price.toLocaleString()}</span>
                 ${favoritesEditMode ? `<div class="absolute inset-0 bg-primary/80 flex items-center justify-center text-white"><span class="material-symbols-outlined">edit</span></div>` : ''}
             </button>${removeBtnHtml}</div>`;
         }).join('');
 
         // Updated: Add "Add Slot" button when in edit mode
         if (favoritesEditMode) {
-            html += `<button onclick="addFavoriteSlot()" class="h-20 border-2 border-primary/20 bg-primary/5 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:bg-primary/10 transition-colors">
-                <span class="material-symbols-outlined text-[20px] text-primary">add_circle</span>
-                <span class="text-[7px] font-black uppercase text-primary">Add New Slot</span>
+            html += `<button onclick="addFavoriteSlot()" class="h-16 md:h-32 border-2 border-primary/20 bg-primary/5 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:bg-primary/10 transition-colors">
+                <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary">add_circle</span>
+                <span class="text-[7px] md:text-[10px] font-black uppercase text-primary">Add New Slot</span>
             </button>`;
         }
         
