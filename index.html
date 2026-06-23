@@ -30,7 +30,8 @@
                     "error": "#ba1a1a",
                     "primary-container": "#d5e3ff",
                     "on-primary-container": "#001c3b",
-                    "accent-violet": "#7c3aed"
+                    "accent-violet": "#7c3aed",
+                    "brand-yellow": "#facc15"
             },
             "borderRadius": {
                     "DEFAULT": "8px",
@@ -112,10 +113,13 @@
 <!-- Top Navigation Bar -->
 <header class="bg-primary text-on-primary fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 shadow-md">
 <div class="flex items-center gap-2">
-<div class="bg-white/20 p-1.5 rounded-lg">
-<span class="material-symbols-outlined text-white text-[20px]">diamond</span>
+<div class="bg-brand-yellow p-1.5 rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-primary text-[20px] font-bold">diamond</span>
 </div>
-<h1 class="font-bold text-base tracking-tight uppercase">Villacart POS</h1>
+<div>
+<h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
+<p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
+</div>
 </div>
 <div class="flex items-center gap-2">
 <div class="flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-all cursor-pointer relative group" id="sync-pill" onclick="syncNow()">
@@ -129,7 +133,7 @@
 </header>
 <main class="pt-14 pb-20 md:pb-6 md:pl-20 min-h-screen">
 <!-- TERMINAL SCREEN -->
-<div class="screen-transition max-w-[500px] mx-auto p-3 flex flex-col gap-3" id="screen-pos">
+<div class="screen-transition max-w-[500px] mx-auto p-3 flex flex-col gap-3 flex-1" id="screen-pos">
 <div class="flex flex-col gap-2">
 <div class="relative group w-full">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px] group-focus-within:text-primary">search</span>
@@ -156,7 +160,7 @@
             Scanner Active
         </div>
 </div>
-<div class="bg-surface rounded-2xl border border-border-subtle flex flex-col h-[calc(100vh-320px)] shadow-sm overflow-hidden mt-1">
+<div class="bg-surface rounded-2xl border border-border-subtle flex flex-col shadow-sm overflow-hidden mt-1 flex-1">
 <div class="px-4 py-3 bg-primary text-on-primary flex justify-between items-center">
 <div class="flex items-center gap-2">
 <span class="material-symbols-outlined text-[18px]">shopping_cart</span>
@@ -671,7 +675,7 @@
     // --- Data Storage ---
     const DB_KEY = 'saph_pos_v5_villacart';
     const QUEUE_KEY = 'saph_pos_v5_villacart_queue';
-    const FAV_KEY = 'villacart_favorites'; // New Key for local persistence
+    const FAV_KEY = 'villacart_favorites';
     
     let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
         inventory: [],
@@ -680,10 +684,7 @@
         favorites: new Array(8).fill(null)
     };
     
-    // Safety check for favorites if user has old localstorage
     if (!state.favorites) state.favorites = new Array(8).fill(null);
-    
-    // Load favorites from its own storage
     const localFavs = JSON.parse(localStorage.getItem(FAV_KEY));
     if (localFavs) state.favorites = localFavs;
 
@@ -710,47 +711,64 @@
         return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     }
 
-    // --- Core Functions ---
-    function sync() { 
-        localStorage.setItem(DB_KEY, JSON.stringify(state)); 
-        localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
-        localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites)); // Save favorites separately
-        updateQueueBadge();
-    }
-
-    async function loadAll() {
-        try {
-            const [inv, trans] = await Promise.all([
-                fbGet('inventory'),
-                fbGet('transactions')
-            ]);
-
-            // --- INVENTORY SYNC PROTECTION ---
+    // --- Real-Time Sync Enhancement ---
+    function setupRealTimeSync() {
+        // Inventory Listener
+        db.collection('inventory').onSnapshot((snapshot) => {
+            const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const offlineProdIds = new Set(state.inventory.filter(p => p._offline).map(p => p.id));
             const pendingInv = state.inventory.filter(p => p._offline);
-            const filteredCloudInv = inv.filter(p => !offlineProdIds.has(p.id));
+            const filteredCloudInv = cloudInv.filter(p => !offlineProdIds.has(p.id));
             state.inventory = [...pendingInv, ...filteredCloudInv];
             
-            // --- TRANSACTION SYNC PROTECTION ---
+            updateLastSyncedTime();
+            sync();
+            renderInventory();
+            renderFavorites();
+        }, (error) => {
+            console.error("Inventory sync error:", error);
+            showToast("Sync Error", "error");
+        });
+
+        // Transactions Listener
+        db.collection('transactions').onSnapshot((snapshot) => {
+            const cloudTrans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const offlineIds = new Set(state.transactions.filter(t => t._offline).map(t => t.id));
             const deletedIds = offlineQueue.filter(op => op.type === 'delete' && op.table === 'transactions').map(op => op.data.id);
             
             const pendingTrans = state.transactions.filter(t => t._offline && !deletedIds.includes(t.id));
-            const filteredCloudTrans = trans.filter(t => !offlineIds.has(t.id) && !deletedIds.includes(t.id));
+            const filteredCloudTrans = cloudTrans.filter(t => !offlineIds.has(t.id) && !deletedIds.includes(t.id));
             
             state.transactions = [...pendingTrans, ...filteredCloudTrans].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
+            updateLastSyncedTime();
             sync();
-            renderInventory();
             renderLedger();
             renderInsights();
-            renderFavorites();
-            showToast("Data Loaded", "success");
-        } catch (err) {
-            console.error("Load failed", err);
-            showToast("Offline Load", "info");
-            renderFavorites();
-        }
+        }, (error) => {
+            console.error("Transaction sync error:", error);
+            showToast("Sync Error", "error");
+        });
+    }
+
+    function updateLastSyncedTime() {
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const tsEl = document.getElementById('sync-timestamp');
+        if (tsEl) tsEl.innerText = `Last Synced: ${timeStr}`;
+    }
+
+    // Core Init Functions
+    function sync() { 
+        localStorage.setItem(DB_KEY, JSON.stringify(state)); 
+        localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
+        localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites));
+        updateQueueBadge();
+    }
+
+    // Replace loadAll with real-time listeners initialization
+    async function loadAll() {
+        showToast("Connecting...", "info");
+        setupRealTimeSync();
     }
 
     async function syncNow() {
@@ -799,14 +817,11 @@
                 offlineQueue = [];
             }
             sync();
+            updateLastSyncedTime();
             showToast("Cloud sync complete", "success");
         } catch (err) {
             console.error("Sync failed", err);
-            let errMsg = err.message || err.code || "Unknown Error";
-            if (err.code === 'permission-denied') {
-                errMsg += ". Check Firebase Security Rules.";
-            }
-            showToast(`Sync Error: ${errMsg}`, "error");
+            showToast(`Sync Error: ${err.message}`, "error");
         } finally {
             isSyncing = false;
             updateSyncUI();
@@ -837,7 +852,7 @@
         sync();
     }
 
-    // --- Bluetooth Scanner Logic ---
+    // Bluetooth Scanner Logic
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' && e.key !== 'Enter') return;
         clearTimeout(scannerTimeout);
@@ -864,9 +879,7 @@
         }
         const product = state.inventory.find(p => p.barcode === barcode);
         if (product) {
-            // Check for pack option
             const hasPack = product.packPrice && product.packPrice > 0;
-            
             if (hasPack) {
                 switchScreen('pos');
                 openScanChoiceModal(product);
@@ -875,7 +888,6 @@
                 switchScreen('pos');
                 showToast(`Added: ${product.name}`, "success");
             }
-            
             const searchInput = document.getElementById('pos-search');
             if (searchInput) {
                 searchInput.value = "";
@@ -886,7 +898,6 @@
         }
     }
 
-    // --- Scan Choice Modal ---
     function openScanChoiceModal(product) {
         const modal = document.getElementById('scan-choice-modal');
         const nameDisplay = document.getElementById('scan-choice-name');
@@ -916,7 +927,6 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    // --- Favorite Logic ---
     function toggleFavoritesMode() {
         favoritesEditMode = !favoritesEditMode;
         const btn = document.getElementById('fav-mode-btn');
@@ -1024,7 +1034,6 @@
         showToast("Slot cleared", "info");
     }
 
-    // --- UI Updates ---
     function updateSyncUI() {
         const pill = document.getElementById('sync-pill');
         const dot = document.getElementById('sync-dot');
@@ -1136,7 +1145,6 @@
 
     function clearPin() { pinBuffer = ""; updatePinDots(); }
 
-    // --- POS Logic ---
     function handlePosSearch(val) {
         const container = document.getElementById('search-results-container');
         const grid = document.getElementById('product-grid');
@@ -1317,7 +1325,6 @@
         mod.classList.replace('hidden', 'flex');
     }
 
-    // --- Inventory Logic ---
     function openProductModal(id = null) {
         window._editId = id;
         stopInvScanner();
@@ -1401,12 +1408,17 @@
             (p.category && p.category.toLowerCase().includes(f.toLowerCase()))
         );
 
-        // Group by category (case-insensitive)
         const groups = {};
         filtered.forEach(p => {
             const cat = (p.category || 'Uncategorized').trim().toLowerCase();
             const displayName = titleCase(p.category || 'Uncategorized');
-            if (!groups[cat]) groups[cat] = { name: displayName, items: [] };
+            if (!groups[cat]) {
+                groups[cat] = { name: displayName, items: [] };
+                // Default enhancement: Ensure categories are collapsed by default if not already interacted with
+                if (inventoryState.collapsedCategories[cat] === undefined) {
+                    inventoryState.collapsedCategories[cat] = true;
+                }
+            }
             groups[cat].items.push(p);
         });
 
@@ -1463,7 +1475,6 @@
         }).join('');
     }
 
-    // --- Ledger Logic ---
     function switchLedgerTab(tab) {
         activeLedgerTab = tab;
         document.querySelectorAll('[id^="tab-"]').forEach(btn => {
@@ -1704,7 +1715,6 @@
         viewReceipt(settlementId);
     }
 
-    // --- Insights & Reports Logic ---
     function switchInsightPeriod(period) {
         insightPeriod = period;
         document.querySelectorAll('[id^="insight-tab-"]').forEach(btn => {
@@ -1760,11 +1770,9 @@
         let label = "Today";
         let periodTransactions = getPeriodTransactions();
 
-        if (insightPeriod === 'day') {
-            label = "Today";
-        } else if (insightPeriod === 'month') {
-            label = "This Month";
-        } else if (insightPeriod === 'range') {
+        if (insightPeriod === 'day') { label = "Today"; } 
+        else if (insightPeriod === 'month') { label = "This Month"; } 
+        else if (insightPeriod === 'range') {
             const start = document.getElementById('insight-start-date').value;
             const end = document.getElementById('insight-end-date').value;
             label = start && end ? `From ${start} to ${end}` : "Select Range";
@@ -1826,103 +1834,58 @@
         `).join('') || `<div class="text-center py-10 opacity-30 font-black uppercase text-xs">No records for this period</div>`;
     }
 
-    // --- Share and Export Logic ---
     async function shareReceipt() {
         const tx = state.transactions.find(t => t.id === lastTransactionId);
         if (!tx) return;
-
         const receiptEl = document.getElementById('receipt-content');
         if (!receiptEl) return;
-
         const shareBtn = document.getElementById('share-receipt-btn');
         const originalBtnHtml = shareBtn.innerHTML;
         shareBtn.disabled = true;
         shareBtn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Processing...`;
-
         try {
-            const canvas = await html2canvas(receiptEl, {
-                scale: 2,
-                logging: false,
-                useCORS: true,
-                backgroundColor: "#ffffff"
-            });
-
+            const canvas = await html2canvas(receiptEl, { scale: 2, logging: false, useCORS: true, backgroundColor: "#ffffff" });
             canvas.toBlob(async (blob) => {
                 if (!blob) throw new Error("Canvas to Blob conversion failed");
-
                 const fileName = `Villacart_Receipt_${tx.id}.png`;
                 const file = new File([blob], fileName, { type: 'image/png' });
-
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
-                        await navigator.share({
-                            files: [file],
-                            title: `Receipt ${tx.id}`,
-                            text: `Transaction: ${tx.id} - Date: ${new Date(tx.timestamp).toLocaleDateString()}`
-                        });
+                        await navigator.share({ files: [file], title: `Receipt ${tx.id}`, text: `Transaction: ${tx.id} - Date: ${new Date(tx.timestamp).toLocaleDateString()}` });
                         showToast("Shared successfully", "success");
-                    } catch (err) {
-                        if (err.name !== 'AbortError') {
-                            console.error("Share failed", err);
-                            showToast("Sharing failed", "error");
-                        }
-                    }
+                    } catch (err) { if (err.name !== 'AbortError') { console.error("Share failed", err); showToast("Sharing failed", "error"); } }
                 } else {
-                    // Fallback for non-sharing browsers
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
-                    link.href = url;
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    link.href = url; link.download = fileName;
+                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
                     URL.revokeObjectURL(url);
                     showToast("Downloaded as Image", "info");
                 }
-                
-                shareBtn.disabled = false;
-                shareBtn.innerHTML = originalBtnHtml;
+                shareBtn.disabled = false; shareBtn.innerHTML = originalBtnHtml;
             }, 'image/png');
         } catch (error) {
             console.error("Receipt capture failed", error);
             showToast("Failed to generate image", "error");
-            shareBtn.disabled = false;
-            shareBtn.innerHTML = originalBtnHtml;
+            shareBtn.disabled = false; shareBtn.innerHTML = originalBtnHtml;
         }
     }
 
     function exportSalesCSV() {
         const trans = getPeriodTransactions();
-        if (trans.length === 0) {
-            showToast("No data to export", "error");
-            return;
-        }
-
+        if (trans.length === 0) { showToast("No data to export", "error"); return; }
         const headers = ["Date", "Transaction ID", "Type", "Customer", "Total"];
-        const rows = trans.map(t => [
-            new Date(t.timestamp).toLocaleDateString(),
-            t.id,
-            t.type === 'SA' ? 'Sale' : t.type === 'CR' ? 'Credit' : t.type === 'EX' ? 'Expense' : 'Settlement',
-            t.customer || (t.desc || 'N/A'),
-            t.total
-        ]);
-
+        const rows = trans.map(t => [new Date(t.timestamp).toLocaleDateString(), t.id, t.type === 'SA' ? 'Sale' : t.type === 'CR' ? 'Credit' : t.type === 'EX' ? 'Expense' : 'Settlement', t.customer || (t.desc || 'N/A'), t.total]);
         const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         const dateName = new Date().toISOString().split('T')[0];
-        
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Villacart_Sales_${insightPeriod}_${dateName}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        link.setAttribute("href", url); link.setAttribute("download", `Villacart_Sales_${insightPeriod}_${dateName}.csv`);
+        link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         showToast("CSV Exported", "success");
     }
 
-    // --- Transaction Detail Logic ---
     function viewTxDetails(id) {
         const tx = state.transactions.find(t => t.id === id);
         if (!tx) return;
@@ -1978,31 +1941,13 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    function printTx() {
-        if (!lastTransactionId) return;
-        viewReceipt(lastTransactionId);
-        closeModal('mod-tx');
-    }
+    function printTx() { if (!lastTransactionId) return; viewReceipt(lastTransactionId); closeModal('mod-tx'); }
+    function confirmDeleteTransaction() { if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
 
-    function confirmDeleteTransaction() {
-        if (!lastTransactionId) return;
-        openPinModal({ action: 'delete', id: lastTransactionId });
-    }
-
-    // --- Transaction Deletion Logic ---
     async function deleteTransaction(id) {
         const tx = state.transactions.find(t => t.id === id);
         if (!tx) return;
-
-        if (navigator.onLine) {
-            try {
-                await fbDelete('transactions', id);
-                showToast('Cloud record deleted', 'success');
-            } catch (e) {
-                console.error("Cloud deletion failed, queued for offline sync", e);
-            }
-        }
-
+        if (navigator.onLine) { try { await fbDelete('transactions', id); } catch (e) { console.error(e); } }
         if ((tx.type === 'SA' || tx.type === 'CR') && tx.items) {
             tx.items.forEach(item => {
                 const p = state.inventory.find(inv => inv.id === item.id);
@@ -2013,27 +1958,17 @@
                 }
             });
         }
-
         state.transactions = state.transactions.filter(t => t.id !== id);
         queueAction('delete', 'transactions', { id: id });
-        
-        sync();
-        renderInventory();
-        renderLedger();
-        renderInsights();
-        closeModal('mod-tx');
-        showToast('Transaction Voided', 'success');
+        sync(); renderInventory(); renderLedger(); renderInsights();
+        closeModal('mod-tx'); showToast('Transaction Voided', 'success');
     }
 
-    // --- Receipt Logic ---
     function viewReceipt(id) {
         const tx = state.transactions.find(t => t.id === id);
         if (!tx) return;
-        lastTransactionId = id; // Store for sharing
-        if (tx.type === 'SA_SETTLEMENT' || tx.type === 'SA_CREDIT_INDIVIDUAL') {
-            buildSettlementRcpt(tx);
-            return;
-        }
+        lastTransactionId = id;
+        if (tx.type === 'SA_SETTLEMENT' || tx.type === 'SA_CREDIT_INDIVIDUAL') { buildSettlementRcpt(tx); return; }
         document.getElementById('receipt-title').innerText = 'OFFICIAL RECEIPT';
         document.getElementById('receipt-standard-fields').classList.remove('hidden');
         document.getElementById('receipt-settlement-fields').classList.add('hidden');
@@ -2046,13 +1981,7 @@
         list.innerHTML = '';
         if (tx.items) {
             tx.items.forEach(i => {
-                list.innerHTML += `
-                    <div class="flex justify-between">
-                        <span class="w-1/2">${i.name}</span>
-                        <span class="w-1/4 text-center">${i.qty}</span>
-                        <span class="w-1/4 text-right">₱${(i.price * i.qty).toLocaleString()}</span>
-                    </div>
-                `;
+                list.innerHTML += `<div class="flex justify-between"><span class="w-1/2">${i.name}</span><span class="w-1/4 text-center">${i.qty}</span><span class="w-1/4 text-right">₱${(i.price * i.qty).toLocaleString()}</span></div>`;
             });
         } else if (tx.desc) {
             list.innerHTML = `<div class="flex justify-between"><span>${tx.desc}</span><span>₱${tx.total.toLocaleString()}</span></div>`;
@@ -2080,46 +2009,13 @@
         document.getElementById('rec-total').innerText = `₱${tx.total.toLocaleString()}`;
         const list = document.getElementById('rec-items-list');
         list.innerHTML = '';
-        
         if (tx.type === 'SA_CREDIT_INDIVIDUAL') {
-            list.innerHTML = `
-                <div class="mb-2 border-b border-black/10 pb-1">
-                    <div class="flex justify-between font-bold">
-                        <span class="w-1/3">${tx.originalTicket}</span>
-                        <span class="w-1/3 text-center">Settled</span>
-                        <span class="w-1/3 text-right">₱${tx.total.toLocaleString()}</span>
-                    </div>
-                    ${(tx.items || []).map(it => `
-                        <div class="flex justify-between text-[10px] opacity-60 ml-2">
-                            <span> - ${it.name} x${it.qty}</span>
-                            <span>₱${(it.price * it.qty).toLocaleString()}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+            list.innerHTML = `<div class="mb-2 border-b border-black/10 pb-1"><div class="flex justify-between font-bold"><span class="w-1/3">${tx.originalTicket}</span><span class="w-1/3 text-center">Settled</span><span class="w-1/3 text-right">₱${tx.total.toLocaleString()}</span></div>${(tx.items || []).map(it => `<div class="flex justify-between text-[10px] opacity-60 ml-2"><span> - ${it.name} x${it.qty}</span><span>₱${(it.price * it.qty).toLocaleString()}</span></div>`).join('')}</div>`;
         } else if (tx.settledTickets) {
             tx.settledTickets.forEach(st => {
                 let ticketItemsHtml = "";
-                if (st.items && st.items.length > 0) {
-                    st.items.forEach(it => {
-                        ticketItemsHtml += `
-                            <div class="flex justify-between text-[10px] opacity-60 ml-2">
-                                <span> - ${it.name} x${it.qty}</span>
-                                <span>₱${(it.price * it.qty).toLocaleString()}</span>
-                            </div>
-                        `;
-                    });
-                }
-                list.innerHTML += `
-                    <div class="mb-2 border-b border-black/10 pb-1">
-                        <div class="flex justify-between font-bold">
-                            <span class="w-1/3">${st.id}</span>
-                            <span class="w-1/3 text-center">${new Date(st.ts).toLocaleDateString('en-US', {month:'numeric', day:'numeric'})}</span>
-                            <span class="w-1/3 text-right">₱${st.total.toLocaleString()}</span>
-                        </div>
-                        ${ticketItemsHtml}
-                    </div>
-                `;
+                if (st.items) { st.items.forEach(it => { ticketItemsHtml += `<div class="flex justify-between text-[10px] opacity-60 ml-2"><span> - ${it.name} x${it.qty}</span><span>₱${(it.price * it.qty).toLocaleString()}</span></div>`; }); }
+                list.innerHTML += `<div class="mb-2 border-b border-black/10 pb-1"><div class="flex justify-between font-bold"><span class="w-1/3">${st.id}</span><span class="w-1/3 text-center">${new Date(st.ts).toLocaleDateString('en-US', {month:'numeric', day:'numeric'})}</span><span class="w-1/3 text-right">₱${st.total.toLocaleString()}</span></div>${ticketItemsHtml}</div>`;
             });
         }
         document.getElementById('rec-cash-row').classList.add('hidden');
@@ -2129,27 +2025,12 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    function printReceiptFromSuccess() {
-        if (lastTransactionId) viewReceipt(lastTransactionId);
-        closeModal('mod-success');
-    }
-
-    function closeSuccessAndNewSale() {
-        closeModal('mod-success');
-    }
-
-    function togglePackFields() {
-        const packFields = document.getElementById('pack-fields');
-        const hasPack = document.getElementById('p-has-pack');
-        if (packFields && hasPack) packFields.classList.toggle('hidden', !hasPack.checked);
-    }
-    function closeModal(id) {
-        const modal = document.getElementById(id);
-        if (modal) modal.classList.replace('flex', 'hidden');
-    }
+    function printReceiptFromSuccess() { if (lastTransactionId) viewReceipt(lastTransactionId); closeModal('mod-success'); }
+    function closeSuccessAndNewSale() { closeModal('mod-success'); }
+    function togglePackFields() { const packFields = document.getElementById('pack-fields'); const hasPack = document.getElementById('p-has-pack'); if (packFields && hasPack) packFields.classList.toggle('hidden', !hasPack.checked); }
+    function closeModal(id) { const modal = document.getElementById(id); if (modal) modal.classList.replace('flex', 'hidden'); }
     function showToast(m, t = 'info') {
-        const c = document.getElementById('toast-container');
-        if (!c) return;
+        const c = document.getElementById('toast-container'); if (!c) return;
         const toast = document.createElement('div');
         toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`;
         toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${m}</span>`;
@@ -2158,35 +2039,17 @@
         setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500);
     }
 
-    // --- Scanner Quagga Logic ---
     function startInvScanner() {
         const preview = document.getElementById('scanner-preview-container');
         const camArea = document.getElementById('inv-cam-area');
         if (!preview || !camArea) return;
-        preview.classList.remove('hidden');
-        camArea.innerHTML = ''; 
-        Quagga.init({
-            inputStream: { name: "Live", type: "LiveStream", target: camArea, constraints: { facingMode: "environment" } },
-            decoder: { readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"] }
-        }, function(err) {
-            if (err) { showToast("Cam Error", "error"); stopInvScanner(); return; }
-            Quagga.start();
-            isQuaggaRunning = true;
-        });
-        Quagga.onDetected(function(result) {
-            if (result.codeResult.code) {
-                document.getElementById('p-barcode').value = result.codeResult.code;
-                showToast("Code: " + result.codeResult.code, "success");
-                stopInvScanner();
-            }
-        });
+        preview.classList.remove('hidden'); camArea.innerHTML = ''; 
+        Quagga.init({ inputStream: { name: "Live", type: "LiveStream", target: camArea, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"] } }, function(err) { if (err) { stopInvScanner(); return; } Quagga.start(); isQuaggaRunning = true; });
+        Quagga.onDetected(function(result) { if (result.codeResult.code) { document.getElementById('p-barcode').value = result.codeResult.code; stopInvScanner(); } });
     }
-    function stopInvScanner() {
-        if (isQuaggaRunning) { Quagga.stop(); isQuaggaRunning = false; }
-        document.getElementById('scanner-preview-container').classList.add('hidden');
-    }
+    function stopInvScanner() { if (isQuaggaRunning) { Quagga.stop(); isQuaggaRunning = false; } document.getElementById('scanner-preview-container').classList.add('hidden'); }
 
-    // --- Init ---
+    // Initial Start
     updateSyncUI();
     switchScreen('pos');
     updateCartUI();
