@@ -4,6 +4,35 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
 <title>Villacart POS: Insights Optimized</title>
+<!-- PWA & Mobile App Meta Tags -->
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Villacart" name="apple-mobile-web-app-title"/>
+<meta content="#1e3a5f" name="theme-color"/>
+<!-- Icons -->
+<link href="https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py" rel="icon" type="image/png"/>
+<link href="https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py" rel="apple-touch-icon"/>
+<!-- Web Manifest -->
+<script type="application/manifest+json">
+    {
+      "name": "Villacart POS",
+      "short_name": "Villacart",
+      "description": "High-density POS system for retail management",
+      "start_url": ".",
+      "display": "standalone",
+      "background_color": "#f0f4f8",
+      "theme_color": "#1e3a5f",
+      "icons": [
+        {
+          "src": "https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py",
+          "sizes": "1024x1024",
+          "type": "image/png",
+          "purpose": "any maskable"
+        }
+      ]
+    }
+    </script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -80,6 +109,7 @@
             color: #0b1c30;
             overflow-x: hidden;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding-top: env(safe-area-inset-top);
         }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -110,10 +140,10 @@
 <!-- Toast Notification Container -->
 <div class="fixed top-4 right-4 z-[250] pointer-events-none flex flex-col gap-2" id="toast-container"></div>
 <!-- Top Navigation Bar -->
-<header class="bg-primary text-on-primary fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 shadow-md">
+<header class="bg-primary text-on-primary fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 shadow-md pt-[env(safe-area-inset-top)] h-[calc(3.5rem+env(safe-area-inset-top))]">
 <div class="flex items-center gap-2">
 <div class="bg-white/20 p-1.5 rounded-lg">
-<span class="material-symbols-outlined text-white text-[20px]">diamond</span>
+<img alt="Villacart Icon" class="w-5 h-5 object-contain invert brightness-200" src="https://lh3.googleusercontent.com/aida/AP1WRLvvNKC4gyxMgc43V8eh831Aw22_mJnKRsipL92YPbg9ghXH_riTqv5djhr38rSg8Dtyedyuws77emrLIdQ4Xx-p7Nr3ZJNCjVNP-KztQtnOvIcr6dBFUvaBWi8GP5q5FCqYO7tKoogzXVzQehmnR79e0IzAPDR5H2KN4PipNRgn1iaOjuzRXjG-dNvPr4BjQ5nf_1v4FehcTMY2xXYzlsL8O3UPb60l8vtID3AZXYhqETNZPX8jOokeY5py"/>
 </div>
 <h1 class="font-bold text-base tracking-tight uppercase">Villacart POS</h1>
 </div>
@@ -127,7 +157,7 @@
 <button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors">notifications</button>
 </div>
 </header>
-<main class="pt-14 pb-20 md:pb-6 md:pl-20 min-h-screen">
+<main class="pt-[calc(3.5rem+env(safe-area-inset-top))] pb-20 md:pb-6 md:pl-20 min-h-screen">
 <!-- TERMINAL SCREEN -->
 <div class="screen-transition max-w-[500px] mx-auto p-3 flex flex-col gap-3" id="screen-pos">
 <div class="flex flex-col gap-2">
@@ -299,7 +329,7 @@
 </div>
 </main>
 <!-- Navigation -->
-<nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:top-14 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-6">
+<nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:top-14 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-6 pb-[env(safe-area-inset-bottom)] h-[calc(4rem+env(safe-area-inset-bottom))]">
 <button class="nav-item flex flex-col items-center justify-center gap-1 text-primary" data-screen="pos" onclick="switchScreen('pos')">
 <span class="material-symbols-outlined text-[24px]">point_of_sale</span>
 <span class="text-[9px] font-bold uppercase">Terminal</span>
@@ -619,7 +649,7 @@
 <span class="material-symbols-outlined text-[20px]">print</span> Print
                 </button>
 <button class="flex-1 bg-secondary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" id="share-receipt-btn" onclick="shareReceipt()">
-<span class="material-symbols-outlined text-[20px]">image</span> Share Receipt
+<span class="material-symbols-outlined text-[20px]">image</span> Share Image
                 </button>
 </div>
 <button class="w-full bg-border-subtle text-on-surface font-bold py-3 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="closeModal('receipt-modal')">
