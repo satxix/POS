@@ -3,7 +3,7 @@
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>Villacart POS: Insights Optimized v2.6.8</title>
+<title>Villacart POS: Insights Optimized v2.6.9</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -120,13 +120,13 @@
 <div>
 <div class="flex items-center gap-2">
 <h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
-<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v2.6.8</span>
+<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v2.6.9</span>
 </div>
 <p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
 </div>
 </div>
 <div class="flex items-center gap-2">
-<div class="flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-all cursor-pointer relative group" id="sync-pill" onclick="syncNow()">
+<div class="flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-all cursor-pointer relative group" id="sync-pill" onclick="showSyncInfo()">
 <span class="w-2 h-2 rounded-full bg-green-400" id="sync-dot"></span>
 <span class="material-symbols-outlined text-[14px] hidden" id="sync-spinner">sync</span>
 <span id="sync-text">Online</span>
@@ -269,10 +269,16 @@
 <div class="screen-transition hidden p-4 lg:p-8 max-w-[1400px] mx-auto" id="screen-insights">
 <div class="flex justify-between items-center mb-6">
 <h2 class="text-2xl font-black text-primary uppercase">Analytics &amp; Reports</h2>
+<div class="flex gap-2">
+<button class="bg-on-surface-variant/10 text-on-surface-variant h-11 px-5 rounded-2xl font-bold text-xs uppercase flex items-center gap-2 active-scale border border-border-subtle" onclick="troubleshootConnection()">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+                    Troubleshoot
+                </button>
 <button class="bg-secondary text-white h-11 px-5 rounded-2xl font-bold text-xs uppercase flex items-center gap-2 active-scale shadow-md" onclick="exportSalesCSV()">
 <span class="material-symbols-outlined text-[20px]">download</span>
-                Export CSV
-            </button>
+                    Export CSV
+                </button>
+</div>
 </div>
 <div class="flex bg-surface-container p-1.5 rounded-2xl mb-6 max-w-md">
 <button class="flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="insight-tab-day" onclick="switchInsightPeriod('day')">Day</button>
@@ -705,6 +711,7 @@
 
     let offlineQueue = JSON.parse(localStorage.getItem(QUEUE_KEY)) || [];
     let isSyncing = false;
+    let syncErrorMsg = null;
     let activeLedgerTab = 'cash';
     let currentPayMode = 'cash';
     let insightPeriod = 'day';
@@ -720,13 +727,19 @@
         collapsedCategories: {}
     };
 
+    let inventoryUnsubscribe = null;
+    let transactionsUnsubscribe = null;
+
     function titleCase(str) {
         if (!str) return 'Unknown';
         return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     }
 
     function setupRealTimeSync() {
-        db.collection('inventory').onSnapshot((snapshot) => {
+        if (inventoryUnsubscribe) inventoryUnsubscribe();
+        if (transactionsUnsubscribe) transactionsUnsubscribe();
+
+        inventoryUnsubscribe = db.collection('inventory').onSnapshot((snapshot) => {
             const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const offlineProdIds = new Set(state.inventory.filter(p => p._offline).map(p => p.id));
             const pendingInv = state.inventory.filter(p => p._offline);
@@ -736,9 +749,13 @@
             sync();
             renderInventory();
             renderFavorites();
+            syncErrorMsg = null;
+        }, (error) => {
+            syncErrorMsg = error.message;
+            showToast(`Inventory Sync Error: ${error.message}`, "error");
         });
 
-        db.collection('transactions').onSnapshot((snapshot) => {
+        transactionsUnsubscribe = db.collection('transactions').onSnapshot((snapshot) => {
             const cloudTrans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const offlineIds = new Set(state.transactions.filter(t => t._offline).map(t => t.id));
             const deletedIds = offlineQueue.filter(op => op.type === 'delete' && op.table === 'transactions').map(op => op.data.id);
@@ -749,7 +766,29 @@
             sync();
             renderLedger();
             renderInsights();
+            syncErrorMsg = null;
+        }, (error) => {
+            syncErrorMsg = error.message;
+            showToast(`Transaction Sync Error: ${error.message}`, "error");
         });
+    }
+
+    function troubleshootConnection() {
+        showToast("Re-syncing with Cloud...", "info");
+        state.transactions = []; // Clear local cache to force fetch
+        sync();
+        setupRealTimeSync();
+        setTimeout(() => {
+            renderLedger();
+            renderInsights();
+            showToast("Troubleshooting complete.", "success");
+        }, 1500);
+    }
+
+    function showSyncInfo() {
+        const status = navigator.onLine ? "ONLINE" : "OFFLINE";
+        const msg = syncErrorMsg ? `ERROR: ${syncErrorMsg}` : `All systems functional. Queue: ${offlineQueue.length} items.`;
+        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nTap Troubleshoot in Insights screen if you notice missing data.`);
     }
 
     function updateLastSyncedTime() {
@@ -804,8 +843,10 @@
             sync();
             updateLastSyncedTime();
             showToast("Cloud sync complete", "success");
+            syncErrorMsg = null;
         } catch (err) {
             console.error("Sync failed", err);
+            syncErrorMsg = err.message;
             showToast(`Sync Error: ${err.message}`, "error");
         } finally {
             isSyncing = false;
@@ -1268,8 +1309,9 @@
     function renderInsights() {
         const lowStockItems = state.inventory.filter(p => p.stock <= 5);
         const alertDiv = document.getElementById('restock-alerts-container');
-        alertDiv.classList.toggle('hidden', lowStockItems.length === 0);
-        document.getElementById('insight-low-stock-list').innerHTML = lowStockItems.map(p => `<div class="flex justify-between items-center bg-white/70 p-3 rounded-2xl border border-yellow-200 shadow-sm"><span class="text-xs font-black text-yellow-900">${p.name}</span><span class="text-[10px] font-black text-error bg-error/10 px-2 py-0.5 rounded-full">${p.stock} left</span></div>`).join('');
+        if (alertDiv) alertDiv.classList.toggle('hidden', lowStockItems.length === 0);
+        const lowStockList = document.getElementById('insight-low-stock-list');
+        if (lowStockList) lowStockList.innerHTML = lowStockItems.map(p => `<div class="flex justify-between items-center bg-white/70 p-3 rounded-2xl border border-yellow-200 shadow-sm"><span class="text-xs font-black text-yellow-900">${p.name}</span><span class="text-[10px] font-black text-error bg-error/10 px-2 py-0.5 rounded-full">${p.stock} left</span></div>`).join('');
         let label = insightPeriod === 'day' ? 'Today' : insightPeriod === 'month' ? 'This Month' : 'Selected Range';
         let periodTransactions = getPeriodTransactions();
         const salesTransactions = periodTransactions.filter(t => ['SA', 'SA_SETTLEMENT', 'SA_CREDIT_INDIVIDUAL'].includes(t.type));
@@ -1279,16 +1321,34 @@
         periodTransactions.filter(t => ['SA', 'CR', 'SA_CREDIT_INDIVIDUAL'].includes(t.type)).forEach(t => { if (t.items) t.items.forEach(item => { totalCogs += ((item.cost || 0) * item.qty * (item.deduct || 1)); }); });
         const netProfit = (revenue - totalCogs) - totalExpenses;
         const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-        document.getElementById('insight-revenue-label').innerText = `Gross Revenue (${label})`;
-        document.getElementById('daily-revenue').innerText = `₱${revenue.toLocaleString()}`;
-        document.getElementById('daily-profit').innerText = `₱${netProfit.toLocaleString()}`;
-        document.getElementById('daily-margin').innerText = `${profitMargin.toFixed(1)}%`;
-        document.getElementById('daily-cogs').innerText = `₱${totalCogs.toLocaleString()}`;
-        document.getElementById('daily-expenses').innerText = `₱${totalExpenses.toLocaleString()}`;
-        document.getElementById('inventory-value').innerText = `₱${state.inventory.reduce((a, b) => a + (b.cost * b.stock), 0).toLocaleString()}`;
-        document.getElementById('inventory-count').innerText = `${state.inventory.length} items tracking`;
+        
+        const revLabel = document.getElementById('insight-revenue-label');
+        if (revLabel) revLabel.innerText = `Gross Revenue (${label})`;
+        
+        const revEl = document.getElementById('daily-revenue');
+        if (revEl) revEl.innerText = `₱${revenue.toLocaleString()}`;
+        
+        const profEl = document.getElementById('daily-profit');
+        if (profEl) profEl.innerText = `₱${netProfit.toLocaleString()}`;
+        
+        const margEl = document.getElementById('daily-margin');
+        if (margEl) margEl.innerText = `${profitMargin.toFixed(1)}%`;
+        
+        const cogsEl = document.getElementById('daily-cogs');
+        if (cogsEl) cogsEl.innerText = `₱${totalCogs.toLocaleString()}`;
+        
+        const expEl = document.getElementById('daily-expenses');
+        if (expEl) expEl.innerText = `₱${totalExpenses.toLocaleString()}`;
+        
+        const invValEl = document.getElementById('inventory-value');
+        if (invValEl) invValEl.innerText = `₱${state.inventory.reduce((a, b) => a + (b.cost * b.stock), 0).toLocaleString()}`;
+        
+        const invCntEl = document.getElementById('inventory-count');
+        if (invCntEl) invCntEl.innerText = `${state.inventory.length} items tracking`;
+        
         const recent = periodTransactions.slice(0, 10);
-        document.getElementById('insight-transactions-list').innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities (${label})</p>` + recent.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2 hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-xs text-primary">${t.id}</p><span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">${t.type}</span></div><p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-4"><span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span><button onclick="viewTxDetails('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button></div></div>`).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`;
+        const txList = document.getElementById('insight-transactions-list');
+        if (txList) txList.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities (${label})</p>` + recent.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2 hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-xs text-primary">${t.id}</p><span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">${t.type}</span></div><p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-4"><span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span><button onclick="viewTxDetails('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button></div></div>`).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`;
     }
 
     async function shareReceipt() {
@@ -1331,7 +1391,13 @@
     async function deleteTransaction(id) {
         if (document.activeElement) document.activeElement.blur();
         const tx = state.transactions.find(t => t.id === id); if (!tx) return;
-        if (navigator.onLine) await fbDelete('transactions', id).catch(e => {});
+        if (navigator.onLine) {
+            try {
+                await db.collection('transactions').doc(id).delete();
+            } catch (e) {
+                console.error("Firebase delete failed", e);
+            }
+        }
         if (tx.items) tx.items.forEach(item => { const p = state.inventory.find(inv => inv.id === item.id); if (p) { p.stock += (item.qty * (item.deduct || 1)); queueAction('update', 'inventory', p); } });
         state.transactions = state.transactions.filter(t => t.id !== id); queueAction('delete', 'transactions', { id }); sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
     }
@@ -1400,6 +1466,18 @@
     function startInvScanner() { const preview = document.getElementById('scanner-preview-container'); const camArea = document.getElementById('inv-cam-area'); preview.classList.remove('hidden'); camArea.innerHTML = ''; Quagga.init({ inputStream: { target: camArea, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader", "code_128_reader"] } }, (err) => { if (err) return; Quagga.start(); isQuaggaRunning = true; }); Quagga.onDetected((res) => { if (res.codeResult.code) { document.getElementById('p-barcode').value = res.codeResult.code; stopInvScanner(); } }); }
     function stopInvScanner() { if (isQuaggaRunning) { Quagga.stop(); isQuaggaRunning = false; } document.getElementById('scanner-preview-container').classList.add('hidden'); }
 
-    updateSyncUI(); switchScreen('pos'); updateCartUI(); loadAll();
+    function loadAll() {
+        if (!firebase || !db) {
+            showToast("Firebase SDK missing! Attempting reload...", "error");
+            setTimeout(() => window.location.reload(), 3000);
+            return;
+        }
+        setupRealTimeSync();
+        renderFavorites();
+        updateCartUI();
+        updateSyncUI();
+    }
+
+    loadAll();
 </script>
 </body></html>
