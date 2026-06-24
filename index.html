@@ -3,7 +3,9 @@
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<title>Villacart POS: v3.2.0 Robust Direct-Sync</title>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<title>Villacart POS: v4.0.0 Robust Direct-Sync</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -108,59 +110,89 @@
         .sticky-category { position: sticky; top: -1px; z-index: 10; }
     </style>
 <script>
-    // Dynamically generate PWA Manifest
-    const manifest = {
-      "name": "Villacart POS",
-      "short_name": "Villacart",
-      "start_url": ".",
-      "display": "standalone",
-      "background_color": "#f0f4f8",
-      "theme_color": "#1e3a5f",
-      "icons": [
-        {
-          "src": "https://lh3.googleusercontent.com/aida/AP1WRLuYlAVFEtCVXuCO9NGLxvxBSemost3UB8qbr4UMvKx2w1Rquyvln8gUoNTtfExnQoOGbk7GW03KeXU1BaJEg6AlvQYPxZm3ZIaVyxu-3HgpnsIL9r8yyicxWAaiaQIhubVVpBmdXnLY_FIr7jTPbc749m54Sr3fITANTvGEkNooRxQuDkhb-edP_pvmgUu-uC2ONq7-Y8ZJAo1yE8QZVGZ3909KC3oEXnpFiiDdrQA8v7T8W5eBexx0ZOfH",
-          "sizes": "192x192",
-          "type": "image/png"
-        },
-        {
-          "src": "https://lh3.googleusercontent.com/aida/AP1WRLuYlAVFEtCVXuCO9NGLxvxBSemost3UB8qbr4UMvKx2w1Rquyvln8gUoNTtfExnQoOGbk7GW03KeXU1BaJEg6AlvQYPxZm3ZIaVyxu-3HgpnsIL9r8yyicxWAaiaQIhubVVpBmdXnLY_FIr7jTPbc749m54Sr3fITANTvGEkNooRxQuDkhb-edP_pvmgUu-uC2ONq7-Y8ZJAo1yE8QZVGZ3909KC3oEXnpFiiDdrQA8v7T8W5eBexx0ZOfH",
-          "sizes": "512x512",
-          "type": "image/png"
-        }
-      ]
-    };
-    const stringManifest = JSON.stringify(manifest);
-    const blob = new Blob([stringManifest], {type: 'application/json'});
-    const manifestURL = URL.createObjectURL(blob);
-    const manifestLink = document.createElement('link');
-    manifestLink.rel = 'manifest';
-    manifestLink.href = manifestURL;
-    document.head.appendChild(manifestLink);
-  </script>
+        // Dynamically generate PWA Manifest
+        const manifest = {
+          "name": "Villacart POS",
+          "short_name": "Villacart",
+          "start_url": ".",
+          "display": "standalone",
+          "background_color": "#f0f4f8",
+          "theme_color": "#1e3a5f",
+          "description": "Robust POS system for Villacart",
+          "icons": [
+            {
+              "src": "https://lh3.googleusercontent.com/aida/AP1WRLuYlAVFEtCVXuCO9NGLxvxBSemost3UB8qbr4UMvKx2w1Rquyvln8gUoNTtfExnQoOGbk7GW03KeXU1BaJEg6AlvQYPxZm3ZIaVyxu-3HgpnsIL9r8yyicxWAaiaQIhubVVpBmdXnLY_FIr7jTPbc749m54Sr3fITANTvGEkNooRxQuDkhb-edP_pvmgUu-uC2ONq7-Y8ZJAo1yE8QZVGZ3909KC3oEXnpFiiDdrQA8v7T8W5eBexx0ZOfH",
+              "sizes": "192x192",
+              "type": "image/png",
+              "purpose": "any maskable"
+            },
+            {
+              "src": "https://lh3.googleusercontent.com/aida/AP1WRLuYlAVFEtCVXuCO9NGLxvxBSemost3UB8qbr4UMvKx2w1Rquyvln8gUoNTtfExnQoOGbk7GW03KeXU1BaJEg6AlvQYPxZm3ZIaVyxu-3HgpnsIL9r8yyicxWAaiaQIhubVVpBmdXnLY_FIr7jTPbc749m54Sr3fITANTvGEkNooRxQuDkhb-edP_pvmgUu-uC2ONq7-Y8ZJAo1yE8QZVGZ3909KC3oEXnpFiiDdrQA8v7T8W5eBexx0ZOfH",
+              "sizes": "512x512",
+              "type": "image/png",
+              "purpose": "any maskable"
+            }
+          ]
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestURL;
+        document.head.appendChild(manifestLink);
+    </script>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <script>
-    // Inline Service Worker for Offline support
+    // Inline Service Worker for Offline support and PWA integration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swCode = `
-          const CACHE_NAME = 'villacart-cache-v1';
-          const urlsToCache = [location.href];
+          const CACHE_NAME = 'villacart-cache-v4';
+          const urlsToCache = [
+            location.href,
+            'https://cdn.tailwindcss.com?plugins=forms,container-queries',
+            'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+            'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap',
+            'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+            'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+            'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
+          ];
           self.addEventListener('install', event => {
             event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
           });
+          self.addEventListener('activate', event => {
+            event.waitUntil(
+              caches.keys().then(cacheNames => {
+                return Promise.all(
+                  cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+                );
+              })
+            );
+          });
           self.addEventListener('fetch', event => {
-            event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+            event.respondWith(
+              caches.match(event.request).then(response => {
+                return response || fetch(event.request).then(fetchResponse => {
+                  return caches.open(CACHE_NAME).then(cache => {
+                    if (event.request.method === 'GET') cache.put(event.request, fetchResponse.clone());
+                    return fetchResponse;
+                  });
+                });
+              }).catch(() => caches.match(location.href))
+            );
           });
         `;
         const blob = new Blob([swCode], {type: 'text/javascript'});
         const swURL = URL.createObjectURL(blob);
         navigator.serviceWorker.register(swURL).then(reg => {
-          console.log('SW Registered');
+          console.log('SW Registered - v4.0.0 Ready');
         }).catch(err => console.log('SW Fail', err));
       });
     }
-  </script>
+</script>
 <!-- Toast Notification Container -->
 <div class="fixed top-4 right-4 z-[250] pointer-events-none flex flex-col gap-2" id="toast-container"></div>
 <!-- Top Navigation Bar -->
@@ -172,7 +204,7 @@
 <div>
 <div class="flex items-center gap-2">
 <h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
-<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v3.2.0</span>
+<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v4.0.0</span>
 </div>
 <p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
 </div>
@@ -556,26 +588,6 @@
 </div>
 </div>
 </div>
-<!-- EXPENSE MODAL -->
-<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="expense-modal">
-<div class="bg-surface w-full max-sm rounded-2xl shadow-2xl p-6">
-<h3 class="font-black text-primary uppercase mb-4">Record Expense</h3>
-<div class="space-y-4">
-<div>
-<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Description</label>
-<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-desc" placeholder="e.g. Electricity, Water" type="text"/>
-</div>
-<div>
-<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Amount (₱)</label>
-<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-amt" type="number"/>
-</div>
-<div class="flex gap-2 pt-2">
-<button class="flex-1 bg-primary text-on-primary py-3 rounded-xl font-bold active-scale" onclick="saveExpense()">Save Expense</button>
-<button class="px-6 border border-border-subtle rounded-xl font-bold" onclick="closeModal('expense-modal')">Cancel</button>
-</div>
-</div>
-</div>
-</div>
 <!-- SUCCESS MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="mod-success">
 <div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-8 flex flex-col items-center text-center">
@@ -689,6 +701,26 @@
 <button class="flex-1 bg-error text-white font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="confirmDeleteTransaction()">
 <span class="material-symbols-outlined text-[20px]">delete</span> Delete
             </button>
+</div>
+</div>
+</div>
+<!-- EXPENSE MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="expense-modal">
+<div class="bg-surface w-full max-sm rounded-2xl shadow-2xl p-6">
+<h3 class="font-black text-primary uppercase mb-4">Record Expense</h3>
+<div class="space-y-4">
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Description</label>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-desc" placeholder="e.g. Electricity, Water" type="text"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Amount (₱)</label>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-amt" type="number"/>
+</div>
+<div class="flex gap-2 pt-2">
+<button class="flex-1 bg-primary text-on-primary py-3 rounded-xl font-bold active-scale" onclick="saveExpense()">Save Expense</button>
+<button class="px-6 border border-border-subtle rounded-xl font-bold" onclick="closeModal('expense-modal')">Cancel</button>
+</div>
 </div>
 </div>
 </div>
@@ -806,7 +838,7 @@
     function showSyncInfo() {
         const status = navigator.onLine ? "ONLINE" : "OFFLINE";
         const msg = syncErrorMsg ? `LAST ERROR: ${syncErrorMsg}` : `All systems functional. Queue: ${offlineQueue.length} items.`;
-        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v3.2.0`);
+        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v4.0.0`);
     }
 
     function updateLastSyncedTime() {
@@ -1274,7 +1306,9 @@
     }
 
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
+    
     function openExpenseModal() { document.getElementById('exp-desc').value = ''; document.getElementById('exp-amt').value = ''; document.getElementById('expense-modal').classList.replace('hidden', 'flex'); }
+    
     function saveExpense() {
         const desc = document.getElementById('exp-desc').value; const amt = parseFloat(document.getElementById('exp-amt').value);
         if (!desc || isNaN(amt)) { showToast("Required fields missing", "error"); return; }
@@ -1483,6 +1517,7 @@
     function togglePackFields() { const packFields = document.getElementById('pack-fields'); const hasPack = document.getElementById('p-has-pack'); if (packFields && hasPack) packFields.classList.toggle('hidden', !hasPack.checked); }
     function closeModal(id) { const modal = document.getElementById(id); if (modal) modal.classList.replace('flex', 'hidden'); }
     function showToast(m, t = 'info') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`; toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${m}</span>`; c.appendChild(toast); requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0')); setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500); }
+    
     function startInvScanner() { const preview = document.getElementById('scanner-preview-container'); const camArea = document.getElementById('inv-cam-area'); preview.classList.remove('hidden'); camArea.innerHTML = ''; Quagga.init({ inputStream: { target: camArea, constraints: { facingMode: "environment" } }, decoder: { readers: ["ean_reader", "code_128_reader"] } }, (err) => { if (err) return; Quagga.start(); isQuaggaRunning = true; }); Quagga.onDetected((res) => { if (res.codeResult.code) { document.getElementById('p-barcode').value = res.codeResult.code; stopInvScanner(); } }); }
     function stopInvScanner() { if (isQuaggaRunning) { Quagga.stop(); isQuaggaRunning = false; } document.getElementById('scanner-preview-container').classList.add('hidden'); }
 
