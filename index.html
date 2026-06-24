@@ -107,8 +107,60 @@
         .folder-icon { transition: transform 0.2s ease; }
         .sticky-category { position: sticky; top: -1px; z-index: 10; }
     </style>
+<script>
+    // Dynamically generate PWA Manifest
+    const manifest = {
+      "name": "Villacart POS",
+      "short_name": "Villacart",
+      "start_url": ".",
+      "display": "standalone",
+      "background_color": "#f0f4f8",
+      "theme_color": "#1e3a5f",
+      "icons": [
+        {
+          "src": "https://lh3.googleusercontent.com/aida/AP1WRLuYlAVFEtCVXuCO9NGLxvxBSemost3UB8qbr4UMvKx2w1Rquyvln8gUoNTtfExnQoOGbk7GW03KeXU1BaJEg6AlvQYPxZm3ZIaVyxu-3HgpnsIL9r8yyicxWAaiaQIhubVVpBmdXnLY_FIr7jTPbc749m54Sr3fITANTvGEkNooRxQuDkhb-edP_pvmgUu-uC2ONq7-Y8ZJAo1yE8QZVGZ3909KC3oEXnpFiiDdrQA8v7T8W5eBexx0ZOfH",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "https://lh3.googleusercontent.com/aida/AP1WRLuYlAVFEtCVXuCO9NGLxvxBSemost3UB8qbr4UMvKx2w1Rquyvln8gUoNTtfExnQoOGbk7GW03KeXU1BaJEg6AlvQYPxZm3ZIaVyxu-3HgpnsIL9r8yyicxWAaiaQIhubVVpBmdXnLY_FIr7jTPbc749m54Sr3fITANTvGEkNooRxQuDkhb-edP_pvmgUu-uC2ONq7-Y8ZJAo1yE8QZVGZ3909KC3oEXnpFiiDdrQA8v7T8W5eBexx0ZOfH",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    };
+    const stringManifest = JSON.stringify(manifest);
+    const blob = new Blob([stringManifest], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blob);
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = manifestURL;
+    document.head.appendChild(manifestLink);
+  </script>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
+<script>
+    // Inline Service Worker for Offline support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          const CACHE_NAME = 'villacart-cache-v1';
+          const urlsToCache = [location.href];
+          self.addEventListener('install', event => {
+            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
+          });
+          self.addEventListener('fetch', event => {
+            event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+          });
+        `;
+        const blob = new Blob([swCode], {type: 'text/javascript'});
+        const swURL = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swURL).then(reg => {
+          console.log('SW Registered');
+        }).catch(err => console.log('SW Fail', err));
+      });
+    }
+  </script>
 <!-- Toast Notification Container -->
 <div class="fixed top-4 right-4 z-[250] pointer-events-none flex flex-col gap-2" id="toast-container"></div>
 <!-- Top Navigation Bar -->
@@ -135,7 +187,6 @@
 </div>
 <span class="text-[7px] text-red-300 font-black uppercase mt-0.5 hidden truncate max-w-[120px]" id="sync-error-label">Sync Error</span>
 </div>
-<button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors">notifications</button>
 </div>
 </header>
 <!-- Navigation - Adaptive Rail/Bottom -->
@@ -144,7 +195,7 @@
 <span class="material-symbols-outlined text-[24px]">point_of_sale</span>
 <span class="text-[9px] font-bold uppercase">Terminal</span>
 </button>
-<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant transition-all active-scale" data-screen="inventory" onclick="attemptInventoryAccess()">
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant transition-all active-scale" data-screen="inventory" onclick="switchScreen('inventory')">
 <span class="material-symbols-outlined text-[24px]">inventory_2</span>
 <span class="text-[9px] font-bold uppercase">Stock</span>
 </button>
@@ -401,36 +452,6 @@
 </div>
 </div>
 </div>
-<!-- PIN MODAL -->
-<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] hidden items-center justify-center p-4" id="pin-modal">
-<div class="bg-surface w-full max-w-[320px] rounded-2xl shadow-2xl p-6 flex flex-col items-center text-center">
-<div class="w-16 h-16 bg-primary-container text-primary rounded-full flex items-center justify-center mb-4">
-<span class="material-symbols-outlined text-[32px]">lock</span>
-</div>
-<h3 class="font-black text-lg text-primary uppercase mb-1">Restricted</h3>
-<p class="text-xs text-on-surface-variant mb-6" id="pin-modal-msg">Enter PIN to proceed</p>
-<div class="flex gap-3 mb-8">
-<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-0"></div>
-<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-1"></div>
-<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-2"></div>
-<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-3"></div>
-</div>
-<div class="grid grid-cols-3 gap-3 w-full">
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('1')">1</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('2')">2</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('3')">3</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('4')">4</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('5')">5</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('6')">6</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('7')">7</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('8')">8</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('9')">9</button>
-<button class="h-14 bg-error/10 text-error rounded-xl font-bold text-sm active-scale" onclick="clearPin()">CLR</button>
-<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('0')">0</button>
-<button class="h-14 bg-on-surface-variant/10 text-on-surface-variant rounded-xl font-bold text-sm active-scale" onclick="closeModal('pin-modal')">ESC</button>
-</div>
-</div>
-</div>
 <!-- PRODUCT MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-end md:items-center justify-center p-0 md:p-4" id="product-modal">
 <div class="bg-surface w-full max-w-lg rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -537,7 +558,7 @@
 </div>
 <!-- EXPENSE MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="expense-modal">
-<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-6">
+<div class="bg-surface w-full max-sm rounded-2xl shadow-2xl p-6">
 <h3 class="font-black text-primary uppercase mb-4">Record Expense</h3>
 <div class="space-y-4">
 <div>
@@ -710,8 +731,6 @@
     let activeLedgerTab = 'cash';
     let currentPayMode = 'cash';
     let insightPeriod = 'day';
-    let pinBuffer = "";
-    const MASTER_PIN = "1234";
     let lastTransactionId = null;
     let isQuaggaRunning = false;
     let scannerBuffer = "";
@@ -736,16 +755,10 @@
 
         inventoryUnsubscribe = db.collection('inventory').onSnapshot((snapshot) => {
             const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Version 3.2: Optimized Filtering - keep offline versions until they disappear from queue
             const offlineIds = new Set(offlineQueue.filter(q => q.table === 'inventory').map(q => q.data.id));
-            const cloudIds = new Set(cloudInv.map(p => p.id));
-            
             const filteredCloudInv = cloudInv.filter(p => !offlineIds.has(p.id));
             const activeOfflineInv = state.inventory.filter(p => p._offline && offlineIds.has(p.id));
-            
             state.inventory = [...activeOfflineInv, ...filteredCloudInv];
-            
             updateLastSyncedTime();
             sync();
             renderInventory();
@@ -759,20 +772,13 @@
 
         transactionsUnsubscribe = db.collection('transactions').onSnapshot((snapshot) => {
             const cloudTrans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Version 3.2: Robust deduplication logic
             const offlineIds = new Set(offlineQueue.filter(q => q.table === 'transactions').map(q => q.data.id));
-            const cloudIds = new Set(cloudTrans.map(t => t.id));
-
             const filteredCloudTrans = cloudTrans.filter(t => !offlineIds.has(t.id));
             const activeOfflineTrans = state.transactions.filter(t => t._offline && offlineIds.has(t.id));
-            
             const mergedMap = new Map();
             filteredCloudTrans.forEach(t => mergedMap.set(t.id, t));
             activeOfflineTrans.forEach(t => mergedMap.set(t.id, t));
-            
             state.transactions = Array.from(mergedMap.values()).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
             updateLastSyncedTime();
             sync();
             renderLedger();
@@ -820,19 +826,15 @@
         if (!navigator.onLine || isSyncing || offlineQueue.length === 0) return;
         isSyncing = true;
         updateSyncUI();
-        
         const tempQueue = [...offlineQueue];
         const failedIndices = [];
-
         try {
-            // Version 3.2: Sequential Direct Sync to prevent Batch Failures
             for (let i = 0; i < tempQueue.length; i++) {
                 const task = tempQueue[i];
                 const col = task.table;
                 const id = task.data.id;
                 const data = { ...task.data };
                 delete data._offline;
-
                 try {
                     if (task.type === 'delete') {
                         await db.collection(col).doc(id).delete();
@@ -840,16 +842,12 @@
                         await db.collection(col).doc(id).set(data, { merge: true });
                     }
                 } catch (e) {
-                    console.error(`Sync item ${id} failed:`, e);
                     failedIndices.push(i);
                     syncErrorMsg = e.message;
                 }
             }
-            
-            // Remove successfully synced items from real queue
             offlineQueue = offlineQueue.filter((_, idx) => failedIndices.includes(idx));
             sync();
-            
             if (failedIndices.length === 0) {
                 showToast("Cloud sync complete", "success");
                 syncErrorMsg = null;
@@ -857,7 +855,6 @@
                 showToast(`Sync partial: ${failedIndices.length} failed`, "error");
             }
         } catch (err) {
-            console.error("Critical sync loop error:", err);
             syncErrorMsg = err.message;
         } finally {
             isSyncing = false;
@@ -867,7 +864,6 @@
         }
     }
 
-    // Version 3.2: New Direct Sync Function for critical transactions
     async function directSync(table, data) {
         if (!navigator.onLine) return false;
         const cleanData = { ...data };
@@ -876,7 +872,6 @@
             await db.collection(table).doc(data.id).set(cleanData, { merge: true });
             return true;
         } catch (e) {
-            console.error("Direct sync failed", e);
             syncErrorMsg = e.message;
             updateSyncUI();
             return false;
@@ -894,12 +889,9 @@
     function queueTransaction(transaction) {
         if (!transaction || !transaction.id) return; 
         transaction._offline = true;
-        
         const exists = state.transactions.findIndex(t => t.id === transaction.id);
         if (exists !== -1) state.transactions[exists] = transaction;
         else state.transactions.unshift(transaction);
-        
-        // Try direct sync first for transactions
         directSync('transactions', transaction).then(success => {
             if (success) {
                 delete transaction._offline;
@@ -908,11 +900,7 @@
                 queueAction('new_transaction', 'transactions', transaction);
             }
         });
-        
-        // Stock deduction (only for standard sales/credits, not settlements/expenses)
-        // Settlement transactions have SA- prefix but also have notes referring to original CR- tickets
         const isSettlement = transaction.notes && transaction.notes.includes('CR-');
-        
         if (transaction.items && transaction.items.length > 0 && (transaction.id.startsWith('SA-') || transaction.id.startsWith('CR-')) && !isSettlement) {
             transaction.items.forEach(item => {
                 const p = state.inventory.find(inv => inv.id === item.id);
@@ -1016,10 +1004,8 @@
     function renderFavorites() {
         const grid = document.getElementById('favorites-grid');
         if (!grid) return;
-        
         let html = state.favorites.map((fav, index) => {
             const removeBtnHtml = favoritesEditMode ? `<button onclick="removeFavoriteSlot(${index}, event)" class="absolute top-1 right-1 bg-error text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md active:scale-90 z-10"><span class="material-symbols-outlined text-[14px]">close</span></button>` : '';
-            
             if (!fav) {
                 return `<div class="relative h-16 md:h-32"><button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors">
                     <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary/30 group-hover:text-primary transition-colors">add</span>
@@ -1034,14 +1020,12 @@
                 ${favoritesEditMode ? `<div class="absolute inset-0 bg-primary/80 flex items-center justify-center text-white"><span class="material-symbols-outlined">edit</span></div>` : ''}
             </button>${removeBtnHtml}</div>`;
         }).join('');
-
         if (favoritesEditMode) {
             html += `<button onclick="addFavoriteSlot()" class="h-16 md:h-32 border-2 border-primary/20 bg-primary/5 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:bg-primary/10 transition-colors">
                 <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary">add_circle</span>
                 <span class="text-[7px] md:text-[10px] font-black uppercase text-primary">Add New Slot</span>
             </button>`;
         }
-        
         grid.innerHTML = html;
     }
 
@@ -1083,7 +1067,6 @@
         const spinner = document.getElementById('sync-spinner');
         const errLabel = document.getElementById('sync-error-label');
         if (!pill) return;
-        
         if (syncErrorMsg) {
             errLabel.classList.remove('hidden');
             errLabel.innerText = syncErrorMsg;
@@ -1092,22 +1075,24 @@
             errLabel.classList.add('hidden');
             pill.classList.remove('ring-2', 'ring-red-500/50');
         }
-
         if (!navigator.onLine) {
-            pill.classList.replace('bg-white/10', 'bg-red-500/20'); pill.classList.replace('border-white/20', 'border-red-500/40');
-            dot.classList.replace('bg-green-400', 'bg-red-500'); text.innerText = "Offline"; spinner.classList.add('hidden'); return;
+            pill.classList.remove('bg-white/10', 'border-white/20');
+            pill.classList.add('bg-red-500', 'border-red-600', 'text-white');
+            dot.classList.add('hidden'); 
+            text.innerText = "Offline"; 
+            spinner.classList.add('hidden'); 
+            return;
         }
+        pill.classList.remove('bg-red-500', 'border-red-600', 'text-white');
+        pill.classList.add('bg-white/10', 'border-white/20');
+        dot.classList.remove('hidden');
+        dot.classList.replace('bg-red-500', 'bg-green-400');
         if (isSyncing) { 
             dot.classList.add('hidden'); 
-            spinner.classList.remove('hidden'); 
+            spinner.classList.remove('hidden', 'animate-spin-custom'); 
             spinner.classList.add('animate-spin-custom'); 
             text.innerText = "Syncing..."; 
-        }
-        else { 
-            pill.classList.remove('bg-red-500/20', 'border-red-500/40'); 
-            pill.classList.add('bg-white/10', 'border-white/20'); 
-            dot.classList.remove('hidden'); 
-            dot.classList.replace('bg-red-500', 'bg-green-400'); 
+        } else { 
             spinner.classList.add('hidden'); 
             text.innerText = "Online"; 
         }
@@ -1136,14 +1121,6 @@
         if (id === 'insights') renderInsights();
         if (id === 'pos') renderFavorites();
     }
-
-    function attemptInventoryAccess() { if (!document.getElementById('screen-inventory').classList.contains('hidden')) { switchScreen('inventory'); return; } openPinModal("inventory"); }
-
-    function openPinModal(target) { pinBuffer = ""; updatePinDots(); const modal = document.getElementById('pin-modal'); modal.classList.replace('hidden', 'flex'); window._pinTarget = target; }
-    function pressPin(num) { if (pinBuffer.length < 4) { pinBuffer += num; updatePinDots(); if (pinBuffer.length === 4) setTimeout(validatePin, 150); } }
-    function updatePinDots() { for (let i = 0; i < 4; i++) { const dot = document.getElementById(`dot-${i}`); if (dot) dot.classList.toggle('bg-primary', i < pinBuffer.length); } }
-    function validatePin() { if (pinBuffer === MASTER_PIN) { const target = window._pinTarget; closeModal('pin-modal'); if (target === 'inventory') switchScreen('inventory'); else if (target && target.action === 'delete') deleteTransaction(target.id); showToast('Verified', 'success'); } else { showToast('Incorrect PIN', 'error'); pinBuffer = ""; updatePinDots(); } }
-    function clearPin() { pinBuffer = ""; updatePinDots(); }
 
     function handlePosSearch(val) {
         const container = document.getElementById('search-results-container');
@@ -1185,13 +1162,7 @@
     
     function clearCart(event) { 
         if (document.activeElement) document.activeElement.blur();
-        const searchInput = document.getElementById('pos-search');
-        if (searchInput) searchInput.blur();
-        
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        if (event) { event.preventDefault(); event.stopPropagation(); }
         state.cart = []; 
         updateCartUI(); 
         scannerBuffer = "";
@@ -1209,17 +1180,13 @@
 
     function openReview() { 
         if (document.activeElement) document.activeElement.blur();
-        const searchInput = document.getElementById('pos-search');
-        if (searchInput) searchInput.blur();
-
         if (state.cart.length === 0) return; 
         const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); 
         document.getElementById('rev-total').innerText = `₱${total.toLocaleString()}`; 
         document.getElementById('cash-input').value = ''; 
         document.getElementById('credit-customer').value = ''; 
         switchPayMode('cash'); 
-        const modal = document.getElementById('review-modal'); 
-        modal.classList.replace('hidden', 'flex'); 
+        document.getElementById('review-modal').classList.replace('hidden', 'flex'); 
     }
 
     function setCash(v) { document.getElementById('cash-input').value = v; calculateChange(); }
@@ -1234,9 +1201,6 @@
 
     function confirmSale() {
         if (document.activeElement) document.activeElement.blur();
-        const searchInput = document.getElementById('pos-search');
-        if (searchInput) searchInput.blur();
-
         const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
         const cashVal = parseFloat(document.getElementById('cash-input').value) || 0;
         const type = currentPayMode === 'cash' ? 'SA' : 'CR';
@@ -1245,20 +1209,7 @@
         const customer = document.getElementById('credit-customer').value;
         if (type === 'CR' && !customer) { showToast('Customer name required', 'error'); return; }
         if (type === 'SA' && cashVal < total) { showToast('Insufficient cash', 'error'); return; }
-        
-        const transaction = { 
-            id, 
-            type, 
-            total, 
-            timestamp: new Date().toISOString(), 
-            items: JSON.parse(JSON.stringify(state.cart)), 
-            customer: customer ? customer.trim() : null, 
-            paid: (type === 'SA'), 
-            cashReceived: cashVal, 
-            change: type === 'SA' ? (cashVal - total) : 0,
-            notes: "" 
-        };
-        
+        const transaction = { id, type, total, timestamp: new Date().toISOString(), items: JSON.parse(JSON.stringify(state.cart)), customer: customer ? customer.trim() : null, paid: (type === 'SA'), cashReceived: cashVal, change: type === 'SA' ? (cashVal - total) : 0, notes: "" };
         queueTransaction(transaction);
         lastTransactionId = id; clearCart(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
@@ -1277,8 +1228,6 @@
     function saveProduct() {
         const name = document.getElementById('p-name').value; if (!name) { showToast('Product name is required', 'error'); return; }
         const data = { id: window._editId || Date.now().toString(), barcode: document.getElementById('p-barcode').value, name: name, category: document.getElementById('p-category').value, cost: parseFloat(document.getElementById('p-cost').value) || 0, price: parseFloat(document.getElementById('p-price').value) || 0, stock: parseInt(document.getElementById('p-stock').value) || 0, packPrice: document.getElementById('p-has-pack').checked ? parseFloat(document.getElementById('p-pack-price').value) : null, packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null, _offline: true };
-        
-        // Use direct sync for inventory edits too
         directSync('inventory', data).then(success => {
             if (success) delete data._offline;
             if (window._editId) { 
@@ -1314,7 +1263,6 @@
         });
         const sortedCats = Object.keys(groups).sort();
         if (filtered.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No matching products</div>'; return; }
-        
         list.innerHTML = sortedCats.map(catKey => {
             const group = groups[catKey];
             const isCollapsed = inventoryState.collapsedCategories[catKey] === true && f.length === 0;
@@ -1359,37 +1307,15 @@
         summary.innerHTML = sumHtml; container.innerHTML = html;
     }
 
-    // Version 3.2: Settlement with Direct Sync
     async function payIndividualTicket(id) {
         const t = state.transactions.find(tx => tx.id === id); if (!t) return;
         if (!confirm(`Mark ticket ${id} as paid?`)) return;
-        
-        t.paid = true; 
-        t._offline = true; 
-        
+        t.paid = true; t._offline = true; 
         const settlementId = 'SA-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        const saleTransaction = { 
-            id: settlementId, 
-            type: 'SA', 
-            total: t.total, 
-            timestamp: new Date().toISOString(), 
-            items: JSON.parse(JSON.stringify(t.items || [])), 
-            customer: t.customer, 
-            paid: true, 
-            cashReceived: t.total, 
-            change: 0, 
-            notes: t.id // Reference to original CR ticket
-        };
-        
-        // Mark original as paid in cloud immediately
+        const saleTransaction = { id: settlementId, type: 'SA', total: t.total, timestamp: new Date().toISOString(), items: JSON.parse(JSON.stringify(t.items || [])), customer: t.customer, paid: true, cashReceived: t.total, change: 0, notes: t.id };
         await directSync('transactions', t);
-        
-        // Create settlement record
         queueTransaction(saleTransaction);
-        showToast('Ticket paid', 'success'); 
-        lastTransactionId = settlementId; 
-        viewReceipt(settlementId); 
-        renderLedger();
+        showToast('Ticket paid', 'success'); lastTransactionId = settlementId; viewReceipt(settlementId); renderLedger();
     }
 
     async function payFullBalance(customerName) {
@@ -1398,45 +1324,21 @@
         if (credits.length === 0) return; 
         const totalToPay = credits.reduce((a, b) => a + b.total, 0);
         if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()}?`)) return;
-        
-        // Aggregating all items from all credits
         const aggregatedItemsMap = {};
         for (const t of credits) {
             if (t.items && Array.isArray(t.items)) {
                 t.items.forEach(item => {
-                    const key = `${item.id}-${item.type}-${t.id}`; // Keyed by item AND original ticket to preserve structure in rendering
-                    if (aggregatedItemsMap[key]) {
-                        aggregatedItemsMap[key].qty += item.qty;
-                    } else {
-                        aggregatedItemsMap[key] = { ...item, originalTicketId: t.id };
-                    }
+                    const key = `${item.id}-${item.type}-${t.id}`;
+                    if (aggregatedItemsMap[key]) { aggregatedItemsMap[key].qty += item.qty; } 
+                    else { aggregatedItemsMap[key] = { ...item, originalTicketId: t.id }; }
                 });
             }
-            // Mark individual credit as paid
-            t.paid = true;
-            t._offline = true;
+            t.paid = true; t._offline = true;
             await directSync('transactions', t);
         }
-
         const settlementId = 'SA-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        const settlement = { 
-            id: settlementId, 
-            type: 'SA',
-            customer: customerName, 
-            total: totalToPay, 
-            timestamp: new Date().toISOString(),
-            items: Object.values(aggregatedItemsMap),
-            notes: credits.map(c => c.id).join(', '), // List of settled CR tickets
-            paid: true,
-            cashReceived: totalToPay,
-            change: 0
-        };
-        
-        queueTransaction(settlement); 
-        renderLedger(); 
-        showToast('Balance paid', 'success'); 
-        lastTransactionId = settlementId; 
-        viewReceipt(settlementId);
+        const settlement = { id: settlementId, type: 'SA', customer: customerName, total: totalToPay, timestamp: new Date().toISOString(), items: Object.values(aggregatedItemsMap), notes: credits.map(c => c.id).join(', '), paid: true, cashReceived: totalToPay, change: 0 };
+        queueTransaction(settlement); renderLedger(); showToast('Balance paid', 'success'); lastTransactionId = settlementId; viewReceipt(settlementId);
     }
 
     function switchInsightPeriod(period) { insightPeriod = period; document.querySelectorAll('[id^="insight-tab-"]').forEach(btn => { const isActive = btn.id === 'insight-tab-' + period; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); document.getElementById('date-range-controls').classList.toggle('hidden', period !== 'range'); renderInsights(); }
@@ -1462,32 +1364,20 @@
         const totalExpenses = periodTransactions.filter(t => t.type === 'EX').reduce((a, b) => a + b.total, 0);
         let totalCogs = 0;
         periodTransactions.filter(t => ['SA', 'CR'].includes(t.type)).forEach(t => { 
-            // Don't double count COGS for settlement transactions
             const isSettlement = t.notes && t.notes.includes('CR-');
-            if (t.items && !isSettlement) {
-                t.items.forEach(item => { totalCogs += ((item.cost || 0) * item.qty * (item.deduct || 1)); }); 
-            }
+            if (t.items && !isSettlement) { t.items.forEach(item => { totalCogs += ((item.cost || 0) * item.qty * (item.deduct || 1)); }); }
         });
         const netProfit = (revenue - totalCogs) - totalExpenses;
         const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-        
         const revLabel = document.getElementById('insight-revenue-label');
         if (revLabel) revLabel.innerText = `Gross Revenue (${label})`;
-        const revEl = document.getElementById('daily-revenue');
-        if (revEl) revEl.innerText = `₱${revenue.toLocaleString()}`;
-        const profEl = document.getElementById('daily-profit');
-        if (profEl) profEl.innerText = `₱${netProfit.toLocaleString()}`;
-        const margEl = document.getElementById('daily-margin');
-        if (margEl) margEl.innerText = `${profitMargin.toFixed(1)}%`;
-        const cogsEl = document.getElementById('daily-cogs');
-        if (cogsEl) cogsEl.innerText = `₱${totalCogs.toLocaleString()}`;
-        const expEl = document.getElementById('daily-expenses');
-        if (expEl) expEl.innerText = `₱${totalExpenses.toLocaleString()}`;
-        const invValEl = document.getElementById('inventory-value');
-        if (invValEl) invValEl.innerText = `₱${state.inventory.reduce((a, b) => a + (b.cost * b.stock), 0).toLocaleString()}`;
-        const invCntEl = document.getElementById('inventory-count');
-        if (invCntEl) invCntEl.innerText = `${state.inventory.length} items tracking`;
-        
+        document.getElementById('daily-revenue').innerText = `₱${revenue.toLocaleString()}`;
+        document.getElementById('daily-profit').innerText = `₱${netProfit.toLocaleString()}`;
+        document.getElementById('daily-margin').innerText = `${profitMargin.toFixed(1)}%`;
+        document.getElementById('daily-cogs').innerText = `₱${totalCogs.toLocaleString()}`;
+        document.getElementById('daily-expenses').innerText = `₱${totalExpenses.toLocaleString()}`;
+        document.getElementById('inventory-value').innerText = `₱${state.inventory.reduce((a, b) => a + (b.cost * b.stock), 0).toLocaleString()}`;
+        document.getElementById('inventory-count').innerText = `${state.inventory.length} items tracking`;
         const recent = periodTransactions.slice(0, 10);
         const txList = document.getElementById('insight-transactions-list');
         if (txList) txList.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities (${label})</p>` + recent.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2 hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-xs text-primary">${t.id}</p><span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">${(t.notes && t.notes.includes('CR-')) ? 'SA (SET)' : t.type}</span>${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-4"><span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span><button onclick="viewTxDetails('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button></div></div>`).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`;
@@ -1526,28 +1416,19 @@
     }
 
     function printTx() { if (!lastTransactionId) return; viewReceipt(lastTransactionId); closeModal('mod-tx'); }
-    function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
+    function confirmDeleteTransaction() { if (!lastTransactionId) return; if (confirm(`Confirm deletion of transaction ${lastTransactionId}? This will void the record and restore stock.`)) { deleteTransaction(lastTransactionId); } }
     
-    // Version 3.2: Improved Delete with Inventory Safety
     async function deleteTransaction(id) {
         if (document.activeElement) document.activeElement.blur();
         const tx = state.transactions.find(t => t.id === id); if (!tx) return;
-        
-        if (navigator.onLine) { try { await db.collection('transactions').doc(id).delete(); } catch (e) { console.error("Firebase delete failed", e); } }
-        
-        // Restore stock only if standard transaction (not settlement, not expense)
+        if (navigator.onLine) { try { await db.collection('transactions').doc(id).delete(); } catch (e) {} }
         const isSettlement = tx.notes && tx.notes.includes('CR-');
-        
         if (tx.items && (tx.id.startsWith('SA-') || tx.id.startsWith('CR-')) && !isSettlement && tx.type !== 'EX') {
             tx.items.forEach(item => { 
                 const p = state.inventory.find(inv => inv.id === item.id); 
-                if (p) { 
-                    p.stock += (item.qty * (item.deduct || 1)); 
-                    queueAction('update', 'inventory', p); 
-                } 
+                if (p) { p.stock += (item.qty * (item.deduct || 1)); queueAction('update', 'inventory', p); } 
             });
         }
-        
         state.transactions = state.transactions.filter(t => t.id !== id); 
         queueAction('delete', 'transactions', { id }); 
         sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); 
@@ -1569,35 +1450,27 @@
         document.getElementById('receipt-modal').classList.replace('hidden', 'flex');
     }
 
-    // Version 3.2: Improved Settlement Receipt layout with per-ticket breakdown
     function buildSettlementRcpt(tx) {
         document.getElementById('receipt-title').innerText = 'CREDIT SETTLEMENT';
         document.getElementById('receipt-standard-fields').classList.add('hidden'); document.getElementById('receipt-settlement-fields').classList.remove('hidden');
-        document.getElementById('receipt-items-header').classList.add('hidden'); // Hide generic header
+        document.getElementById('receipt-items-header').classList.add('hidden'); 
         document.getElementById('receipt-settlement-header').classList.remove('hidden');
         document.getElementById('rec-set-customer').innerText = tx.customer || 'Guest'; document.getElementById('rec-set-date').innerText = new Date(tx.timestamp).toLocaleDateString();
         document.getElementById('rec-total').innerText = `₱${tx.total.toLocaleString()}`;
-        
         const itemsList = document.getElementById('rec-items-list');
         let html = '';
-        
         if (tx.items && tx.items.length > 0) {
-            // Group items by original ticket ID
             const ticketGroups = {};
             tx.items.forEach(item => {
                 const ticketId = item.originalTicketId || tx.notes || 'Original Order';
                 if (!ticketGroups[ticketId]) ticketGroups[ticketId] = [];
                 ticketGroups[ticketId].push(item);
             });
-
             for (const ticketId in ticketGroups) {
                 html += `<div class="mt-4 mb-1.5 border-b border-black pb-0.5"><span class="font-bold uppercase text-[10px]">Ticket: ${ticketId}</span></div>`;
                 html += ticketGroups[ticketId].map(i => `<div class="flex justify-between py-0.5"><span class="w-1/2">${i.name}</span><span class="w-1/4 text-center">${i.qty}</span><span class="w-1/4 text-right">₱${(i.price * i.qty).toLocaleString()}</span></div>`).join('');
             }
-        } else {
-            html = `<div class="p-2 bg-gray-50 border border-gray-200 rounded text-[9px]"><p class="font-mono break-all">Settled: ${tx.notes}</p></div>`;
-        }
-        
+        } else { html = `<div class="p-2 bg-gray-50 border border-gray-200 rounded text-[9px]"><p class="font-mono break-all">Settled: ${tx.notes}</p></div>`; }
         itemsList.innerHTML = html;
         document.getElementById('rec-cash-row').classList.add('hidden'); 
         document.getElementById('rec-change-row').classList.add('hidden'); 
@@ -1614,10 +1487,7 @@
     function stopInvScanner() { if (isQuaggaRunning) { Quagga.stop(); isQuaggaRunning = false; } document.getElementById('scanner-preview-container').classList.add('hidden'); }
 
     function loadAll() {
-        if (!firebase || !db) {
-            showToast("Firebase SDK missing!", "error");
-            return;
-        }
+        if (!firebase || !db) { showToast("Firebase SDK missing!", "error"); return; }
         setupRealTimeSync();
         renderFavorites();
         updateCartUI();
