@@ -6,7 +6,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS: v4.0.0</title>
+<title>Villacart POS v4.6.0</title>
 <!-- PWA Manifest & Service Worker Setup -->
 <script>
         (function() {
@@ -35,7 +35,7 @@
 
             if ('serviceWorker' in navigator) {
                 const swCode = `
-                    const CACHE_NAME = 'villacart-pos-v4.0.0';
+                    const CACHE_NAME = 'villacart-pos-v4.6.0';
                     const OFFLINE_URL = '.';
 
                     self.addEventListener('install', (event) => {
@@ -198,7 +198,7 @@
 <div>
 <div class="flex items-center gap-2">
 <h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
-<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v4.0.0</span>
+<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v4.6.0</span>
 </div>
 <p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
 </div>
@@ -762,6 +762,15 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // v4.6.0: Critical Fix - Enable Firestore Offline Persistence explicitly
+    db.enablePersistence().catch(err => {
+        if (err.code === 'failed-precondition') {
+            console.warn("Persistence failed: Multiple tabs open.");
+        } else if (err.code === 'unimplemented') {
+            console.warn("Persistence failed: Browser doesn't support it.");
+        }
+    });
+
     // --- Data Storage ---
     const DB_KEY = 'saph_pos_v5_villacart';
     const QUEUE_KEY = 'saph_pos_v5_villacart_queue';
@@ -812,10 +821,12 @@
         if (inventoryUnsubscribe) inventoryUnsubscribe();
         if (transactionsUnsubscribe) transactionsUnsubscribe();
 
-        inventoryUnsubscribe = db.collection('inventory').onSnapshot((snapshot) => {
+        // v4.6.0: Offline Verified Snapshots
+        // includeMetadataChanges: true allows us to see data from local cache immediately
+        inventoryUnsubscribe = db.collection('inventory').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
             const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            // Version 3.2: Optimized Filtering - keep offline versions until they disappear from queue
+            // Optimized Filtering - keep local/offline versions prioritised
             const offlineIds = new Set(offlineQueue.filter(q => q.table === 'inventory').map(q => q.data.id));
             
             const filteredCloudInv = cloudInv.filter(p => !offlineIds.has(p.id));
@@ -834,10 +845,9 @@
             updateSyncUI();
         });
 
-        transactionsUnsubscribe = db.collection('transactions').onSnapshot((snapshot) => {
+        transactionsUnsubscribe = db.collection('transactions').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
             const cloudTrans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            // Version 3.2: Robust deduplication logic
             const offlineIds = new Set(offlineQueue.filter(q => q.table === 'transactions').map(q => q.data.id));
             
             const filteredCloudTrans = cloudTrans.filter(t => !offlineIds.has(t.id));
@@ -876,7 +886,7 @@
     function showSyncInfo() {
         const status = navigator.onLine ? "ONLINE" : "OFFLINE";
         const msg = syncErrorMsg ? `LAST ERROR: ${syncErrorMsg}` : `All systems functional. Queue: ${offlineQueue.length} items.`;
-        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v3.2.0`);
+        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v4.6.0`);
     }
 
     function updateLastSyncedTime() {
@@ -900,7 +910,6 @@
         const failedIndices = [];
 
         try {
-            // Version 3.2: Sequential Direct Sync to prevent Batch Failures
             for (let i = 0; i < offlineQueue.length; i++) {
                 const task = offlineQueue[i];
                 const col = task.table;
@@ -921,7 +930,6 @@
                 }
             }
             
-            // Remove successfully synced items from real queue
             offlineQueue = offlineQueue.filter((_, idx) => failedIndices.includes(idx));
             sync();
             
@@ -942,7 +950,6 @@
         }
     }
 
-    // Version 3.2: New Direct Sync Function for critical transactions
     async function directSync(table, data) {
         if (!navigator.onLine) return false;
         const cleanData = { ...data };
@@ -974,7 +981,6 @@
         if (exists !== -1) state.transactions[exists] = transaction;
         else state.transactions.unshift(transaction);
         
-        // Try direct sync first for transactions
         directSync('transactions', transaction).then(success => {
             if (success) {
                 delete transaction._offline;
@@ -984,7 +990,6 @@
             }
         });
         
-        // Stock deduction
         const isSettlement = transaction.notes && transaction.notes.includes('CR-');
         
         if (transaction.items && transaction.items.length > 0 && (transaction.id.startsWith('SA-') || transaction.id.startsWith('CR-')) && !isSettlement) {
@@ -1000,6 +1005,7 @@
         sync();
     }
 
+    // Bluetooth / Physical Scanner Logic
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' && e.key !== 'Enter') return;
         clearTimeout(scannerTimeout);
