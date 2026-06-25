@@ -6,7 +6,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v4.6.0</title>
+<title>Villacart POS v4.6.3</title>
 <!-- PWA Manifest & Service Worker Setup -->
 <script>
         (function() {
@@ -35,7 +35,7 @@
 
             if ('serviceWorker' in navigator) {
                 const swCode = `
-                    const CACHE_NAME = 'villacart-pos-v4.6.0';
+                    const CACHE_NAME = 'villacart-pos-v4.6.3';
                     const OFFLINE_URL = '.';
 
                     self.addEventListener('install', (event) => {
@@ -87,6 +87,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -198,7 +199,7 @@
 <div>
 <div class="flex items-center gap-2">
 <h1 class="font-bold text-base tracking-tight uppercase leading-none">Villacart POS</h1>
-<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v4.6.0</span>
+<span class="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">v4.6.3</span>
 </div>
 <p class="text-[8px] font-bold text-brand-yellow uppercase tracking-tighter mt-0.5 opacity-80" id="sync-timestamp">Last Synced: --:--</p>
 </div>
@@ -213,7 +214,7 @@
 </div>
 <span class="text-[7px] text-red-300 font-black uppercase mt-0.5 hidden truncate max-w-[120px]" id="sync-error-label">Sync Error</span>
 </div>
-<button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors">notifications</button>
+<button class="material-symbols-outlined hover:bg-white/10 w-10 h-10 rounded-full transition-colors relative" onclick="showNotifications()" id="notif-bell">notifications<span class="absolute top-1 right-1 w-2.5 h-2.5 bg-brand-yellow rounded-full hidden border-2 border-primary" id="notif-dot"></span></button>
 </div>
 </header>
 <!-- Navigation - Adaptive Rail/Bottom -->
@@ -245,9 +246,13 @@
 <div class="relative group w-full">
 <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[22px] group-focus-within:text-primary">search</span>
 <input class="w-full pl-12 pr-14 py-4 bg-surface border border-border-subtle rounded-2xl focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm font-medium shadow-sm" id="pos-search" oninput="handlePosSearch(this.value)" placeholder="Search or scan barcode..." type="text"/>
-<button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary active-scale w-10 h-10 flex items-center justify-center bg-primary-container rounded-xl">
+<button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary active-scale w-10 h-10 flex items-center justify-center bg-primary-container rounded-xl" onclick="togglePosScanner()" id="pos-scan-btn" title="Scan Barcode">
 <span class="material-symbols-outlined text-[22px]">barcode_scanner</span>
 </button>
+</div>
+<div class="hidden bg-black rounded-2xl overflow-hidden relative mt-2" id="pos-cam-area-container">
+<div id="pos-cam-area" style="width:100%;min-height:180px;"></div>
+<button class="absolute top-2 right-2 bg-error text-white p-1 rounded-full z-[61]" onclick="stopPosScanner()"><span class="material-symbols-outlined text-sm">close</span></button>
 </div>
 <div class="hidden absolute top-[140px] lg:top-[120px] left-3 right-3 lg:left-auto lg:w-[calc(100%-480px)] lg:max-w-[800px] bg-surface border border-border-subtle rounded-2xl shadow-2xl z-[60] max-h-[60vh] overflow-y-auto custom-scrollbar p-2" id="search-results-container">
 <div class="divide-y divide-border-subtle" id="product-grid"></div>
@@ -263,7 +268,7 @@
 </div>
 <div class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3" id="favorites-grid"></div>
 </div>
-<div class="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-primary/60 mt-2">
+<div class="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-primary/60 mt-2 hidden" id="pos-scanner-active-label">
 <span class="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
                         Scanner Active
                     </div>
@@ -310,6 +315,12 @@
 <span class="material-symbols-outlined text-[20px]">add_circle</span>
                     Add Product
                 </button>
+<button class="bg-primary/10 text-primary h-12 px-4 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale" onclick="exportInventoryCSV()" title="Export Inventory">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+<button class="bg-primary/10 text-primary h-12 px-4 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale" onclick="openPinModal('change-pin')" title="Change PIN">
+<span class="material-symbols-outlined text-[20px]">key</span>
+</button>
 </div>
 <div class="hidden bg-yellow-50 border-2 border-yellow-200 p-5 rounded-2xl flex items-center gap-4 shadow-sm" id="low-stock-alert">
 <div class="bg-yellow-100 p-2 rounded-xl">
@@ -412,7 +423,15 @@
 </div>
 </div>
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+<div class="xl:col-span-2 bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm">
+<p class="text-[10px] font-black uppercase text-primary/60 mb-4 tracking-widest">Sales Trend</p>
+<canvas id="sales-chart" height="80"></canvas>
+</div>
 <div class="space-y-3" id="insight-transactions-list"></div>
+<div class="bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm">
+<p class="text-[10px] font-black uppercase text-primary/60 mb-4 tracking-widest">Top Selling Products</p>
+<div class="space-y-2" id="best-sellers-list"></div>
+</div>
 <div class="hidden bg-yellow-50 border-2 border-yellow-200 p-6 rounded-[32px] flex flex-col gap-4" id="restock-alerts-container">
 <div class="flex items-center gap-3 text-yellow-800 font-black text-base uppercase tracking-tight">
 <div class="bg-yellow-200 p-2 rounded-xl">
@@ -479,6 +498,48 @@
 </div>
 </div>
 </div>
+<!-- NOTIFICATIONS PANEL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[180] hidden items-start justify-end p-4 pt-16" id="notif-panel" onclick="closeModal('notif-panel')">
+<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+<div class="p-4 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<h3 class="font-black text-xs uppercase">Notifications</h3>
+<button class="material-symbols-outlined text-[20px]" onclick="closeModal('notif-panel')">close</button>
+</div>
+<div class="divide-y divide-border-subtle max-h-[60vh] overflow-y-auto custom-scrollbar" id="notif-list">
+<div class="p-6 text-center text-xs opacity-40 font-bold uppercase">All clear!</div>
+</div>
+</div>
+</div>
+<!-- CHANGE PIN MODAL -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[210] hidden items-center justify-center p-4" id="change-pin-modal">
+<div class="bg-surface w-full max-w-[320px] rounded-2xl shadow-2xl p-6 flex flex-col items-center text-center">
+<div class="w-14 h-14 bg-primary-container text-primary rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-[28px]">key</span>
+</div>
+<h3 class="font-black text-base text-primary uppercase mb-1">Change PIN</h3>
+<p class="text-xs text-on-surface-variant mb-4" id="change-pin-msg">Enter your new 4-digit PIN</p>
+<div class="flex gap-3 mb-6">
+<div class="w-4 h-4 rounded-full border-2 border-primary-container" id="new-dot-0"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container" id="new-dot-1"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container" id="new-dot-2"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container" id="new-dot-3"></div>
+</div>
+<div class="grid grid-cols-3 gap-3 w-full">
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('1')">1</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('2')">2</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('3')">3</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('4')">4</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('5')">5</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('6')">6</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('7')">7</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('8')">8</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('9')">9</button>
+<button class="h-14 bg-error/10 text-error rounded-xl font-bold text-sm active-scale" onclick="clearNewPin()">CLR</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('0')">0</button>
+<button class="h-14 bg-on-surface-variant/10 text-on-surface-variant rounded-xl font-bold text-sm active-scale" onclick="closeModal('change-pin-modal')">ESC</button>
+</div>
+</div>
+</div>
 <!-- PIN MODAL -->
 <div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] hidden items-center justify-center p-4" id="pin-modal">
 <div class="bg-surface w-full max-w-[320px] rounded-2xl shadow-2xl p-6 flex flex-col items-center text-center">
@@ -542,22 +603,26 @@
 </div>
 <div>
 <label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Cost Price</label>
-<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-cost" type="number"/>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-cost" type="number" inputmode="decimal"/>
 </div>
 <div>
 <label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Selling Price</label>
-<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-price" type="number"/>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-price" type="number" inputmode="decimal"/>
 </div>
 <div>
 <label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Stock Quantity</label>
-<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-stock" type="number"/>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-stock" type="number" inputmode="numeric"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Low Stock Alert At</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-low-stock" type="number" inputmode="numeric" placeholder="e.g. 5"/>
 </div>
 <div class="col-span-2 border-t border-border-subtle pt-4">
 <div class="flex items-center justify-between mb-2">
 <span class="text-xs font-black uppercase text-primary">Wholesale Pricing</span>
 <input id="p-has-pack" onchange="togglePackFields()" type="checkbox"/>
 </div>
-<div class="hidden grid grid-cols-2 gap-4" id="pack-fields">
+<div class="hidden grid-cols-2 gap-4" id="pack-fields">
 <input class="w-full px-4 py-2.5 bg-surface-container border rounded-lg" id="p-pack-size" placeholder="Pack Size" type="number"/>
 <input class="w-full px-4 py-2.5 bg-surface-container border rounded-lg" id="p-pack-price" placeholder="Pack Price" type="number"/>
 </div>
@@ -594,7 +659,7 @@
 <button class="h-10 border border-border-subtle rounded-lg text-[10px] font-bold" onclick="setCash(1000)">₱1K</button>
 <button class="h-10 border-2 border-secondary/40 bg-secondary/5 text-secondary rounded-lg text-[10px] font-bold" onclick="setExact()">EXACT</button>
 </div>
-<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-black text-lg text-secondary" id="cash-input" oninput="calculateChange()" placeholder="Cash Received" type="number"/>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-black text-lg text-secondary" id="cash-input" oninput="calculateChange()" placeholder="Cash Received" type="number" inputmode="decimal"/>
 <div class="hidden bg-surface-container p-3 rounded-xl border border-border-subtle" id="change-display">
 <div class="flex justify-between items-center">
 <span class="text-xs font-bold text-on-surface-variant">Change</span>
@@ -619,8 +684,20 @@
 <h3 class="font-black text-primary uppercase mb-4">Record Expense</h3>
 <div class="space-y-4">
 <div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Category</label>
+<select class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-category">
+<option value="Utilities">Utilities</option>
+<option value="Supplies">Supplies</option>
+<option value="Rent">Rent</option>
+<option value="Salaries">Salaries</option>
+<option value="Delivery">Delivery</option>
+<option value="Maintenance">Maintenance</option>
+<option value="Other">Other</option>
+</select>
+</div>
+<div>
 <label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Description</label>
-<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-desc" placeholder="e.g. Electricity, Water" type="text"/>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-desc" placeholder="e.g. Meralco bill" type="text"/>
 </div>
 <div>
 <label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Amount (₱)</label>
@@ -751,6 +828,8 @@
 </div>
 <script>
     // --- Firebase Configuration ---
+    // SECURITY NOTE: Restrict this key to your domain in Firebase Console > API restrictions.
+    // Set Firestore Security Rules to prevent unauthorized external access.
     const firebaseConfig = {
         apiKey: "AIzaSyBSRVxGcKllY04Ghoy9e_2ZKId3D1Mx7bM",
         authDomain: "quickpos-fcffc.firebaseapp.com",
@@ -762,7 +841,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // v4.6.0: Critical Fix - Enable Firestore Offline Persistence explicitly
+    // v4.6.3: Critical Fix - Enable Firestore Offline Persistence explicitly
     db.enablePersistence().catch(err => {
         if (err.code === 'failed-precondition') {
             console.warn("Persistence failed: Multiple tabs open.");
@@ -798,7 +877,16 @@
     let currentPayMode = 'cash';
     let insightPeriod = 'day';
     let pinBuffer = "";
-    const MASTER_PIN = "1234";
+    // PIN is stored as a SHA-256 hash in localStorage for security
+    const PIN_KEY = 'villacart_pin_hash';
+    const DEFAULT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // SHA-256 of "1234"
+    let STORED_PIN_HASH = localStorage.getItem(PIN_KEY) || DEFAULT_PIN_HASH;
+
+    async function hashPin(pin) {
+        const msgBuffer = new TextEncoder().encode(pin);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
     let lastTransactionId = null;
     let isQuaggaRunning = false;
     let scannerBuffer = "";
@@ -821,7 +909,7 @@
         if (inventoryUnsubscribe) inventoryUnsubscribe();
         if (transactionsUnsubscribe) transactionsUnsubscribe();
 
-        // v4.6.0: Offline Verified Snapshots
+        // v4.6.3: Offline Verified Snapshots
         // includeMetadataChanges: true allows us to see data from local cache immediately
         inventoryUnsubscribe = db.collection('inventory').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
             const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -873,8 +961,11 @@
 
     function troubleshootConnection() {
         showToast("Re-syncing with Cloud...", "info");
-        state.transactions = [];
-        sync();
+        // Only clear local transaction cache if we're actually online
+        if (navigator.onLine) {
+            state.transactions = [];
+            sync();
+        }
         setupRealTimeSync();
         setTimeout(() => {
             renderLedger();
@@ -886,7 +977,7 @@
     function showSyncInfo() {
         const status = navigator.onLine ? "ONLINE" : "OFFLINE";
         const msg = syncErrorMsg ? `LAST ERROR: ${syncErrorMsg}` : `All systems functional. Queue: ${offlineQueue.length} items.`;
-        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v4.6.0`);
+        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v4.6.3`);
     }
 
     function updateLastSyncedTime() {
@@ -1223,7 +1314,22 @@
     function openPinModal(target) { pinBuffer = ""; updatePinDots(); const modal = document.getElementById('pin-modal'); modal.classList.replace('hidden', 'flex'); window._pinTarget = target; }
     function pressPin(num) { if (pinBuffer.length < 4) { pinBuffer += num; updatePinDots(); if (pinBuffer.length === 4) setTimeout(validatePin, 150); } }
     function updatePinDots() { for (let i = 0; i < 4; i++) { const dot = document.getElementById(`dot-${i}`); if (dot) dot.classList.toggle('bg-primary', i < pinBuffer.length); } }
-    function validatePin() { if (pinBuffer === MASTER_PIN) { const target = window._pinTarget; closeModal('pin-modal'); if (target === 'inventory') switchScreen('inventory'); else if (target && target.action === 'delete') deleteTransaction(target.id); showToast('Verified', 'success'); } else { showToast('Incorrect PIN', 'error'); pinBuffer = ""; updatePinDots(); } }
+    function validatePin() { 
+        hashPin(pinBuffer).then(hash => {
+            if (hash === STORED_PIN_HASH) { 
+                const target = window._pinTarget; 
+                closeModal('pin-modal'); 
+                if (target === 'inventory') switchScreen('inventory'); 
+                else if (target === 'change-pin') openChangePinModal();
+                else if (target && target.action === 'delete') deleteTransaction(target.id); 
+                showToast('Verified', 'success'); 
+            } else { 
+                showToast('Incorrect PIN', 'error'); 
+                pinBuffer = ""; 
+                updatePinDots(); 
+            }
+        });
+    }
     function clearPin() { pinBuffer = ""; updatePinDots(); }
 
     function handlePosSearch(val) {
@@ -1256,20 +1362,20 @@
         container.innerHTML = state.cart.map((item, idx) => {
             const lineTotal = item.price * item.qty;
             total += lineTotal;
-            return `<div class="bg-surface-container/50 border border-border-subtle p-4 rounded-2xl flex justify-between items-center shadow-sm"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 mb-1.5"><span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">${item.type}</span><h4 class="font-bold text-sm truncate">${item.name}</h4></div><p class="text-xs font-bold opacity-50">₱${item.price.toLocaleString()} x ${item.qty}</p></div><div class="flex items-center gap-4"><span class="font-black text-base whitespace-nowrap">₱${lineTotal.toLocaleString()}</span><div class="flex items-center bg-white border border-border-subtle rounded-xl shadow-sm"><button onclick="updateQty(${idx}, -1)" class="w-9 h-9 flex items-center justify-center text-error active-scale"><span class="material-symbols-outlined text-[20px]">remove_circle</span></button><span class="px-3 text-xs font-black min-w-[24px] text-center">${item.qty}</span><button onclick="updateQty(${idx}, 1)" class="w-9 h-9 flex items-center justify-center text-secondary active-scale"><span class="material-symbols-outlined text-[20px]">add_circle</span></button></div></div></div>`;
+            return `<div class="bg-surface-container/50 border border-border-subtle p-4 rounded-2xl flex justify-between items-center shadow-sm"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 mb-1.5"><span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">${item.type}</span><h4 class="font-bold text-sm truncate">${item.name}</h4></div><p class="text-xs font-bold opacity-50">₱${item.price.toLocaleString()} each</p></div><div class="flex items-center gap-3"><span class="font-black text-base whitespace-nowrap">₱${lineTotal.toLocaleString()}</span><div class="flex items-center bg-white border border-border-subtle rounded-xl shadow-sm"><button onclick="updateQty(${idx}, -1)" class="w-9 h-9 flex items-center justify-center text-error active-scale"><span class="material-symbols-outlined text-[20px]">remove_circle</span></button><input type="number" inputmode="numeric" min="1" value="${item.qty}" onchange="setQty(${idx}, this.value)" class="w-10 text-center text-xs font-black border-0 bg-transparent focus:outline-none p-0" style="min-height:unset"/><button onclick="updateQty(${idx}, 1)" class="w-9 h-9 flex items-center justify-center text-secondary active-scale"><span class="material-symbols-outlined text-[20px]">add_circle</span></button></div></div></div>`;
         }).join('');
         document.getElementById('cart-subtotal').innerText = `₱${total.toLocaleString()}`;
         document.getElementById('cart-total').innerText = `₱${total.toLocaleString()}`;
     }
 
     function updateQty(idx, delta) { state.cart[idx].qty += delta; if (state.cart[idx].qty <= 0) state.cart.splice(idx, 1); updateCartUI(); }
+    function setQty(idx, val) { const n = parseInt(val); if (isNaN(n) || n < 1) { updateCartUI(); return; } state.cart[idx].qty = n; updateCartUI(); }
     
     function clearCart(event) { 
         if (document.activeElement) document.activeElement.blur();
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        if (event) { event.preventDefault(); event.stopPropagation(); }
+        if (state.cart.length === 0) return;
+        if (!confirm('Clear all items from the cart?')) return;
         state.cart = []; 
         updateCartUI(); 
     }
@@ -1338,6 +1444,7 @@
         document.getElementById('p-barcode').value = p ? p.barcode : ''; document.getElementById('p-name').value = p ? p.name : '';
         document.getElementById('p-category').value = p ? p.category : ''; document.getElementById('p-cost').value = p ? p.cost : '';
         document.getElementById('p-price').value = p ? p.price : ''; document.getElementById('p-stock').value = p ? p.stock : '';
+        document.getElementById('p-low-stock').value = p ? (p.lowStock !== undefined ? p.lowStock : 5) : 5;
         document.getElementById('p-has-pack').checked = p && !!p.packPrice; document.getElementById('p-pack-size').value = p ? p.packSize : '';
         document.getElementById('p-pack-price').value = p ? p.packPrice : ''; togglePackFields();
         document.getElementById('product-modal-title').innerText = id ? "Edit Product" : "Add New Product";
@@ -1346,7 +1453,7 @@
 
     function saveProduct() {
         const name = document.getElementById('p-name').value; if (!name) { showToast('Product name is required', 'error'); return; }
-        const data = { id: window._editId || Date.now().toString(), barcode: document.getElementById('p-barcode').value, name: name, category: document.getElementById('p-category').value, cost: parseFloat(document.getElementById('p-cost').value) || 0, price: parseFloat(document.getElementById('p-price').value) || 0, stock: parseInt(document.getElementById('p-stock').value) || 0, packPrice: document.getElementById('p-has-pack').checked ? parseFloat(document.getElementById('p-pack-price').value) : null, packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null, _offline: true };
+        const data = { id: window._editId || Date.now().toString(), barcode: document.getElementById('p-barcode').value, name: name, category: document.getElementById('p-category').value, cost: parseFloat(document.getElementById('p-cost').value) || 0, price: parseFloat(document.getElementById('p-price').value) || 0, stock: parseInt(document.getElementById('p-stock').value) || 0, lowStock: parseInt(document.getElementById('p-low-stock').value) || 5, packPrice: document.getElementById('p-has-pack').checked ? parseFloat(document.getElementById('p-pack-price').value) : null, packSize: document.getElementById('p-has-pack').checked ? parseInt(document.getElementById('p-pack-size').value) : null, _offline: true };
         
         directSync('inventory', data).then(success => {
             if (success) delete data._offline;
@@ -1363,14 +1470,24 @@
         });
     }
 
-    function deleteProduct(id) { if (confirm('Delete this product?')) { state.inventory = state.inventory.filter(i => i.id !== id); queueAction('delete', 'inventory', { id }); sync(); renderInventory(); showToast('Product Deleted', 'info'); } }
+    function deleteProduct(id) { 
+        const p = state.inventory.find(i => i.id === id);
+        if (!p) return;
+        const txCount = state.transactions.filter(t => t.items && t.items.some(item => item.id === id)).length;
+        const warning = txCount > 0 ? `\n\nWarning: This product appears in ${txCount} past transaction(s). Those records will show missing item names.` : '';
+        if (confirm(`Delete "${p.name}"?${warning}`)) { 
+            state.inventory = state.inventory.filter(i => i.id !== id); 
+            queueAction('delete', 'inventory', { id }); 
+            sync(); renderInventory(); showToast('Product Deleted', 'info'); 
+        } 
+    }
 
     function toggleCategory(cat) { inventoryState.collapsedCategories[cat] = !inventoryState.collapsedCategories[cat]; renderInventory(document.querySelector('#screen-inventory input[type="text"]').value); }
 
     function renderInventory(f = '') {
         const list = document.getElementById('inventory-list');
         if (!list) return;
-        const lowStockItems = state.inventory.filter(p => p.stock <= 5);
+        const lowStockItems = state.inventory.filter(p => p.stock <= (p.lowStock !== undefined ? p.lowStock : 5));
         document.getElementById('low-stock-alert').classList.toggle('hidden', lowStockItems.length === 0);
         document.getElementById('low-stock-alert-text').innerText = `${lowStockItems.length} items are low on stock!`;
         const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(f.toLowerCase()) || (p.barcode && p.barcode.includes(f)) || (p.category && p.category.toLowerCase().includes(f.toLowerCase())));
@@ -1382,24 +1499,32 @@
             if (inventoryState.collapsedCategories[cat] === undefined) inventoryState.collapsedCategories[cat] = true; 
         });
         const sortedCats = Object.keys(groups).sort();
-        if (filtered.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No matching products</div>'; return; }
+        if (filtered.length === 0) { 
+            list.innerHTML = state.inventory.length === 0 
+                ? `<div class="col-span-full flex flex-col items-center justify-center py-24 opacity-50"><span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">inventory_2</span><p class="font-black text-sm uppercase text-primary/40 tracking-widest mb-2">No Products Yet</p><p class="text-xs text-on-surface-variant font-bold">Tap "Add Product" to get started</p></div>`
+                : `<div class="col-span-full flex flex-col items-center justify-center py-24 opacity-50"><span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">search_off</span><p class="font-black text-sm uppercase text-primary/40 tracking-widest">No matching products</p></div>`;
+            return; 
+        }
         
         list.innerHTML = sortedCats.map(catKey => {
             const group = groups[catKey];
             const isCollapsed = inventoryState.collapsedCategories[catKey] === true && f.length === 0;
             return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory('${catKey}')" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${group.name}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${group.items.map(p => {
+                const threshold = p.lowStock !== undefined ? p.lowStock : 5;
+                const isLow = p.stock <= threshold;
                 const marginVal = p.price > 0 ? (((p.price - p.cost) / p.price) * 100).toFixed(1) : 0;
-                return `<div class="p-4 flex gap-3 ${p.stock <= 5 ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate uppercase">${p.name}</h4><p class="text-[10px] font-medium opacity-50 mb-3 tracking-tight">#${p.barcode || '---'}</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-2"><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Stock</p><p class="text-xs font-black ${p.stock <= 5 ? 'text-error' : 'text-primary'}">${p.stock} pcs</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Cost</p><p class="text-xs font-black text-on-surface">₱${(p.cost || 0).toLocaleString()}</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Retail</p><p class="text-xs font-black text-primary">₱${p.price.toLocaleString()}</p></div><div class="bg-secondary/5 rounded-xl p-2 border border-secondary/10"><p class="text-[8px] font-black uppercase text-secondary">Margin</p><p class="text-xs font-black text-secondary">${marginVal}%</p></div></div></div><div class="flex flex-col gap-1.5 border-l pl-3 justify-center"><button onclick="openProductModal('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="deleteProduct('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`;
+                return `<div class="p-4 flex gap-3 ${isLow ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate uppercase">${p.name}</h4><p class="text-[10px] font-medium opacity-50 mb-3 tracking-tight">#${p.barcode || '---'}</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-2"><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Stock</p><p class="text-xs font-black ${isLow ? 'text-error' : 'text-primary'}">${p.stock} pcs</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Cost</p><p class="text-xs font-black text-on-surface">₱${(p.cost || 0).toLocaleString()}</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Retail</p><p class="text-xs font-black text-primary">₱${p.price.toLocaleString()}</p></div><div class="bg-secondary/5 rounded-xl p-2 border border-secondary/10"><p class="text-[8px] font-black uppercase text-secondary">Margin</p><p class="text-xs font-black text-secondary">${marginVal}%</p></div></div></div><div class="flex flex-col gap-1.5 border-l pl-3 justify-center"><button onclick="openStockAdjust('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-secondary/10 text-secondary rounded-xl active-scale transition-all" title="Adjust Stock"><span class="material-symbols-outlined text-[20px]">move_item</span></button><button onclick="openProductModal('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="deleteProduct('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`;
             }).join('')}</div></div>`;
         }).join('');
+        updateNotifBadge();
     }
 
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
-    function openExpenseModal() { document.getElementById('exp-desc').value = ''; document.getElementById('exp-amt').value = ''; document.getElementById('expense-modal').classList.replace('hidden', 'flex'); }
+    function openExpenseModal() { document.getElementById('exp-desc').value = ''; document.getElementById('exp-amt').value = ''; document.getElementById('exp-category').value = 'Utilities'; document.getElementById('expense-modal').classList.replace('hidden', 'flex'); }
     function saveExpense() {
-        const desc = document.getElementById('exp-desc').value; const amt = parseFloat(document.getElementById('exp-amt').value);
+        const desc = document.getElementById('exp-desc').value; const amt = parseFloat(document.getElementById('exp-amt').value); const category = document.getElementById('exp-category').value;
         if (!desc || isNaN(amt)) { showToast("Required fields missing", "error"); return; }
-        const expenseTrans = { id: 'EX-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0'), type: 'EX', desc, total: amt, timestamp: new Date().toISOString(), notes: "" };
+        const expenseTrans = { id: 'EX-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0'), type: 'EX', desc, category, total: amt, timestamp: new Date().toISOString(), notes: "" };
         queueTransaction(expenseTrans); closeModal('expense-modal'); showToast('Expense Saved', 'success'); if (activeLedgerTab === 'expense') renderLedger(); renderInsights();
     }
 
@@ -1411,7 +1536,7 @@
             const sales = state.transactions.filter(t => (t.type === 'SA' || (t.notes && t.notes.includes('CR-')))).reverse();
             const total = sales.reduce((a, b) => a + b.total, 0);
             sumHtml = `<div class="bg-primary p-6 rounded-3xl text-white shadow-lg"><p class="text-[10px] font-bold uppercase opacity-70 tracking-widest mb-1">Total Cash Sales</p><h3 class="text-2xl font-black">₱${total.toLocaleString()}</h3></div>`;
-            html = sales.map(t => `<div class="bg-surface border border-border-subtle p-5 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-sm text-primary">${t.id}</p>${(t.notes && t.notes.includes('CR-')) ? '<span class="text-[7px] bg-secondary text-white px-2 py-0.5 rounded-full uppercase font-bold">Settlement</span>' : ''}${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-[10px] text-on-surface-variant font-bold mt-1">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-3"><p class="font-black text-xl text-secondary">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale"><span class="material-symbols-outlined">visibility</span></button></div></div>`).join('') || '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No records</div>';
+            html = sales.map(t => `<div class="bg-surface border border-border-subtle p-5 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-sm text-primary">${t.id}</p>${(t.notes && t.notes.includes('CR-')) ? '<span class="text-[7px] bg-secondary text-white px-2 py-0.5 rounded-full uppercase font-bold">Settlement</span>' : ''}${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-[10px] text-on-surface-variant font-bold mt-1">${new Date(t.timestamp).toLocaleDateString()} ${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-3"><p class="font-black text-xl text-secondary">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale"><span class="material-symbols-outlined">visibility</span></button></div></div>`).join('') || '<div class="col-span-full flex flex-col items-center justify-center py-20 opacity-40"><span class="material-symbols-outlined text-[48px] mb-3">point_of_sale</span><p class="font-black text-xs uppercase tracking-widest">No sales recorded yet</p></div>';
         } else if (activeLedgerTab === 'credit') {
             const credits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
             const grouped = credits.reduce((acc, curr) => { const rawName = curr.customer || 'Guest'; const normalizedKey = rawName.trim().toLowerCase(); if (!acc[normalizedKey]) acc[normalizedKey] = { displayName: titleCase(rawName), items: [], total: 0 }; acc[normalizedKey].items.push(curr); acc[normalizedKey].total += curr.total; return acc; }, {});
@@ -1423,22 +1548,36 @@
             const expenses = state.transactions.filter(t => t.type === 'EX').reverse();
             const totalExp = expenses.reduce((a, b) => a + b.total, 0);
             sumHtml = `<div class="bg-error p-6 rounded-3xl text-white shadow-lg"><p class="text-[10px] font-bold uppercase opacity-70 tracking-widest mb-1">Total Expenses</p><h3 class="text-2xl font-black">₱${totalExp.toLocaleString()}</h3></div>`;
-            html = expenses.map(t => `<div class="bg-surface border border-border-subtle p-5 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-sm text-error">${t.id}</p>${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-xs font-bold text-on-surface mt-1 truncate max-w-[150px]">${t.desc || t.notes || 'Expense'}</p></div><div class="flex items-center gap-3"><p class="font-black text-xl text-error">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale"><span class="material-symbols-outlined">visibility</span></button></div></div>`).join('') || '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No records</div>';
+            html = expenses.map(t => `<div class="bg-surface border border-border-subtle p-5 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-sm text-error">${t.id}</p>${t.category ? `<span class="text-[7px] bg-error/10 text-error px-2 py-0.5 rounded-full uppercase font-bold">${t.category}</span>` : ''}${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-xs font-bold text-on-surface mt-1 truncate max-w-[150px]">${t.desc || t.notes || 'Expense'}</p></div><div class="flex items-center gap-3"><p class="font-black text-xl text-error">₱${t.total.toLocaleString()}</p><button onclick="viewTxDetails('${t.id}')" class="w-10 h-10 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale"><span class="material-symbols-outlined">visibility</span></button></div></div>`).join('') || '<div class="col-span-full text-center py-20 opacity-30 font-black uppercase text-xs">No records</div>';
         }
         summary.innerHTML = sumHtml; container.innerHTML = html;
     }
 
     async function payIndividualTicket(id) {
         const t = state.transactions.find(tx => tx.id === id); if (!t) return;
-        if (!confirm(`Mark ticket ${id} as paid?`)) return;
-        t.paid = true; t._offline = true; 
+        const amtStr = prompt(`Ticket ${id} — Balance: ₱${t.total.toLocaleString()}\n\nEnter amount to pay (or leave blank for full amount):`);
+        if (amtStr === null) return;
+        const amt = amtStr === '' ? t.total : parseFloat(amtStr);
+        if (isNaN(amt) || amt <= 0) { showToast('Invalid amount', 'error'); return; }
+        const isPartial = amt < t.total;
         const settlementId = 'SA-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        const saleTransaction = { id: settlementId, type: 'SA', total: t.total, timestamp: new Date().toISOString(), items: JSON.parse(JSON.stringify(t.items || [])), customer: t.customer, paid: true, cashReceived: t.total, change: 0, notes: t.id };
-        await directSync('transactions', t);
-        queueTransaction(saleTransaction);
-        showToast('Ticket paid', 'success'); 
-        lastTransactionId = settlementId; 
-        viewReceipt(settlementId); 
+        if (isPartial) {
+            // Create a partial payment settlement, reduce the ticket balance
+            const remaining = t.total - amt;
+            const saleTransaction = { id: settlementId, type: 'SA', total: amt, timestamp: new Date().toISOString(), items: [], customer: t.customer, paid: true, cashReceived: amt, change: 0, notes: `Partial: ${t.id}` };
+            t.total = remaining; t._offline = true;
+            await directSync('transactions', t);
+            queueTransaction(saleTransaction);
+            showToast(`Partial payment ₱${amt.toLocaleString()} recorded`, 'success');
+        } else {
+            t.paid = true; t._offline = true;
+            const saleTransaction = { id: settlementId, type: 'SA', total: t.total, timestamp: new Date().toISOString(), items: JSON.parse(JSON.stringify(t.items || [])), customer: t.customer, paid: true, cashReceived: t.total, change: 0, notes: t.id };
+            await directSync('transactions', t);
+            queueTransaction(saleTransaction);
+            showToast('Ticket paid', 'success');
+        }
+        lastTransactionId = settlementId;
+        viewReceipt(settlementId);
         renderLedger();
     }
 
@@ -1475,7 +1614,7 @@
     }
 
     function renderInsights() {
-        const lowStockItems = state.inventory.filter(p => p.stock <= 5);
+        const lowStockItems = state.inventory.filter(p => p.stock <= (p.lowStock !== undefined ? p.lowStock : 5));
         const alertDiv = document.getElementById('restock-alerts-container');
         if (alertDiv) alertDiv.classList.toggle('hidden', lowStockItems.length === 0);
         const lowStockList = document.getElementById('insight-low-stock-list');
@@ -1505,6 +1644,73 @@
         
         const recent = periodTransactions.slice(0, 10);
         document.getElementById('insight-transactions-list').innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities</p>` + recent.map(t => `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2 hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-xs text-primary">${t.id}</p><span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-bold ${t.type === 'CR' ? 'bg-orange-500 text-white' : t.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">${(t.notes && t.notes.includes('CR-')) ? 'SA (SET)' : t.type}</span>${t._offline ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p></div><div class="flex items-center gap-4"><span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${t.total.toLocaleString()}</span><button onclick="viewTxDetails('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button></div></div>`).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`;
+
+        // --- Sales Trend Chart (#15) ---
+        renderSalesChart(periodTransactions);
+
+        // --- Best Sellers (#16) ---
+        renderBestSellers(periodTransactions);
+    }
+
+    let salesChartInstance = null;
+    function renderSalesChart(transactions) {
+        const canvas = document.getElementById('sales-chart');
+        if (!canvas) return;
+        // Group sales by date
+        const salesByDate = {};
+        transactions.filter(t => t.type === 'SA').forEach(t => {
+            const d = t.timestamp.split('T')[0];
+            salesByDate[d] = (salesByDate[d] || 0) + t.total;
+        });
+        const labels = Object.keys(salesByDate).sort();
+        const values = labels.map(d => salesByDate[d]);
+        if (salesChartInstance) { salesChartInstance.destroy(); salesChartInstance = null; }
+        if (labels.length === 0) { canvas.parentElement.classList.add('hidden'); return; }
+        canvas.parentElement.classList.remove('hidden');
+        salesChartInstance = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: labels.map(d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })),
+                datasets: [{
+                    label: 'Sales (₱)',
+                    data: values,
+                    backgroundColor: '#1e3a5f',
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { ticks: { callback: v => '₱' + v.toLocaleString() }, grid: { color: '#e2e8f0' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    function renderBestSellers(transactions) {
+        const salesTxs = transactions.filter(t => t.type === 'SA' && t.items);
+        const itemTotals = {};
+        salesTxs.forEach(t => {
+            t.items.forEach(item => {
+                if (!itemTotals[item.name]) itemTotals[item.name] = { qty: 0, revenue: 0 };
+                itemTotals[item.name].qty += item.qty;
+                itemTotals[item.name].revenue += item.price * item.qty;
+            });
+        });
+        const sorted = Object.entries(itemTotals).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 5);
+        const container = document.getElementById('best-sellers-list');
+        if (!container) return;
+        if (sorted.length === 0) { container.parentElement.classList.add('hidden'); return; }
+        container.parentElement.classList.remove('hidden');
+        container.innerHTML = sorted.map(([name, data], i) => 
+            `<div class="flex items-center gap-3 p-3 bg-surface-container/50 rounded-2xl">
+                <span class="w-6 h-6 flex items-center justify-center rounded-full bg-primary text-white text-[10px] font-black">${i+1}</span>
+                <div class="flex-1 min-w-0"><p class="text-xs font-black truncate uppercase">${name}</p><p class="text-[9px] text-on-surface-variant font-bold">${data.qty} units sold</p></div>
+                <span class="text-xs font-black text-secondary">₱${data.revenue.toLocaleString()}</span>
+            </div>`
+        ).join('');
     }
 
     async function shareReceipt() {
@@ -1550,7 +1756,7 @@
         if (tx.items && (tx.id.startsWith('SA-') || tx.id.startsWith('CR-')) && !isSettlement && tx.type !== 'EX') {
             tx.items.forEach(item => { 
                 const p = state.inventory.find(inv => inv.id === item.id); 
-                if (p) { p.stock += (item.qty * (item.deduct || 1)); queueAction('update', 'inventory', p); } 
+                if (p) { p.stock += (item.qty * (item.deduct || 1)); p._offline = true; queueAction('update', 'inventory', p); } 
             });
         }
         state.transactions = state.transactions.filter(t => t.id !== id); 
@@ -1595,10 +1801,176 @@
 
     function printReceiptFromSuccess() { if (lastTransactionId) viewReceipt(lastTransactionId); closeModal('mod-success'); }
     function closeSuccessAndNewSale() { closeModal('mod-success'); }
-    function togglePackFields() { const packFields = document.getElementById('pack-fields'); const hasPack = document.getElementById('p-has-pack'); if (packFields && hasPack) packFields.classList.toggle('hidden', !hasPack.checked); }
+    function togglePackFields() { const packFields = document.getElementById('pack-fields'); const hasPack = document.getElementById('p-has-pack'); if (packFields && hasPack) { if (hasPack.checked) { packFields.classList.remove('hidden'); packFields.classList.add('grid'); } else { packFields.classList.add('hidden'); packFields.classList.remove('grid'); } } }
     function closeModal(id) { const modal = document.getElementById(id); if (modal) modal.classList.replace('flex', 'hidden'); if (id === 'product-modal') stopInvScanner(); }
     function showToast(m, t = 'info') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`; toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${m}</span>`; c.appendChild(toast); requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0')); setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500); }
     
+    function updateNotifBadge() {
+        const lowStockItems = state.inventory.filter(p => p.stock <= (p.lowStock !== undefined ? p.lowStock : 5));
+        const dot = document.getElementById('notif-dot');
+        if (dot) dot.classList.toggle('hidden', lowStockItems.length === 0);
+    }
+
+    function showNotifications() {
+        const lowStockItems = state.inventory.filter(p => p.stock <= (p.lowStock !== undefined ? p.lowStock : 5));
+        const pendingCredits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
+        const list = document.getElementById('notif-list');
+        let html = '';
+        if (lowStockItems.length > 0) {
+            html += `<div class="p-3 bg-yellow-50"><p class="text-[9px] font-black uppercase text-yellow-700 mb-2 tracking-wider">Low Stock (${lowStockItems.length})</p>` +
+                lowStockItems.map(p => `<div class="flex justify-between items-center py-1.5"><span class="text-xs font-bold truncate">${p.name}</span><span class="text-[10px] font-black text-error ml-2">${p.stock} left</span></div>`).join('') + '</div>';
+        }
+        if (pendingCredits.length > 0) {
+            const total = pendingCredits.reduce((a, b) => a + b.total, 0);
+            html += `<div class="p-3"><p class="text-[9px] font-black uppercase text-orange-600 mb-2 tracking-wider">Pending Credits (${pendingCredits.length})</p><p class="text-xs font-black text-on-surface">Total outstanding: ₱${total.toLocaleString()}</p></div>`;
+        }
+        if (!html) html = '<div class="p-6 text-center text-xs opacity-40 font-bold uppercase">All clear — nothing to report!</div>';
+        list.innerHTML = html;
+        document.getElementById('notif-panel').classList.replace('hidden', 'flex');
+    }
+
+    // --- Inventory Export ---
+    let posScannerRunning = false;
+
+    function togglePosScanner() {
+        if (posScannerRunning) { stopPosScanner(); return; }
+        startPosScanner();
+    }
+
+    function startPosScanner() {
+        const container = document.getElementById('pos-cam-area-container');
+        const camArea = document.getElementById('pos-cam-area');
+        const label = document.getElementById('pos-scanner-active-label');
+        if (!container || !camArea) return;
+        container.classList.remove('hidden');
+        camArea.innerHTML = '';
+        if (posScannerRunning) return;
+        posScannerRunning = true;
+        label && label.classList.remove('hidden');
+
+        Quagga.init({
+            inputStream: { type: 'LiveStream', target: camArea, constraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 480 } } },
+            locator: { patchSize: 'medium', halfSample: true },
+            numOfWorkers: navigator.hardwareConcurrency || 2,
+            decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','code_39_reader','upc_reader','upc_e_reader'] },
+            locate: true
+        }, function(err) {
+            if (err) {
+                posScannerRunning = false;
+                container.classList.add('hidden');
+                label && label.classList.add('hidden');
+                showToast(err.name === 'NotAllowedError' ? 'Camera permission denied' : 'Camera error', 'error');
+                return;
+            }
+            Quagga.start();
+            showToast('Aim camera at barcode', 'info');
+        });
+
+        let lastCode = '', lastTime = 0;
+        Quagga.onDetected(function(result) {
+            const code = result.codeResult.code;
+            const now = Date.now();
+            if (code === lastCode && now - lastTime < 2000) return;
+            lastCode = code; lastTime = now;
+            stopPosScanner();
+            handlePhysicalScan(code);
+        });
+    }
+
+    function stopPosScanner() {
+        if (!posScannerRunning) return;
+        try { Quagga.stop(); } catch(e) {}
+        posScannerRunning = false;
+        const container = document.getElementById('pos-cam-area-container');
+        const camArea = document.getElementById('pos-cam-area');
+        const label = document.getElementById('pos-scanner-active-label');
+        if (container) container.classList.add('hidden');
+        if (camArea) camArea.innerHTML = '';
+        label && label.classList.add('hidden');
+    }
+
+    // --- Change PIN Logic ---
+    let newPinBuffer = '';
+    let newPinConfirmBuffer = '';
+    let newPinStage = 'enter'; // 'enter' or 'confirm'
+
+    function openChangePinModal() {
+        newPinBuffer = ''; newPinConfirmBuffer = ''; newPinStage = 'enter';
+        document.getElementById('change-pin-msg').innerText = 'Enter your new 4-digit PIN';
+        updateNewPinDots('');
+        closeModal('change-pin-modal');
+        document.getElementById('change-pin-modal').classList.replace('hidden', 'flex');
+    }
+
+    function pressNewPin(num) {
+        if (newPinStage === 'enter') {
+            if (newPinBuffer.length < 4) { newPinBuffer += num; updateNewPinDots(newPinBuffer); if (newPinBuffer.length === 4) setTimeout(advanceNewPin, 150); }
+        } else {
+            if (newPinConfirmBuffer.length < 4) { newPinConfirmBuffer += num; updateNewPinDots(newPinConfirmBuffer); if (newPinConfirmBuffer.length === 4) setTimeout(confirmNewPin, 150); }
+        }
+    }
+
+    function clearNewPin() {
+        if (newPinStage === 'enter') { newPinBuffer = ''; updateNewPinDots(''); }
+        else { newPinConfirmBuffer = ''; updateNewPinDots(''); }
+    }
+
+    function updateNewPinDots(buf) {
+        for (let i = 0; i < 4; i++) {
+            const dot = document.getElementById(`new-dot-${i}`);
+            if (dot) dot.classList.toggle('bg-primary', i < buf.length);
+        }
+    }
+
+    function advanceNewPin() {
+        newPinStage = 'confirm';
+        document.getElementById('change-pin-msg').innerText = 'Confirm your new PIN';
+        updateNewPinDots('');
+    }
+
+    function confirmNewPin() {
+        if (newPinBuffer === newPinConfirmBuffer) {
+            hashPin(newPinBuffer).then(hash => {
+                STORED_PIN_HASH = hash;
+                localStorage.setItem(PIN_KEY, hash);
+                closeModal('change-pin-modal');
+                showToast('PIN changed successfully', 'success');
+            });
+        } else {
+            showToast('PINs do not match', 'error');
+            newPinBuffer = ''; newPinConfirmBuffer = ''; newPinStage = 'enter';
+            document.getElementById('change-pin-msg').innerText = 'Enter your new 4-digit PIN';
+            updateNewPinDots('');
+        }
+    }
+
+    // --- Stock Adjustment ---
+    function openStockAdjust(id) {
+        const p = state.inventory.find(i => i.id === id);
+        if (!p) return;
+        const qty = prompt(`Adjust stock for "${p.name}"\nCurrent stock: ${p.stock}\n\nEnter amount to ADD (positive) or DEDUCT (negative):`);
+        if (qty === null || qty === '') return;
+        const delta = parseInt(qty);
+        if (isNaN(delta)) { showToast('Invalid quantity', 'error'); return; }
+        p.stock = Math.max(0, p.stock + delta);
+        p._offline = true;
+        directSync('inventory', p).then(success => { if (success) delete p._offline; });
+        sync(); renderInventory();
+        showToast(`Stock ${delta >= 0 ? 'added' : 'deducted'}: ${Math.abs(delta)} pcs`, 'success');
+    }
+
+    // --- Inventory CSV Export ---
+    function exportInventoryCSV() {
+        if (state.inventory.length === 0) { showToast('No inventory to export', 'error'); return; }
+        const rows = ["Name,Barcode,Category,Cost,Price,Stock,PackSize,PackPrice",
+            ...state.inventory.map(p => `"${p.name}",${p.barcode || ''},${p.category || ''},${p.cost || 0},${p.price || 0},${p.stock || 0},${p.packSize || ''},${p.packPrice || ''}`)
+        ];
+        const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+        link.download = 'Villacart_Inventory.csv'; link.click();
+        showToast('Inventory exported', 'success');
+    }
+
     let invScannerRunning = false;
 
     function startInvScanner() {
