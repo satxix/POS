@@ -6,7 +6,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v5.5.2</title>
+<title>Villacart POS v5.6.1</title>
 
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg==" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg=="/>
@@ -39,7 +39,7 @@
 
             if ('serviceWorker' in navigator) {
                 const swCode = `
-                    const CACHE_NAME = 'villacart-pos-v5.5.2';
+                    const CACHE_NAME = 'villacart-pos-v5.6.1';
                     const OFFLINE_URL = '.';
 
                     self.addEventListener('install', (event) => {
@@ -190,7 +190,7 @@
         .folder-icon { transition: transform 0.2s ease; }
         .sticky-category { position: sticky; top: -1px; z-index: 10; }
     
-        /* v5.5.2 UI Polish: responsive active states, safer tap targets, and modern POS feel */
+        /* v5.6.1 UI Polish: responsive active states, safer tap targets, and modern POS feel */
         :root {
             --vc-shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.08);
             --vc-shadow-lift: 0 14px 35px rgba(15, 23, 42, 0.14);
@@ -300,7 +300,7 @@
         }
 
     
-        /* v5.5.2 Modern Light Blue UI Refresh */
+        /* v5.6.1 Modern Light Blue UI Refresh */
         :root {
             --vc-modern-blue: #3b82f6;
             --vc-modern-blue-soft: #dbeafe;
@@ -423,7 +423,7 @@
         }
 
     
-        /* v5.5.2 Button Theme + Cash Amount Selection */
+        /* v5.6.1 Button Theme + Cash Amount Selection */
         .cash-quick-btn {
             min-height: 46px;
             border-radius: 14px;
@@ -510,7 +510,7 @@
         }
 
     
-        /* v5.5.2 Tablet Payment Optimization */
+        /* v5.6.1 Tablet Payment Optimization */
         #cash-quick-amounts {
             align-items: stretch;
         }
@@ -578,7 +578,7 @@
         }
 
     
-        /* v5.5.2 Change Hero Card */
+        /* v5.6.1 Change Hero Card */
         .change-hero-card {
             border-radius: 22px !important;
             padding: 1.15rem 1.25rem !important;
@@ -639,7 +639,7 @@
         }
 
     
-        /* v5.5.2 Premium Money Color System */
+        /* v5.6.1 Premium Money Color System */
         :root {
             --vc-money: #065F46;
             --vc-money-soft: #ECFDF5;
@@ -704,7 +704,7 @@
         }
 
     
-        /* v5.5.2 Money Contrast Fix */
+        /* v5.6.1 Money Contrast Fix */
         /* Dark emerald is good on white cards, but not on the blue dashboard hero. */
         .bg-primary #daily-revenue,
         .bg-primary #daily-profit {
@@ -749,7 +749,7 @@
         }
 
     
-        /* v5.5.2 Business Dashboard */
+        /* v5.6.1 Business Dashboard */
         .business-card {
             background: #ffffff;
             border: 1px solid rgba(148, 163, 184, .22);
@@ -810,7 +810,7 @@
         }
 
     
-        /* v5.5.2 Store Closing Preview */
+        /* v5.6.1 Store Closing Preview */
         .closing-hero {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
@@ -902,7 +902,7 @@
         }
 
     
-        /* v5.5.2 Business Day Engine */
+        /* v5.6.1 Business Day Engine */
         .business-day-pill {
             background: rgba(255,255,255,.16);
             border-color: rgba(255,255,255,.26);
@@ -1014,7 +1014,7 @@
         }
 
     
-        /* v5.5.2 Business Calendar Framework */
+        /* v5.6.1 Business Calendar Framework */
         .business-month-btn {
             width: 44px;
             height: 44px;
@@ -1174,7 +1174,7 @@
         }
 
     
-        /* v5.5.2 Dashboard wording and credit status polish */
+        /* v5.6.1 Dashboard wording and credit status polish */
         .credit-settled-card {
             background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%) !important;
             border-color: rgba(6, 95, 70, .18) !important;
@@ -1194,7 +1194,7 @@
         }
 
     
-        /* v5.5.2 transaction colors */
+        /* v5.6.1 transaction colors */
         .tx-card-credit {
             border-color: rgba(59, 130, 246, .28) !important;
             background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%) !important;
@@ -1229,7 +1229,7 @@
         }
 
     
-        /* v5.5.2 Insights transaction card polish */
+        /* v5.6.1 Insights transaction card polish */
         .tx-polish-card {
             border: 1px solid rgba(148, 163, 184, .18);
             border-radius: 26px;
@@ -1366,7 +1366,7 @@
         }
 
     
-        /* v5.5.2 forced transaction cards */
+        /* v5.6.1 forced transaction cards */
         .vc541-tx-card {
             width: 100%;
             text-align: left;
@@ -1408,7 +1408,7 @@
         .vc541-icon-expense, .vc541-badge-expense { background: #fee2e2; color: #b91c1c; }
 
     
-        /* v5.5.2 Closing note cleanup */
+        /* v5.6.1 Closing note cleanup */
         .closing-note {
             background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
             border: 1px solid rgba(59, 130, 246, .18);
@@ -1421,7 +1421,7 @@
         }
 
     
-        /* v5.5.2 Brand + Header Refresh */
+        /* v5.6.1 Brand + Header Refresh */
         .vc-brand-header {
             min-height: 88px;
             background: linear-gradient(135deg, #0D2B55 0%, #123B73 48%, #2563EB 100%);
@@ -1700,7 +1700,7 @@
         }
 
     
-        /* v5.5.2 Compact Header */
+        /* v5.6.1 Compact Header */
         .vc-brand-header {
             min-height: 64px !important;
             padding: .45rem .75rem .48rem !important;
@@ -1871,7 +1871,7 @@
         }
 
     
-        /* v5.5.2 Premium Compact Header */
+        /* v5.6.1 Premium Compact Header */
         .vc-brand-header {
             min-height: 72px !important;
             padding: .55rem .85rem .62rem !important;
@@ -2083,7 +2083,7 @@
         }
 
     
-        /* v5.5.2 Ultra Compact Header Refinement */
+        /* v5.6.1 Ultra Compact Header Refinement */
         .vc-brand-header {
             min-height: 58px !important;
             height: 58px !important;
@@ -2255,7 +2255,7 @@
         }
 
     
-        /* v5.5.2 Final Premium Header */
+        /* v5.6.1 Final Premium Header */
         .vc-brand-header { display: none !important; }
         .vc550-header {
             height: 76px;
@@ -2525,7 +2525,7 @@
         }
 
     
-        /* v5.5.2 Header + Bottom Navigation Stabilizer */
+        /* v5.6.1 Header + Bottom Navigation Stabilizer */
         .vc-brand-header, .vc550-header {
             display: none !important;
         }
@@ -2779,7 +2779,7 @@
         }
 
     
-        /* v5.5.2 Tablet Nav Restore + Logo Fix */
+        /* v5.6.1 Tablet Nav Restore + Logo Fix */
         .vc551-logo {
             object-fit: contain !important;
             padding: 0 !important;
@@ -2872,6 +2872,118 @@
             }
         }
 
+    
+        /* v5.6.1 Simple Diagnostics - click-safe */
+        #vc558-diag-btn {
+            position: fixed !important;
+            right: 14px !important;
+            bottom: 96px !important;
+            z-index: 2147483000 !important;
+            width: 52px !important;
+            height: 52px !important;
+            min-height: 52px !important;
+            border-radius: 18px !important;
+            background: #0B1F3A !important;
+            color: white !important;
+            border: 2px solid rgba(245,182,35,.75) !important;
+            box-shadow: 0 16px 34px rgba(15,23,42,.35) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            pointer-events: auto !important;
+        }
+        #vc558-diag-panel {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 2147483001 !important;
+            background: rgba(15,23,42,.55) !important;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 14px;
+        }
+        #vc558-diag-panel.vc-open {
+            display: flex !important;
+        }
+        .vc558-box {
+            width: min(940px, 100%);
+            max-height: 88vh;
+            overflow: auto;
+            border-radius: 24px;
+            background: #f8fafc;
+            box-shadow: 0 24px 60px rgba(0,0,0,.35);
+        }
+        .vc558-head {
+            background: linear-gradient(135deg,#071F41,#1D4ED8);
+            color: white;
+            padding: 16px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap: 12px;
+        }
+        .vc558-head h3 { font-weight: 950; font-size: 16px; letter-spacing:-.03em; }
+        .vc558-head p { font-size: 11px; opacity:.75; font-weight:800; margin-top:3px; }
+        .vc558-body { padding: 14px; }
+        .vc558-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:10px; }
+        .vc558-card { background:white; border:1px solid #e2e8f0; border-radius:18px; padding:12px; }
+        .vc558-card label { display:block; font-size:10px; font-weight:950; color:#64748b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+        .vc558-card strong { display:block; font-size:20px; font-weight:950; color:#0B1F3A; }
+        .vc558-card small { display:block; font-size:11px; font-weight:750; color:#64748b; margin-top:6px; overflow-wrap:anywhere; }
+        .vc558-ok strong { color:#065F46; }
+        .vc558-warn strong { color:#B45309; }
+        .vc558-bad strong { color:#B91C1C; }
+        #vc558-log {
+            margin-top:12px;
+            background:#0f172a;
+            color:#dbeafe;
+            border-radius:16px;
+            padding:12px;
+            font-size:11px;
+            white-space:pre-wrap;
+            overflow-wrap:anywhere;
+            font-family:monospace;
+        }
+        .vc558-action {
+            min-height:46px;
+            border-radius:16px;
+            font-weight:950;
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+        }
+        @media (min-width:768px) {
+            #vc558-diag-btn { bottom: 18px !important; right: 18px !important; }
+            #vc558-diag-panel { align-items:center; }
+            .vc558-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+        }
+
+    
+        /* v5.6.1 Clean Sync Fix */
+        #vc558-diag-btn,
+        .vc557-diag-fab,
+        .vc-audit-button {
+            display: none !important;
+        }
+        .vc-hidden-diagnostics-hint {
+            position: fixed;
+            left: 50%;
+            bottom: 86px;
+            transform: translateX(-50%);
+            z-index: 99999;
+            background: #0B1F3A;
+            color: white;
+            border-radius: 999px;
+            padding: .6rem .9rem;
+            font-size: .72rem;
+            font-weight: 900;
+            box-shadow: 0 14px 30px rgba(15,23,42,.25);
+            display: none;
+        }
+        .vc-hidden-diagnostics-hint.show {
+            display: block;
+        }
+
     </style>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
@@ -2885,7 +2997,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v5.5.2</span>
+                    <span class="vc551-version">v5.6.1</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -3756,7 +3868,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // v5.5.2: Critical Fix - Enable Firestore Offline Persistence explicitly
+    // v5.6.1: Critical Fix - Enable Firestore Offline Persistence explicitly
     db.enablePersistence().catch(err => {
         if (err.code === 'failed-precondition') {
             console.warn("Persistence failed: Multiple tabs open.");
@@ -3879,7 +3991,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v5.5.2: Offline Verified Snapshots
+        // v5.6.1: Offline Verified Snapshots
         // includeMetadataChanges: true allows us to see data from local cache immediately
         inventoryUnsubscribe = db.collection('inventory').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
             const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -3937,7 +4049,7 @@
             const cloudDays = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const offlineIds = new Set(offlineQueue.filter(q => q.table === 'businessDays').map(q => q.data.id));
 
-            // v5.5.2: Preserve local business-day records while Firestore catches up.
+            // v5.6.1: Preserve local business-day records while Firestore catches up.
             // The first transaction can create a local business day before the cloud snapshot returns it.
             // If we replace state.businessDays with an empty/stale cloud snapshot, the UI shows "No active business day".
             const localDays = Array.isArray(state.businessDays) ? state.businessDays : [];
@@ -3976,7 +4088,7 @@
     function showSyncInfo() {
         const status = navigator.onLine ? "ONLINE" : "OFFLINE";
         const msg = syncErrorMsg ? `LAST ERROR: ${syncErrorMsg}` : `All systems functional. Queue: ${offlineQueue.length} items.`;
-        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v5.5.2`);
+        alert(`Cloud Connection Status: ${status}\n\n${msg}\n\nSync Engine: Robust Direct-Sync v5.6.1`);
     }
 
     function updateLastSyncedTime() {
@@ -4067,7 +4179,7 @@
 
     function queueTransaction(transaction) {
         if (!transaction || !transaction.id) return;
-        // v5.5.2 CORE BUSINESS DAY ATTACHMENT
+        // v5.6.1 CORE BUSINESS DAY ATTACHMENT
         // This is inside queueTransaction itself so every transaction type is linked before local save and Firestore sync.
         if (typeof ensureBusinessDayForTransaction === 'function') {
             ensureBusinessDayForTransaction(transaction);
@@ -4302,7 +4414,7 @@
     window.addEventListener('offline', () => { updateSyncUI(); });
 
     
-    // v5.5.2 UI Polish helpers
+    // v5.6.1 UI Polish helpers
     function updateActiveNavigation(screen) {
         document.querySelectorAll('.nav-item').forEach(btn => {
             const isActive = btn.dataset.screen === screen;
@@ -4340,7 +4452,7 @@
     }
 
 
-    // v5.5.2 UI Polish Fix: keep active nav synced on mobile/tablet
+    // v5.6.1 UI Polish Fix: keep active nav synced on mobile/tablet
     function refreshActiveNavigationFromDOM() {
         const visibleScreen = Array.from(document.querySelectorAll('[id^="screen-"]'))
             .find(el => !el.classList.contains('hidden'));
@@ -4540,7 +4652,7 @@ function switchScreen(id) {
             notes: "" 
         };
         
-        // v5.5.2: Ensure every new transaction is linked to a business day before syncing.
+        // v5.6.1: Ensure every new transaction is linked to a business day before syncing.
         if (typeof attachBusinessDayToTransaction === 'function') {
             attachBusinessDayToTransaction(transaction);
         }
@@ -5181,7 +5293,7 @@ function switchScreen(id) {
     }
 
     
-    // v5.5.2 Inventory PIN navigation polish
+    // v5.6.1 Inventory PIN navigation polish
     let pendingNavScreen = null;
 
     document.addEventListener('click', (event) => {
@@ -5217,7 +5329,7 @@ function switchScreen(id) {
     }
 
 
-    // v5.5.2 Cash amount selection polish
+    // v5.6.1 Cash amount selection polish
     function markCashQuickAmount(value) {
         document.querySelectorAll('.cash-quick-btn').forEach(btn => {
             const isSelected = String(btn.dataset.cash) === String(value);
@@ -5257,7 +5369,7 @@ function switchScreen(id) {
     });
 
 
-    // v5.5.2 Change display polish
+    // v5.6.1 Change display polish
     function polishChangeDisplay() {
         const totalEl = document.getElementById('rev-total');
         const cashEl = document.getElementById('cash-input');
@@ -5323,7 +5435,7 @@ function switchScreen(id) {
     });
 
 
-    // v5.5.2 Business Dashboard calculations
+    // v5.6.1 Business Dashboard calculations
     function getBusinessMetricsForPeriod(transactions) {
         const periodTx = transactions || getPeriodTransactions();
         const revenueSales = periodTx.filter(t => isRevenueSale ? isRevenueSale(t) : ((t.type === 'SA' || t.type === 'CR') && !(t.notes && t.notes.includes('CR-'))));
@@ -5379,7 +5491,7 @@ function switchScreen(id) {
     
 
 
-    // v5.5.2 Store Closing Preview Modal
+    // v5.6.1 Store Closing Preview Modal
     function moneyFmt(value) {
         return `₱${(Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
@@ -5432,7 +5544,7 @@ function getClosingCounts(transactions) {
     }
 
 
-    // v5.5.2 Business Day Repair Helper
+    // v5.6.1 Business Day Repair Helper
     function repairBusinessDayFromTransactions() {
         ensureBusinessDayArrays && ensureBusinessDayArrays();
         if (getCurrentBusinessDay && getCurrentBusinessDay()) return;
@@ -5481,7 +5593,7 @@ function getClosingCounts(transactions) {
     }
 
 
-    // v5.5.2 Reporting Fallback: never hide real transactions because businessDayId is missing
+    // v5.6.1 Reporting Fallback: never hide real transactions because businessDayId is missing
     function getActiveBusinessDayTransactionsOrPeriod() {
         try {
             const bd = (typeof getCurrentBusinessDay === 'function') ? getCurrentBusinessDay() : null;
@@ -5530,7 +5642,7 @@ function getClosingCounts(transactions) {
     }
 
 
-    // v5.5.2 Core Business Day Attachment + Reporting Repair
+    // v5.6.1 Core Business Day Attachment + Reporting Repair
     function ensureBusinessDayForTransaction(transaction) {
         if (!transaction || transaction.businessDayId) return transaction;
 
@@ -5681,7 +5793,7 @@ function getClosingCounts(transactions) {
     }
 
 
-    // v5.5.2 Delete Transaction Modal Fix
+    // v5.6.1 Delete Transaction Modal Fix
     function closeTransactionDetailScreensAfterDelete() {
         ['tx-detail-modal','transaction-detail-modal','receipt-modal','mod-tx-details','transaction-modal'].forEach(id => {
             const el = document.getElementById(id);
@@ -5709,7 +5821,7 @@ function getClosingCounts(transactions) {
     });
 
 
-    // v5.5.2 Business Day Manager - core architecture
+    // v5.6.1 Business Day Manager - core architecture
     const VILLA_BUSINESS_DAY_STORAGE = 'villacart_business_days_v520';
 
     function v52DateCode(date = new Date()) {
@@ -5773,7 +5885,7 @@ function getClosingCounts(transactions) {
                     terminal: 'Counter 1',
                     autoStarted: true,
                     createdAt: new Date().toISOString(),
-                    version: 'v5.5.2'
+                    version: 'v5.6.1'
                 };
                 state.businessDays.push(bd);
             }
@@ -6105,7 +6217,7 @@ function getClosingCounts(transactions) {
     }, 800);
 
 
-    // v5.5.2 Business Day Date-Scope Fix
+    // v5.6.1 Business Day Date-Scope Fix
     // Rule: For your 5AM-10PM store, a new transaction belongs to its own calendar date.
     // Old transactions without businessDayId should not hijack today's active business day.
     function v521TodayCode() {
@@ -6137,7 +6249,7 @@ function getClosingCounts(transactions) {
                 terminal: 'Counter 1',
                 autoStarted: true,
                 createdAt: new Date().toISOString(),
-                version: 'v5.5.2'
+                version: 'v5.6.1'
             };
             state.businessDays.push(bd);
         } else if (bd.status !== 'OPEN') {
@@ -6154,7 +6266,7 @@ function getClosingCounts(transactions) {
                 terminal: 'Counter 1',
                 autoStarted: true,
                 createdAt: new Date().toISOString(),
-                version: 'v5.5.2'
+                version: 'v5.6.1'
             };
             state.businessDays.push(bd);
         }
@@ -6275,7 +6387,7 @@ function getClosingCounts(transactions) {
     }, 1000);
 
 
-    // v5.5.2 Business Day + Delete Stabilizer
+    // v5.6.1 Business Day + Delete Stabilizer
     const VC_DELETED_TX_KEY_522 = 'villacart_deleted_transactions';
 
     function vc522Money(value) {
@@ -6390,7 +6502,7 @@ function getClosingCounts(transactions) {
                 terminal: 'Counter 1',
                 autoStarted: true,
                 createdAt: new Date().toISOString(),
-                version: 'v5.5.2'
+                version: 'v5.6.1'
             };
             state.businessDays.push(bd);
         } else if (bd.status !== 'OPEN') {
@@ -6635,7 +6747,7 @@ function getClosingCounts(transactions) {
     }, 800);
 
 
-    // v5.5.2 Insights + Business Screen Reconciliation
+    // v5.6.1 Insights + Business Screen Reconciliation
     function vc523DateCode(date = new Date()) {
         const d = date instanceof Date ? date : new Date(date);
         return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -6709,7 +6821,7 @@ function getClosingCounts(transactions) {
                     terminal: 'Counter 1',
                     autoStarted: true,
                     createdAt: new Date().toISOString(),
-                    version: 'v5.5.2'
+                    version: 'v5.6.1'
                 };
                 state.businessDays.push(bd);
             }
@@ -6843,7 +6955,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc523RefreshInsightsDisplay, 1500);
 
 
-    // v5.5.2 Insights Completeness Fix
+    // v5.6.1 Insights Completeness Fix
     // Fixes: credit visibility, outstanding credit, sales chart, top sellers, inventory tracked.
     function vc524Money(value) {
         return `₱${(Number(value)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
@@ -7085,7 +7197,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc524RefreshInventoryInsight, 1200);
 
 
-    // v5.5.2 Outstanding Credit Settlement Fix
+    // v5.6.1 Outstanding Credit Settlement Fix
     function vc525IsSettlement(t) {
         if (!t) return false;
         const id = String(t.id || '').toUpperCase();
@@ -7177,7 +7289,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc525RefreshOutstandingCredit, 1500);
 
 
-    // v5.5.2 Dashboard wording and credit clarity polish
+    // v5.6.1 Dashboard wording and credit clarity polish
     function vc526MoneyValueFromText(text) {
         return Number(String(text || '').replace(/[₱,\s]/g, '')) || 0;
     }
@@ -7243,7 +7355,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc526PolishCreditDashboardLabels, 1500);
 
 
-    // v5.5.2 Transaction Integrity Layer
+    // v5.6.1 Transaction Integrity Layer
     // Testing mode keeps Delete, but adds safe rules for credit sales and settlements.
     const VC_DEV_DELETE_MODE = true;
 
@@ -7498,7 +7610,7 @@ function getClosingCounts(transactions) {
     };
 
 
-    // v5.5.2 Authoritative Realtime Reporting Engine
+    // v5.6.1 Authoritative Realtime Reporting Engine
     const VC531_DELETED_TX_KEY = 'villacart_deleted_transactions';
 
     function vc531DeletedSet() {
@@ -7678,7 +7790,7 @@ function getClosingCounts(transactions) {
                 terminal: 'Counter 1',
                 autoStarted: true,
                 createdAt: new Date().toISOString(),
-                version: 'v5.5.2'
+                version: 'v5.6.1'
             };
             state.businessDays.push(bd);
         }
@@ -7938,7 +8050,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc531RefreshBusinessCalendarSafe, 900);
 
 
-    // v5.5.2 Credit/Settlement Void Guidance + Color Coding
+    // v5.6.1 Credit/Settlement Void Guidance + Color Coding
     function vc532Norm(v) { return String(v || '').trim().toUpperCase(); }
 
     function vc532IsSettlement(t) {
@@ -8144,7 +8256,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc532DecorateTransactionColors, 800);
 
 
-    // v5.5.2 Final UI Override: clickable Insight cards + real Business month label
+    // v5.6.1 Final UI Override: clickable Insight cards + real Business month label
     function vc541Norm(v) { return String(v || '').trim().toUpperCase(); }
 
     function vc541DateCode(value = new Date()) {
@@ -8365,7 +8477,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc541ForceUI, 1500);
 
 
-    // v5.5.2 Cross-device Recent Activities Fix
+    // v5.6.1 Cross-device Recent Activities Fix
     // Tablet issue: local deleted-id cache or period scope can make Recent Activities empty
     // while chart totals still show data. This renderer uses the same live state.transactions
     // that Ledger uses, then applies a safe period filter with fallback.
@@ -8548,7 +8660,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc542RenderRecentActivities, 1000);
 
 
-    // v5.5.2 Cross-device Business Day Card Fix
+    // v5.6.1 Cross-device Business Day Card Fix
     // Tablet can show report totals from transactions while businessDay state is missing/stale.
     // This derives the open business day from today's live transactions and repairs Firestore/local state.
     function vc543DateCode(value = new Date()) {
@@ -8599,7 +8711,7 @@ function getClosingCounts(transactions) {
                 terminal: 'Counter 1',
                 autoStarted: true,
                 createdAt: new Date().toISOString(),
-                version: 'v5.5.2',
+                version: 'v5.6.1',
                 repairedFromTransactions: true
             };
             state.businessDays.push(bd);
@@ -8734,7 +8846,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc543RefreshBusinessDayUI, 1800);
 
 
-    // v5.5.2 Closing Summary Fix
+    // v5.6.1 Closing Summary Fix
     // Fixes stale note text and makes Closing use the same live transaction source as Insights/Business Day.
     function vc544DateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -8964,7 +9076,7 @@ function getClosingCounts(transactions) {
     }
 
 
-    // v5.5.2 Brand Header Controller
+    // v5.6.1 Brand Header Controller
     function vc545FormatToday() {
         const now = new Date();
         const mobile = window.innerWidth < 620;
@@ -9049,7 +9161,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc545NormalizeHeaderStatus, 1200);
 
 
-    // v5.5.2 Premium Header Text Normalizer
+    // v5.6.1 Premium Header Text Normalizer
     function vc547PremiumHeaderText() {
         const dayText = document.getElementById('business-day-text');
         if (dayText) {
@@ -9077,7 +9189,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc547PremiumHeaderText, 1000);
 
 
-    // v5.5.2 Ultra Compact Header Date Line
+    // v5.6.1 Ultra Compact Header Date Line
     function vc548UpdateCompactDate() {
         const copy = document.querySelector('.vc-brand-copy');
         if (!copy) return;
@@ -9099,7 +9211,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc548UpdateCompactDate, 1200);
 
 
-    // v5.5.2 Final Premium Header Controller
+    // v5.6.1 Final Premium Header Controller
     function vc550RefreshHeader() {
         const date = document.getElementById('vc550-date');
         if (date) {
@@ -9162,7 +9274,7 @@ function getClosingCounts(transactions) {
     setTimeout(vc550RefreshHeader, 1200);
 
 
-    // v5.5.2 Stable Header Controller
+    // v5.6.1 Stable Header Controller
     function vc551GetTodayBusinessDay() {
         try {
             if (typeof getCurrentBusinessDay === 'function') return getCurrentBusinessDay();
@@ -9279,5 +9391,512 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 </script>
 
-<!-- v5.5.2: Collections Tab Planned / Ledger Grouping Foundation -->
+<!-- v5.6.1: Collections Tab Planned / Ledger Grouping Foundation -->
+
+<button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
+    <span class="material-symbols-outlined">monitoring</span>
+</button>
+
+<div id="vc558-diag-panel" class="no-print">
+    <div class="vc558-box">
+        <div class="vc558-head">
+            <div>
+                <h3>Device Diagnostics</h3>
+                <p>Firestore / realtime / memory check</p>
+            </div>
+            <button id="vc558-close" type="button" class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="vc558-body">
+            <div id="vc558-grid" class="vc558-grid"></div>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <button id="vc558-run" type="button" class="vc558-action bg-primary text-white">Run Check</button>
+                <button id="vc558-copy" type="button" class="vc558-action bg-white border border-border-subtle text-primary">Copy</button>
+            </div>
+            <pre id="vc558-log">Tap Run Check.</pre>
+        </div>
+    </div>
+</div>
+
+
+<script>
+(function(){
+  async function readCount(name){
+    if (typeof db === 'undefined' || !db) return {name, ok:false, count:null, error:'db not ready'};
+    try {
+      const snap = await db.collection(name).limit(50).get();
+      return {name, ok:true, count:snap.size, empty:snap.empty};
+    } catch(e) {
+      return {name, ok:false, count:null, error:e.message || String(e)};
+    }
+  }
+
+  async function collect(){
+    const transactions = await readCount('transactions');
+    const inventory = await readCount('inventory');
+    const businessDays = await readCount('businessDays');
+    const report = {
+      at: new Date().toISOString(),
+      online: navigator.onLine,
+      firebaseReady: typeof firebase !== 'undefined',
+      dbReady: typeof db !== 'undefined' && !!db,
+      firestore: { transactions, inventory, businessDays },
+      memory: {
+        transactions: (window.state && Array.isArray(state.transactions)) ? state.transactions.length : null,
+        inventory: (window.state && Array.isArray(state.inventory)) ? state.inventory.length : null,
+        businessDays: (window.state && Array.isArray(state.businessDays)) ? state.businessDays.length : null
+      },
+      offlineQueue: Array.isArray(window.offlineQueue) ? offlineQueue.length : null,
+      syncErrorMsg: typeof syncErrorMsg !== 'undefined' ? (syncErrorMsg || null) : null,
+      lastSnapshots: {
+        transactions: window.__villacartLastTransactionsSnapshot || null,
+        businessDays: window.__villacartLastBusinessDaysSnapshot || null
+      }
+    };
+    window.__vc558LastReport = report;
+    return report;
+  }
+
+  function card(label, value, sub, cls){
+    return '<div class="vc558-card '+(cls||'')+'"><label>'+label+'</label><strong>'+value+'</strong><small>'+(sub||'')+'</small></div>';
+  }
+
+  async function run(){
+    const grid = document.getElementById('vc558-grid');
+    const log = document.getElementById('vc558-log');
+    if (grid) grid.innerHTML = card('Checking','...','Please wait','vc558-warn');
+
+    let r = await collect();
+
+    const txFs = r.firestore.transactions.count;
+    const txMem = r.memory.transactions;
+    const mismatch = Number(txFs) > 0 && Number(txMem) === 0;
+
+    if (grid) {
+      grid.innerHTML = [
+        card('DB', r.dbReady ? 'Ready' : 'No', r.dbReady ? 'Firestore object exists' : 'db missing', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
+        card('Firestore Tx', txFs === null ? 'Err' : txFs, r.firestore.transactions.error || 'transactions collection', r.firestore.transactions.ok ? 'vc558-ok' : 'vc558-bad'),
+        card('Memory Tx', txMem === null ? 'N/A' : txMem, mismatch ? 'Firestore has tx but app memory is empty' : 'state.transactions', mismatch ? 'vc558-bad' : 'vc558-ok'),
+        card('Queue', r.offlineQueue === null ? 'N/A' : r.offlineQueue, 'offline queue', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
+        card('Inventory FS', r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count, r.firestore.inventory.error || 'inventory collection', r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
+        card('Inventory Mem', r.memory.inventory === null ? 'N/A' : r.memory.inventory, 'state.inventory', r.memory.inventory > 0 ? 'vc558-ok' : 'vc558-warn'),
+        card('Business Days', r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count, r.firestore.businessDays.error || 'businessDays collection', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad'),
+        card('Online', r.online ? 'Yes' : 'No', r.syncErrorMsg || 'browser online status', r.online ? 'vc558-ok' : 'vc558-bad')
+      ].join('');
+    }
+    if (log) log.textContent = JSON.stringify(r, null, 2);
+  }
+
+  function openPanel(){
+    var panel = document.getElementById('vc558-diag-panel');
+    if (panel) panel.classList.add('vc-open');
+    run();
+  }
+  function closePanel(){
+    var panel = document.getElementById('vc558-diag-panel');
+    if (panel) panel.classList.remove('vc-open');
+  }
+  function copyReport(){
+    var text = JSON.stringify(window.__vc558LastReport || {}, null, 2);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function(){
+        if (typeof showToast === 'function') showToast('Diagnostics copied','success');
+      }).catch(function(){ alert(text); });
+    } else alert(text);
+  }
+
+  window.villacartDiagnostics = collect;
+  window.vc558OpenDiagnostics = openPanel;
+
+  function bind(){
+    var btn = document.getElementById('vc558-diag-btn');
+    var close = document.getElementById('vc558-close');
+    var runBtn = document.getElementById('vc558-run');
+    var copyBtn = document.getElementById('vc558-copy');
+    if (btn) btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); openPanel(); }, true);
+    if (close) close.addEventListener('click', function(e){ e.preventDefault(); closePanel(); });
+    if (runBtn) runBtn.addEventListener('click', function(e){ e.preventDefault(); run(); });
+    if (copyBtn) copyBtn.addEventListener('click', function(e){ e.preventDefault(); copyReport(); });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
+})();
+</script>
+
+
+<script>
+(function(){
+  async function vc559ReadCollection(name){
+    if (typeof db === 'undefined' || !db) return {name, ok:false, count:null, docs:[], error:'db not ready'};
+    try {
+      const snap = await db.collection(name).get();
+      return {name, ok:true, count:snap.size, empty:snap.empty, docs:snap.docs.map(d => ({id:d.id, ...d.data()}))};
+    } catch(e) {
+      return {name, ok:false, count:null, docs:[], error:e.message || String(e)};
+    }
+  }
+
+  function vc559HasState(){
+    try { return typeof state !== 'undefined' && state; } catch(e) { return false; }
+  }
+
+  function vc559GetMem(){
+    if (!vc559HasState()) return {transactions:null, inventory:null, businessDays:null};
+    return {
+      transactions: Array.isArray(state.transactions) ? state.transactions.length : null,
+      inventory: Array.isArray(state.inventory) ? state.inventory.length : null,
+      businessDays: Array.isArray(state.businessDays) ? state.businessDays.length : null
+    };
+  }
+
+  function vc559SortTx(list){
+    return (list || []).sort((a,b)=>new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0));
+  }
+
+  async function vc559HydrateFromFirestore(){
+    if (!vc559HasState()) throw new Error('App state is not ready yet.');
+    const tx = await vc559ReadCollection('transactions');
+    const inv = await vc559ReadCollection('inventory');
+    const bd = await vc559ReadCollection('businessDays');
+
+    if (tx.ok) {
+      state.transactions = vc559SortTx(tx.docs);
+      try { localStorage.setItem('villacart_transactions', JSON.stringify(state.transactions)); } catch(e) {}
+    }
+    if (inv.ok) {
+      state.inventory = inv.docs;
+      try { localStorage.setItem('villacart_inventory', JSON.stringify(state.inventory)); } catch(e) {}
+    }
+    if (bd.ok) {
+      state.businessDays = bd.docs;
+      try { localStorage.setItem('villacart_business_days', JSON.stringify(state.businessDays)); } catch(e) {}
+    }
+
+    try { if (typeof renderLedger === 'function') renderLedger(); } catch(e) { console.warn(e); }
+    try { if (typeof renderInventory === 'function') renderInventory(); } catch(e) { console.warn(e); }
+    try { if (typeof renderFavorites === 'function') renderFavorites(); } catch(e) { console.warn(e); }
+    try { if (typeof renderPOS === 'function') renderPOS(); } catch(e) { console.warn(e); }
+    try { if (typeof renderInsights === 'function') renderInsights(); } catch(e) { console.warn(e); }
+    try { if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar(); } catch(e) { console.warn(e); }
+    try { if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI(); } catch(e) { console.warn(e); }
+
+    window.__vc559LastHydrate = {at:new Date().toISOString(), tx:tx.count, inventory:inv.count, businessDays:bd.count};
+    return window.__vc559LastHydrate;
+  }
+
+  async function vc559Collect(){
+    const transactions = await vc559ReadCollection('transactions');
+    const inventory = await vc559ReadCollection('inventory');
+    const businessDays = await vc559ReadCollection('businessDays');
+    const report = {
+      at: new Date().toISOString(),
+      online: navigator.onLine,
+      firebaseReady: typeof firebase !== 'undefined',
+      dbReady: typeof db !== 'undefined' && !!db,
+      stateReady: vc559HasState(),
+      firestore: {
+        transactions: {name:'transactions', ok:transactions.ok, count:transactions.count, empty:transactions.empty, error:transactions.error || null},
+        inventory: {name:'inventory', ok:inventory.ok, count:inventory.count, empty:inventory.empty, error:inventory.error || null},
+        businessDays: {name:'businessDays', ok:businessDays.ok, count:businessDays.count, empty:businessDays.empty, error:businessDays.error || null}
+      },
+      memory: vc559GetMem(),
+      offlineQueue: (typeof offlineQueue !== 'undefined' && Array.isArray(offlineQueue)) ? offlineQueue.length : null,
+      syncErrorMsg: typeof syncErrorMsg !== 'undefined' ? (syncErrorMsg || null) : null,
+      lastHydrate: window.__vc559LastHydrate || null
+    };
+    window.__vc559LastReport = report;
+    return report;
+  }
+
+  function vc559Card(label, value, sub, cls){
+    return '<div class="vc558-card '+(cls||'')+'"><label>'+label+'</label><strong>'+value+'</strong><small>'+(sub||'')+'</small></div>';
+  }
+
+  async function vc559Run(hydrate){
+    const grid = document.getElementById('vc558-grid');
+    const log = document.getElementById('vc558-log');
+    if (grid) grid.innerHTML = vc559Card(hydrate ? 'Loading' : 'Checking','...','Please wait','vc558-warn');
+
+    let hydrateResult = null;
+    if (hydrate) {
+      try { hydrateResult = await vc559HydrateFromFirestore(); }
+      catch(e) {
+        if (log) log.textContent = 'Hydrate failed: ' + (e.message || e);
+      }
+    }
+
+    const r = await vc559Collect();
+    if (hydrateResult) r.hydrateResult = hydrateResult;
+
+    const txFs = r.firestore.transactions.count;
+    const txMem = r.memory.transactions;
+    const mismatch = Number(txFs) > 0 && Number(txMem) !== Number(txFs);
+
+    if (grid) {
+      grid.innerHTML = [
+        vc559Card('DB', r.dbReady ? 'Ready' : 'No', r.dbReady ? 'Firestore object exists' : 'db missing', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('State', r.stateReady ? 'Ready' : 'No', r.stateReady ? 'App state is accessible' : 'state not ready', r.stateReady ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Firestore Tx', txFs === null ? 'Err' : txFs, r.firestore.transactions.error || 'transactions collection', r.firestore.transactions.ok ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Memory Tx', txMem === null ? 'N/A' : txMem, mismatch ? 'Does not match Firestore count' : 'state.transactions', mismatch ? 'vc558-bad' : 'vc558-ok'),
+        vc559Card('Queue', r.offlineQueue === null ? 'N/A' : r.offlineQueue, 'offline queue', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
+        vc559Card('Inventory FS', r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count, r.firestore.inventory.error || 'inventory collection', r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Inventory Mem', r.memory.inventory === null ? 'N/A' : r.memory.inventory, 'state.inventory', r.memory.inventory > 0 ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Business Days', r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count, r.firestore.businessDays.error || 'businessDays collection', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad')
+      ].join('');
+    }
+    if (log) log.textContent = JSON.stringify(r, null, 2);
+  }
+
+  async function vc559Copy(){
+    const text = JSON.stringify(window.__vc559LastReport || window.__vc558LastReport || {}, null, 2);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        if (typeof showToast === 'function') showToast('Diagnostics copied','success');
+        else alert('Diagnostics copied');
+        return;
+      }
+      throw new Error('Clipboard API unavailable');
+    } catch(e) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch(err) {}
+      document.body.removeChild(ta);
+      if (ok) {
+        if (typeof showToast === 'function') showToast('Diagnostics copied','success');
+        else alert('Diagnostics copied');
+      } else {
+        alert(text);
+      }
+    }
+  }
+
+  function vc559Bind(){
+    const runBtn = document.getElementById('vc558-run');
+    const copyBtn = document.getElementById('vc558-copy');
+    if (runBtn) {
+      runBtn.textContent = 'Load Firestore';
+      runBtn.replaceWith(runBtn.cloneNode(true));
+      const newRun = document.getElementById('vc558-run');
+      newRun.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); vc559Run(true); }, true);
+    }
+    if (copyBtn) {
+      copyBtn.replaceWith(copyBtn.cloneNode(true));
+      const newCopy = document.getElementById('vc558-copy');
+      newCopy.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); vc559Copy(); }, true);
+    }
+    const btn = document.getElementById('vc558-diag-btn');
+    if (btn) btn.addEventListener('click', function(){ setTimeout(function(){ vc559Run(false); }, 120); }, true);
+  }
+
+  window.villacartDiagnostics = vc559Collect;
+  window.villacartLoadFirestoreNow = vc559HydrateFromFirestore;
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', vc559Bind);
+  else vc559Bind();
+})();
+</script>
+
+
+<script>
+(function(){
+  // v5.6.1 Deleted-cache sync fix
+  // Firestore count is 3 but memory shows 1 because stale local deleted cache can hide cloud docs.
+  function vc560ClearDeletedCache(){
+    try {
+      localStorage.removeItem('villacart_deleted_transactions');
+      localStorage.removeItem('deletedTransactions');
+      localStorage.removeItem('deleted_transactions');
+    } catch(e) {}
+  }
+
+  async function vc560ReadDocs(name){
+    if (typeof db === 'undefined' || !db) return [];
+    const snap = await db.collection(name).get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  async function vc560ForceFirestoreVisible(){
+    if (typeof state === 'undefined' || !state) throw new Error('App state not ready');
+    vc560ClearDeletedCache();
+
+    const tx = await vc560ReadDocs('transactions');
+    const inv = await vc560ReadDocs('inventory');
+    const bd = await vc560ReadDocs('businessDays');
+
+    state.transactions = tx.sort((a,b)=>new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0));
+    state.inventory = inv;
+    state.businessDays = bd;
+
+    try { localStorage.setItem('villacart_transactions', JSON.stringify(state.transactions)); } catch(e) {}
+    try { localStorage.setItem('villacart_inventory', JSON.stringify(state.inventory)); } catch(e) {}
+    try { localStorage.setItem('villacart_business_days', JSON.stringify(state.businessDays)); } catch(e) {}
+
+    try { if (typeof renderLedger === 'function') renderLedger(); } catch(e) {}
+    try { if (typeof renderInventory === 'function') renderInventory(); } catch(e) {}
+    try { if (typeof renderFavorites === 'function') renderFavorites(); } catch(e) {}
+    try { if (typeof renderPOS === 'function') renderPOS(); } catch(e) {}
+    try { if (typeof renderInsights === 'function') renderInsights(); } catch(e) {}
+    try { if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar(); } catch(e) {}
+    try { if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI(); } catch(e) {}
+    try { if (typeof updateSyncUI === 'function') updateSyncUI(); } catch(e) {}
+
+    window.__vc560LastForceLoad = {
+      at: new Date().toISOString(),
+      transactions: state.transactions.length,
+      inventory: state.inventory.length,
+      businessDays: state.businessDays.length,
+      deletedCacheCleared: true
+    };
+    return window.__vc560LastForceLoad;
+  }
+
+  function vc560AttachRealtimeNoDeletedCache(){
+    if (window.__vc560RealtimeAttached || typeof db === 'undefined' || !db || typeof state === 'undefined') return;
+    window.__vc560RealtimeAttached = true;
+
+    try {
+      db.collection('transactions').onSnapshot(snapshot => {
+        vc560ClearDeletedCache();
+        state.transactions = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a,b)=>new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0));
+
+        try { localStorage.setItem('villacart_transactions', JSON.stringify(state.transactions)); } catch(e) {}
+
+        try { if (typeof renderLedger === 'function') renderLedger(); } catch(e) {}
+        try { if (typeof renderInsights === 'function') renderInsights(); } catch(e) {}
+        try { if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar(); } catch(e) {}
+        try { if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI(); } catch(e) {}
+
+        window.__vc560LastTxSnapshot = {
+          at: new Date().toISOString(),
+          transactions: state.transactions.length
+        };
+      });
+    } catch(e) { console.warn('v5.6.1 tx listener failed', e); }
+  }
+
+  function vc560RebindDiagnosticRun(){
+    const runBtn = document.getElementById('vc558-run');
+    if (runBtn && !runBtn.__vc560Bound) {
+      runBtn.__vc560Bound = true;
+      runBtn.textContent = 'Fix Load';
+      runBtn.addEventListener('click', async function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        const log = document.getElementById('vc558-log');
+        try {
+          if (log) log.textContent = 'Clearing deleted cache and loading Firestore...';
+          const result = await vc560ForceFirestoreVisible();
+          vc560AttachRealtimeNoDeletedCache();
+          if (typeof vc559Run === 'function') await vc559Run(false);
+          else if (log) log.textContent = JSON.stringify(result, null, 2);
+          if (typeof showToast === 'function') showToast('Firestore loaded: ' + result.transactions + ' transactions', 'success');
+        } catch(err) {
+          if (log) log.textContent = 'Fix Load failed: ' + (err.message || err);
+        }
+      }, true);
+    }
+  }
+
+  window.villacartFixFirestoreLoad = vc560ForceFirestoreVisible;
+  window.villacartClearDeletedCache = vc560ClearDeletedCache;
+
+  setTimeout(vc560AttachRealtimeNoDeletedCache, 1000);
+  setTimeout(vc560RebindDiagnosticRun, 1200);
+  document.addEventListener('click', function(){
+    setTimeout(vc560RebindDiagnosticRun, 100);
+  }, true);
+})();
+</script>
+
+
+<script>
+(function(){
+  // v5.6.1 Hidden Diagnostics Shortcut
+  // Tap the version badge 5 times to open diagnostics. Floating button stays hidden.
+  let vc561VersionTapCount = 0;
+  let vc561VersionTapTimer = null;
+
+  function vc561ShowHint(text) {
+    let hint = document.getElementById('vc561-hidden-diagnostics-hint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.id = 'vc561-hidden-diagnostics-hint';
+      hint.className = 'vc-hidden-diagnostics-hint';
+      document.body.appendChild(hint);
+    }
+    hint.textContent = text;
+    hint.classList.add('show');
+    clearTimeout(hint.__timer);
+    hint.__timer = setTimeout(() => hint.classList.remove('show'), 1300);
+  }
+
+  function vc561OpenDiagnostics() {
+    const panel =
+      document.getElementById('vc558-diag-panel') ||
+      document.getElementById('vc557-diag-modal') ||
+      document.getElementById('vc-audit-modal');
+
+    if (panel) {
+      panel.classList.add('vc-open');
+      panel.classList.add('open');
+      try {
+        if (typeof vc559Run === 'function') vc559Run(false);
+        else if (typeof vc557RefreshDiagnostics === 'function') vc557RefreshDiagnostics(false);
+        else if (typeof vc560RenderAudit === 'function') vc560RenderAudit();
+      } catch(e) {}
+      return;
+    }
+
+    vc561ShowHint('Diagnostics not available in this build');
+  }
+
+  function vc561BindVersionShortcut() {
+    const candidates = Array.from(document.querySelectorAll('.vc551-version, .vc550-version, .vc-build-badge, [class*="version"], [class*="badge"]'));
+    const badge = candidates.find(el => /v5\.6\.1|v\d+\.\d+\.\d+/.test(el.textContent || ''));
+    if (!badge || badge.__vc561Bound) return;
+
+    badge.__vc561Bound = true;
+    badge.style.cursor = 'pointer';
+    badge.title = 'Tap 5 times for diagnostics';
+
+    badge.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      vc561VersionTapCount++;
+      clearTimeout(vc561VersionTapTimer);
+      vc561VersionTapTimer = setTimeout(() => vc561VersionTapCount = 0, 1800);
+
+      if (vc561VersionTapCount < 5) {
+        vc561ShowHint(`${5 - vc561VersionTapCount} more tap${5 - vc561VersionTapCount === 1 ? '' : 's'} for diagnostics`);
+      } else {
+        vc561VersionTapCount = 0;
+        vc561OpenDiagnostics();
+      }
+    }, true);
+  }
+
+  window.villacartOpenDiagnostics = vc561OpenDiagnostics;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', vc561BindVersionShortcut);
+  } else {
+    vc561BindVersionShortcut();
+  }
+  setTimeout(vc561BindVersionShortcut, 800);
+  setTimeout(vc561BindVersionShortcut, 2000);
+})();
+</script>
+
 </body></html>
