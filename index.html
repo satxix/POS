@@ -1596,11 +1596,89 @@
     function printReceiptFromSuccess() { if (lastTransactionId) viewReceipt(lastTransactionId); closeModal('mod-success'); }
     function closeSuccessAndNewSale() { closeModal('mod-success'); }
     function togglePackFields() { const packFields = document.getElementById('pack-fields'); const hasPack = document.getElementById('p-has-pack'); if (packFields && hasPack) packFields.classList.toggle('hidden', !hasPack.checked); }
-    function closeModal(id) { const modal = document.getElementById(id); if (modal) modal.classList.replace('flex', 'hidden'); }
+    function closeModal(id) { const modal = document.getElementById(id); if (modal) modal.classList.replace('flex', 'hidden'); if (id === 'product-modal') stopInvScanner(); }
     function showToast(m, t = 'info') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`; toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${m}</span>`; c.appendChild(toast); requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0')); setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500); }
     
-    function startInvScanner() { showToast("Scanner feature active", "info"); }
-    function stopInvScanner() { }
+    let invScannerRunning = false;
+
+    function startInvScanner() {
+        const container = document.getElementById('scanner-preview-container');
+        const camArea = document.getElementById('inv-cam-area');
+        if (!container || !camArea) return;
+
+        // Show the preview container
+        container.classList.remove('hidden');
+        camArea.innerHTML = '';
+
+        if (invScannerRunning) return;
+        invScannerRunning = true;
+
+        Quagga.init({
+            inputStream: {
+                type: 'LiveStream',
+                target: camArea,
+                constraints: {
+                    facingMode: 'environment',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            },
+            locator: { patchSize: 'medium', halfSample: true },
+            numOfWorkers: navigator.hardwareConcurrency || 2,
+            decoder: {
+                readers: [
+                    'ean_reader', 'ean_8_reader', 'code_128_reader',
+                    'code_39_reader', 'upc_reader', 'upc_e_reader',
+                    'codabar_reader', 'i2of5_reader'
+                ]
+            },
+            locate: true
+        }, function(err) {
+            if (err) {
+                invScannerRunning = false;
+                container.classList.add('hidden');
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    showToast('Camera permission denied', 'error');
+                } else if (err.name === 'NotFoundError') {
+                    showToast('No camera found', 'error');
+                } else {
+                    showToast('Camera error: ' + (err.message || err), 'error');
+                }
+                return;
+            }
+            Quagga.start();
+            showToast('Scanner active — aim at barcode', 'success');
+        });
+
+        let lastScanned = '';
+        let lastScannedTime = 0;
+
+        Quagga.onDetected(function(result) {
+            const code = result.codeResult.code;
+            const now = Date.now();
+            // Debounce: ignore same code within 2 seconds
+            if (code === lastScanned && now - lastScannedTime < 2000) return;
+            lastScanned = code;
+            lastScannedTime = now;
+
+            const barcodeField = document.getElementById('p-barcode');
+            if (barcodeField) {
+                barcodeField.value = code;
+                showToast('Barcode scanned: ' + code, 'success');
+            }
+            stopInvScanner();
+        });
+    }
+
+    function stopInvScanner() {
+        if (!invScannerRunning) return;
+        try { Quagga.stop(); } catch(e) {}
+        invScannerRunning = false;
+        const container = document.getElementById('scanner-preview-container');
+        const camArea = document.getElementById('inv-cam-area');
+        if (container) container.classList.add('hidden');
+        if (camArea) camArea.innerHTML = '';
+    }
 
     window.onload = () => { setupRealTimeSync(); switchScreen('pos'); };
 </script>
