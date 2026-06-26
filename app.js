@@ -1889,22 +1889,6 @@ function getClosingCounts(transactions) {
     }
 
 
-    // v5.6.1 Business Day Repair Helper
-    function repairBusinessDayFromTransactions() {
-        // Retired: later business-day manager functions now own this repair.
-    }
-
-    const vcOriginalRenderInsightsRepairBD = typeof renderInsights === 'function' ? renderInsights : null;
-    if (vcOriginalRenderInsightsRepairBD && !window.__vcRenderInsightsRepairBDPatched) {
-        window.__vcRenderInsightsRepairBDPatched = true;
-        renderInsights = function() {
-            repairBusinessDayFromTransactions();
-            vcOriginalRenderInsightsRepairBD();
-            updateBusinessDayUI && updateBusinessDayUI();
-        };
-    }
-
-
     // v5.6.1 Reporting Fallback: never hide real transactions because businessDayId is missing
     function getActiveBusinessDayTransactionsOrPeriod() {
         try {
@@ -1916,23 +1900,6 @@ function getClosingCounts(transactions) {
         } catch(e) {}
         return getPeriodTransactions();
     }
-
-    function recoverMissingBusinessDayLinks() {
-        // Retired: queueTransaction/v52AttachBusinessDay and later repair paths handle this.
-    }
-
-    const vcOriginalRenderInsights512 = typeof renderInsights === 'function' ? renderInsights : null;
-    if (vcOriginalRenderInsights512 && !window.__vcRenderInsights512Patched) {
-        window.__vcRenderInsights512Patched = true;
-        renderInsights = function() {
-            recoverMissingBusinessDayLinks();
-            vcOriginalRenderInsights512();
-            updateBusinessDashboardCards && updateBusinessDashboardCards();
-            updateBusinessDayUI && updateBusinessDayUI();
-            renderBusinessCalendar && renderBusinessCalendar();
-        };
-    }
-
 
     // v5.6.1 Core Business Day Attachment + Reporting Repair
     function ensureBusinessDayForTransaction(transaction) {
@@ -1996,10 +1963,6 @@ function getClosingCounts(transactions) {
         });
     }
 
-    function ensureTodayTransactionsHaveBusinessDay() {
-        // Retired: avoids repeated render-time transaction rewrites.
-    }
-
     function getBusinessMetricsResilient(transactions) {
         const tx = transactions || getTodayTransactionsResilient();
         const isSettlementFn = (t) => (typeof isCreditSettlement === 'function') ? isCreditSettlement(t) : !!(t.notes && t.notes.includes('CR-'));
@@ -2021,7 +1984,6 @@ function getClosingCounts(transactions) {
     }
 
     function forceUpdateInsightsNumbersFromTransactions() {
-        ensureTodayTransactionsHaveBusinessDay();
         const periodTx = (typeof getPeriodTransactions === 'function') ? getPeriodTransactions() : getTodayTransactionsResilient();
         const m = getBusinessMetricsResilient(periodTx);
 
@@ -2056,16 +2018,6 @@ function getClosingCounts(transactions) {
             forceUpdateInsightsNumbersFromTransactions();
         };
     }
-
-    const vcOriginalRenderLedger513 = typeof renderLedger === 'function' ? renderLedger : null;
-    if (vcOriginalRenderLedger513 && !window.__vcRenderLedger513Patched) {
-        window.__vcRenderLedger513Patched = true;
-        renderLedger = function() {
-            vcOriginalRenderLedger513();
-            ensureTodayTransactionsHaveBusinessDay();
-        };
-    }
-
 
     // v5.6.1 Delete Transaction Modal Fix
     function closeTransactionDetailScreensAfterDelete() {
@@ -2239,11 +2191,6 @@ function getClosingCounts(transactions) {
         };
     }
 
-    function v52RepairTransactionsAndBusinessDays() {
-        // Retired: newer date-scoped business-day repair is authoritative.
-        if (typeof v52RefreshBusinessDayUI === 'function') v52RefreshBusinessDayUI();
-    }
-
     function v52BusinessDayTransactions(bdId) {
         return (state.transactions || []).filter(t => t.businessDayId === bdId);
     }
@@ -2366,36 +2313,6 @@ function getClosingCounts(transactions) {
         setText('biz-outstanding-credit', Math.max(0, allCredit - allCollections));
     };
 
-    // Wrap renderInsights after all old render logic.
-    const vcOriginalRenderInsights520 = typeof renderInsights === 'function' ? renderInsights : null;
-    if (vcOriginalRenderInsights520 && !window.__vcRenderInsights520Patched) {
-        window.__vcRenderInsights520Patched = true;
-        renderInsights = function() {
-            v52RepairTransactionsAndBusinessDays();
-            vcOriginalRenderInsights520();
-            const bd = v52GetOpenBusinessDay();
-            const tx = bd ? v52BusinessDayTransactions(bd.id) : ((typeof getPeriodTransactions === 'function') ? getPeriodTransactions() : []);
-            const m = v52ComputeMetrics(tx);
-
-            const money = (id, value) => {
-                const el = document.getElementById(id);
-                if (el) el.innerText = `₱${(Number(value)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-            };
-            const text = (id, value) => {
-                const el = document.getElementById(id);
-                if (el) el.innerText = value;
-            };
-
-            money('daily-revenue', m.totalSales);
-            money('daily-profit', m.netProfit);
-            money('daily-cogs', m.cogs);
-            money('daily-expenses', m.expenses);
-            text('daily-margin', `${m.totalSales > 0 ? ((m.netProfit/m.totalSales)*100).toFixed(1) : '0'}%`);
-            updateBusinessDashboardCards();
-            v52RefreshBusinessDayUI();
-        };
-    }
-
     // End business day rewritten to use the manager.
     endBusinessDay = function() {
         const bd = v52GetOpenBusinessDay();
@@ -2446,7 +2363,6 @@ function getClosingCounts(transactions) {
     });
 
     setTimeout(() => {
-        v52RepairTransactionsAndBusinessDays();
         v52RefreshBusinessDayUI();
         renderInsights && renderInsights();
     }, 800);
@@ -2556,56 +2472,6 @@ function getClosingCounts(transactions) {
     };
 
     v52GetOpenBusinessDay = getCurrentBusinessDay;
-
-    function v521RepairTodayOnly() {
-        if (typeof v52RefreshBusinessDayUI === 'function') v52RefreshBusinessDayUI();
-        if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
-    }
-
-    // Patch renderInsights again after v5.2.0 so today's active day and totals agree.
-    const vcOriginalRenderInsights521 = typeof renderInsights === 'function' ? renderInsights : null;
-    if (vcOriginalRenderInsights521 && !window.__vcRenderInsights521Patched) {
-        window.__vcRenderInsights521Patched = true;
-        renderInsights = function() {
-            v521RepairTodayOnly();
-            vcOriginalRenderInsights521();
-
-            const bd = getCurrentBusinessDay();
-            const tx = bd && typeof v52BusinessDayTransactions === 'function'
-                ? v52BusinessDayTransactions(bd.id)
-                : ((typeof getPeriodTransactions === 'function') ? getPeriodTransactions() : []);
-            const m = (typeof v52ComputeMetrics === 'function') ? v52ComputeMetrics(tx) : null;
-
-            if (m) {
-                const money = (id, value) => {
-                    const el = document.getElementById(id);
-                    if (el) el.innerText = `₱${(Number(value)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-                };
-                const text = (id, value) => {
-                    const el = document.getElementById(id);
-                    if (el) el.innerText = value;
-                };
-                money('daily-revenue', m.totalSales);
-                money('daily-profit', m.netProfit);
-                money('daily-cogs', m.cogs);
-                money('daily-expenses', m.expenses);
-                text('daily-margin', `${m.totalSales > 0 ? ((m.netProfit/m.totalSales)*100).toFixed(1) : '0'}%`);
-                money('biz-total-sales', m.totalSales);
-                money('biz-cash-in', m.cashIn);
-                money('biz-credit-sales', m.creditSales);
-            }
-
-            if (typeof v52RefreshBusinessDayUI === 'function') v52RefreshBusinessDayUI();
-        };
-    }
-
-    // Manual cleanup for testing: if there is a stale previous-day OPEN business day, do not show it as current.
-    setTimeout(() => {
-        v521RepairTodayOnly();
-        if (typeof v52RefreshBusinessDayUI === 'function') v52RefreshBusinessDayUI();
-        if (typeof renderInsights === 'function') renderInsights();
-    }, 1000);
-
 
     // v5.6.1 Business Day + Delete Stabilizer
     const VC_DELETED_TX_KEY_522 = 'villacart_deleted_transactions';
@@ -2850,18 +2716,6 @@ function getClosingCounts(transactions) {
             vc522EnsureTodayBusinessDayFromTransactions();
             vc522UpdateInsightsNumbers();
             if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
-        };
-    }
-
-    const vcOriginalRenderLedger522 = typeof renderLedger === 'function' ? renderLedger : null;
-    if (vcOriginalRenderLedger522 && !window.__vcRenderLedger522Patched) {
-        window.__vcRenderLedger522Patched = true;
-        renderLedger = function() {
-            const deleted = vc522GetDeletedSet();
-            if (Array.isArray(state.transactions)) {
-                state.transactions = state.transactions.filter(t => !deleted.has(t.id));
-            }
-            vcOriginalRenderLedger522();
         };
     }
 
@@ -3745,19 +3599,6 @@ function getClosingCounts(transactions) {
         directSync = function(table, data) {
             if (table === 'transactions') vc530AttachSettlementLink(data);
             return vcOriginalDirectSync530(table, data);
-        };
-    }
-
-    // Prevent deleted transactions from reappearing visually after Firestore snapshot refresh.
-    const vcOriginalRenderLedger530 = typeof renderLedger === 'function' ? renderLedger : null;
-    if (vcOriginalRenderLedger530 && !window.__vcRenderLedger530Patched) {
-        window.__vcRenderLedger530Patched = true;
-        renderLedger = function() {
-            const deleted = vc530DeletedSet();
-            if (Array.isArray(state.transactions)) {
-                state.transactions = state.transactions.filter(t => !deleted.has(t.id));
-            }
-            return vcOriginalRenderLedger530();
         };
     }
 
