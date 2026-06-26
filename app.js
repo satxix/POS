@@ -423,6 +423,7 @@
         updateSyncUI();
         
         const failedIndices = [];
+        const syncedTasks = [];
 
         try {
             for (let i = 0; i < offlineQueue.length; i++) {
@@ -438,6 +439,7 @@
                     } else {
                         await firestoreWriteWithTimeout(syncTaskWithFirestoreRest(task));
                     }
+                    syncedTasks.push(task);
                 } catch (e) {
                     console.error(`Sync item ${id} failed:`, e);
                     failedIndices.push(i);
@@ -446,6 +448,7 @@
             }
             
             offlineQueue = offlineQueue.filter((_, idx) => failedIndices.includes(idx));
+            syncedTasks.forEach(markSyncedTaskLocally);
             sync();
             
             if (failedIndices.length === 0) {
@@ -464,6 +467,23 @@
             updateSyncUI();
             renderLedger(); 
             renderInsights();
+        }
+    }
+
+    function markSyncedTaskLocally(task) {
+        if (!task || !task.table || !task.data || !task.data.id) return;
+        const list = task.table === 'transactions' ? state.transactions
+            : task.table === 'inventory' ? state.inventory
+            : task.table === 'businessDays' ? state.businessDays
+            : null;
+        if (!Array.isArray(list)) return;
+        const idx = list.findIndex(item => item && item.id === task.data.id);
+        if (task.type === 'delete') {
+            if (idx !== -1) list.splice(idx, 1);
+            return;
+        }
+        if (idx !== -1) {
+            delete list[idx]._offline;
         }
     }
 
