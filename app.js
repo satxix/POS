@@ -1,14 +1,29 @@
 // --- Firebase Configuration ---
-    // SECURITY NOTE: Restrict this key to your domain in Firebase Console > API restrictions.
-    // Set Firestore Security Rules to prevent unauthorized external access.
-    const firebaseConfig = {
-        apiKey: "AIzaSyBSRVxGcKllY04Ghoy9e_2ZKId3D1Mx7bM",
-        authDomain: "quickpos-fcffc.firebaseapp.com",
-        projectId: "quickpos-fcffc",
-        storageBucket: "quickpos-fcffc.firebasestorage.app",
-        messagingSenderId: "542473883041",
-        appId: "1:542473883041:web:3bdc285631819787644fe0"
+    // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
+    // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
+    const firebaseConfigs = {
+        live: {
+            apiKey: "AIzaSyBSRVxGcKllY04Ghoy9e_2ZKId3D1Mx7bM",
+            authDomain: "quickpos-fcffc.firebaseapp.com",
+            projectId: "quickpos-fcffc",
+            storageBucket: "quickpos-fcffc.firebasestorage.app",
+            messagingSenderId: "542473883041",
+            appId: "1:542473883041:web:3bdc285631819787644fe0"
+        },
+        test: {
+            apiKey: "AIzaSyDBbHK7cI1D3sycOPweqKDcBZDfNU1UArg",
+            authDomain: "quickpos-test.firebaseapp.com",
+            projectId: "quickpos-test",
+            storageBucket: "quickpos-test.firebasestorage.app",
+            messagingSenderId: "743128618",
+            appId: "1:743128618:web:6557c5735ce47435384d53",
+            measurementId: "G-EVXF44P3QD"
+        }
     };
+    const APP_ENV = new URLSearchParams(window.location.search).get('env') === 'test' ? 'test' : 'live';
+    const firebaseConfig = firebaseConfigs[APP_ENV];
+    window.VILLACART_ENV = APP_ENV;
+    window.VILLACART_FIREBASE_PROJECT = firebaseConfig.projectId;
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -27,9 +42,10 @@
     });
 
     // --- Data Storage ---
-    const DB_KEY = 'saph_pos_v5_villacart';
-    const QUEUE_KEY = 'saph_pos_v5_villacart_queue';
-    const FAV_KEY = 'villacart_favorites';
+    const STORAGE_SUFFIX = APP_ENV === 'test' ? '_test' : '';
+    const DB_KEY = 'saph_pos_v5_villacart' + STORAGE_SUFFIX;
+    const QUEUE_KEY = 'saph_pos_v5_villacart_queue' + STORAGE_SUFFIX;
+    const FAV_KEY = 'villacart_favorites' + STORAGE_SUFFIX;
     
     let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
         inventory: [],
@@ -160,7 +176,7 @@
         const mm = String(now.getMonth() + 1).padStart(2, '0');
         const yy = String(now.getFullYear()).slice(-2);
         const dateCode = dd + mm + yy;
-        const counterKey = 'dailyCounters';
+        const counterKey = APP_ENV === 'test' ? 'dailyCounters_test' : 'dailyCounters';
         const counters = JSON.parse(localStorage.getItem(counterKey) || '{}');
         counters[dateCode] = counters[dateCode] || { SA: 0, CR: 0, EX: 0 };
         counters[dateCode][type] = (counters[dateCode][type] || 0) + 1;
@@ -233,6 +249,31 @@
             updateSyncUI();
         });
 
+        businessDaysUnsubscribe = db.collection('businessDays').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
+            const cloudDays = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const offlineIds = new Set(offlineQueue.filter(q => q.table === 'businessDays').map(q => q.data.id));
+
+            // v5.6.1: Preserve local business-day records while Firestore catches up.
+            // The first transaction can create a local business day before the cloud snapshot returns it.
+            // If we replace state.businessDays with an empty/stale cloud snapshot, the UI shows "No active business day".
+            const localDays = Array.isArray(state.businessDays) ? state.businessDays : [];
+            const merged = new Map();
+            localDays.forEach(bd => { if (bd && bd.id) merged.set(bd.id, bd); });
+            cloudDays.forEach(bd => { if (bd && bd.id) merged.set(bd.id, bd); });
+
+            state.businessDays = Array.from(merged.values());
+            const open = state.businessDays
+                .filter(bd => bd.status === 'OPEN')
+                .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0))[0];
+            state.currentBusinessDayId = open ? open.id : null;
+            sync();
+            updateBusinessDayUI();
+            renderBusinessCalendar && renderBusinessCalendar();
+        }, (error) => {
+            syncErrorMsg = error.message;
+            updateSyncUI();
+        });
+
         // A reload while already online does not fire an `online` event. Drain
         // any saved work immediately instead of waiting for another sale/edit.
         if (navigator.onLine && offlineQueue.length > 0) setTimeout(syncNow, 0);
@@ -276,32 +317,6 @@
             updateSyncUI();
         }
     }
-
-
-        businessDaysUnsubscribe = db.collection('businessDays').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
-            const cloudDays = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const offlineIds = new Set(offlineQueue.filter(q => q.table === 'businessDays').map(q => q.data.id));
-
-            // v5.6.1: Preserve local business-day records while Firestore catches up.
-            // The first transaction can create a local business day before the cloud snapshot returns it.
-            // If we replace state.businessDays with an empty/stale cloud snapshot, the UI shows "No active business day".
-            const localDays = Array.isArray(state.businessDays) ? state.businessDays : [];
-            const merged = new Map();
-            localDays.forEach(bd => { if (bd && bd.id) merged.set(bd.id, bd); });
-            cloudDays.forEach(bd => { if (bd && bd.id) merged.set(bd.id, bd); });
-
-            state.businessDays = Array.from(merged.values());
-            const open = state.businessDays
-                .filter(bd => bd.status === 'OPEN')
-                .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0))[0];
-            state.currentBusinessDayId = open ? open.id : null;
-            sync();
-            updateBusinessDayUI();
-            renderBusinessCalendar && renderBusinessCalendar();
-        }, (error) => {
-            syncErrorMsg = error.message;
-            updateSyncUI();
-        });
 
     function troubleshootConnection() {
         showToast("Re-syncing with Cloud...", "info");
@@ -453,18 +468,23 @@
     }
 
     async function directSync(table, data) {
-        if (!navigator.onLine) return false;
-        const cleanData = { ...data };
-        delete cleanData._offline;
-        try {
-            await db.collection(table).doc(data.id).set(cleanData, { merge: true });
-            return true;
-        } catch (e) {
-            console.error("Direct sync failed", e);
-            syncErrorMsg = e.message;
-            updateSyncUI();
-            return false;
+        // Keep older feature code compatible, but route all writes through the
+        // durable queue/REST sync path. Direct SDK writes can be masked by the
+        // browser's local Firestore cache and were the source of inconsistent
+        // "saved in app but not in Firestore Console" behavior.
+        if (!data || !data.id) return false;
+        const cleanData = { ...data, _offline: true };
+        const list = table === 'transactions' ? state.transactions
+            : table === 'inventory' ? state.inventory
+            : table === 'businessDays' ? state.businessDays
+            : null;
+        if (Array.isArray(list)) {
+            const idx = list.findIndex(item => item && item.id === cleanData.id);
+            if (idx !== -1) list[idx] = cleanData;
+            else list.unshift(cleanData);
         }
+        queueAction('update', table, cleanData);
+        return true;
     }
 
     function queueAction(type, table, data) {
@@ -1293,7 +1313,6 @@ function switchScreen(id) {
     async function deleteTransaction(id) {
         if (document.activeElement) document.activeElement.blur();
         const tx = state.transactions.find(t => t.id === id); if (!tx) return;
-        if (navigator.onLine) { try { await db.collection('transactions').doc(id).delete(); } catch (e) { console.error("Firebase delete failed", e); } }
         const isSettlement = tx.notes && tx.notes.includes('CR-');
         if (tx.items && (tx.id.startsWith('SA-') || tx.id.startsWith('CR-')) && !isSettlement && tx.type !== 'EX') {
             tx.items.forEach(item => { 
@@ -1848,40 +1867,7 @@ function getClosingCounts(transactions) {
 
     // v5.6.1 Business Day Repair Helper
     function repairBusinessDayFromTransactions() {
-        ensureBusinessDayArrays && ensureBusinessDayArrays();
-        if (getCurrentBusinessDay && getCurrentBusinessDay()) return;
-
-        const newestBDTx = [...(state.transactions || [])]
-            .filter(t => t.businessDayId)
-            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))[0];
-
-        if (!newestBDTx) return;
-
-        const id = newestBDTx.businessDayId;
-        let bd = (state.businessDays || []).find(x => x.id === id);
-        let createdBusinessDay = false;
-        if (!bd) {
-            bd = {
-                id,
-                businessDayId: id,
-                date: newestBDTx.businessDate || (newestBDTx.timestamp ? newestBDTx.timestamp.slice(0, 10) : localDateCode(new Date())),
-                status: 'OPEN',
-                openedAt: newestBDTx.timestamp || new Date().toISOString(),
-                closedAt: null,
-                terminal: 'Counter 1',
-                autoRecovered: true
-            };
-            state.businessDays.push(bd);
-            createdBusinessDay = true;
-        }
-
-        if (bd.status === 'OPEN') {
-            state.currentBusinessDayId = bd.id;
-            sync();
-            if (createdBusinessDay) queueAction('update', 'businessDays', bd);
-            updateBusinessDayUI();
-            renderBusinessCalendar && renderBusinessCalendar();
-        }
+        // Retired: later business-day manager functions now own this repair.
     }
 
     const vcOriginalRenderInsightsRepairBD = typeof renderInsights === 'function' ? renderInsights : null;
@@ -1908,27 +1894,7 @@ function getClosingCounts(transactions) {
     }
 
     function recoverMissingBusinessDayLinks() {
-        if (typeof createBusinessDayIfNeeded !== 'function') return;
-        const bd = (typeof getCurrentBusinessDay === 'function' && getCurrentBusinessDay()) || createBusinessDayIfNeeded();
-        if (!bd) return;
-
-        let changed = false;
-        const today = typeof localDateCode === 'function' ? localDateCode(new Date()) : new Date().toISOString().slice(0,10);
-        (state.transactions || []).forEach(t => {
-            if (!t.businessDayId && t.timestamp && t.timestamp.slice(0,10) === today) {
-                t.businessDayId = bd.id;
-                t.businessDate = bd.date;
-                changed = true;
-                directSync('transactions', t).then(success => {
-                    if (!success) queueAction('update', 'transactions', t);
-                });
-            }
-        });
-        if (changed) {
-            sync();
-            updateBusinessDayUI && updateBusinessDayUI();
-            renderBusinessCalendar && renderBusinessCalendar();
-        }
+        // Retired: queueTransaction/v52AttachBusinessDay and later repair paths handle this.
     }
 
     const vcOriginalRenderInsights512 = typeof renderInsights === 'function' ? renderInsights : null;
@@ -2007,24 +1973,7 @@ function getClosingCounts(transactions) {
     }
 
     function ensureTodayTransactionsHaveBusinessDay() {
-        if (!state.transactions || state.transactions.length === 0) return;
-        let changed = false;
-        getTodayTransactionsResilient().forEach(t => {
-            if (!t.businessDayId) {
-                ensureBusinessDayForTransaction(t);
-                changed = true;
-                if (typeof directSync === 'function') {
-                    directSync('transactions', t).then(success => {
-                        if (!success && typeof queueAction === 'function') queueAction('update', 'transactions', t);
-                    });
-                }
-            }
-        });
-        if (changed) {
-            if (typeof sync === 'function') sync();
-            if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI();
-            if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
-        }
+        // Retired: avoids repeated render-time transaction rewrites.
     }
 
     function getBusinessMetricsResilient(transactions) {
@@ -2214,22 +2163,8 @@ function getClosingCounts(transactions) {
                 localStorage.setItem('villacart_business_days', JSON.stringify(state.businessDays));
             } catch(e) {}
 
-            // Persist business day immediately without using queueAction to avoid recursion.
-            if (navigator.onLine && typeof db !== 'undefined' && db) {
-                const cleanBD = { ...bd };
-                delete cleanBD._offline;
-                db.collection('businessDays').doc(cleanBD.id).set(cleanBD, { merge: true }).catch(() => {
-                    bd._offline = true;
-                    if (Array.isArray(offlineQueue) && !offlineQueue.some(q => q.table === 'businessDays' && q.data && q.data.id === bd.id)) {
-                        offlineQueue.push({ type: 'update', table: 'businessDays', data: bd, ts: Date.now() });
-                    }
-                });
-            } else {
-                bd._offline = true;
-                if (Array.isArray(offlineQueue) && !offlineQueue.some(q => q.table === 'businessDays' && q.data && q.data.id === bd.id)) {
-                    offlineQueue.push({ type: 'update', table: 'businessDays', data: bd, ts: Date.now() });
-                }
-            }
+            bd._offline = true;
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
         }
 
         return transaction;
@@ -2281,24 +2216,8 @@ function getClosingCounts(transactions) {
     }
 
     function v52RepairTransactionsAndBusinessDays() {
-        v52EnsureArrays();
-        let changed = false;
-
-        (state.transactions || []).forEach(t => {
-            if ((t.type === 'SA' || t.type === 'CR' || t.type === 'EX' || (t.notes && t.notes.includes('CR-'))) && (!t.businessDayId || !t.businessDate)) {
-                v52AttachBusinessDay(t);
-                changed = true;
-
-                if (navigator.onLine && typeof db !== 'undefined' && db) {
-                    const cleanTx = { ...t };
-                    delete cleanTx._offline;
-                    db.collection('transactions').doc(t.id).set(cleanTx, { merge: true }).catch(() => {});
-                }
-            }
-        });
-
-        if (changed && typeof sync === 'function') sync();
-        v52RefreshBusinessDayUI();
+        // Retired: newer date-scoped business-day repair is authoritative.
+        if (typeof v52RefreshBusinessDayUI === 'function') v52RefreshBusinessDayUI();
     }
 
     function v52BusinessDayTransactions(bdId) {
@@ -2471,17 +2390,8 @@ function getClosingCounts(transactions) {
 
         if (typeof sync === 'function') sync();
 
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            const cleanBD = { ...bd };
-            delete cleanBD._offline;
-            db.collection('businessDays').doc(bd.id).set(cleanBD, { merge: true }).catch(() => {
-                bd._offline = true;
-                if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
-            });
-        } else if (typeof queueAction === 'function') {
-            bd._offline = true;
-            queueAction('update', 'businessDays', bd);
-        }
+        bd._offline = true;
+        if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
 
         closeModal && closeModal('closing-summary-modal');
         closeModal && closeModal('business-day-modal');
@@ -2539,6 +2449,7 @@ function getClosingCounts(transactions) {
         if (!state.businessDays || !Array.isArray(state.businessDays)) state.businessDays = [];
         const id = v521BusinessDayIdFromDateCode(dateCode);
         let bd = state.businessDays.find(x => x.id === id);
+        let createdOrChanged = false;
         if (!bd) {
             bd = {
                 id,
@@ -2553,6 +2464,7 @@ function getClosingCounts(transactions) {
                 version: 'v5.6.1'
             };
             state.businessDays.push(bd);
+            createdOrChanged = true;
         } else if (bd.status !== 'OPEN') {
             // If it was closed, do not reopen automatically. Create continuation.
             const suffix = state.businessDays.filter(x => x.id && x.id.startsWith(id)).length + 1;
@@ -2570,7 +2482,9 @@ function getClosingCounts(transactions) {
                 version: 'v5.6.1'
             };
             state.businessDays.push(bd);
+            createdOrChanged = true;
         }
+        bd._createdOrChanged = createdOrChanged;
 
         const today = v521TodayCode();
         if (dateCode === today) {
@@ -2589,6 +2503,8 @@ function getClosingCounts(transactions) {
 
         const txDate = v521DateCodeFromTimestamp(transaction.timestamp);
         const bd = v521EnsureBusinessDayForDate(txDate, transaction.timestamp || new Date().toISOString());
+        const shouldQueueBusinessDay = !!bd._createdOrChanged;
+        delete bd._createdOrChanged;
 
         transaction.businessDayId = bd.id;
         transaction.businessDate = bd.date;
@@ -2598,10 +2514,9 @@ function getClosingCounts(transactions) {
             localStorage.setItem('villacart_business_days', JSON.stringify(state.businessDays));
         } catch(e) {}
 
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            const cleanBD = { ...bd };
-            delete cleanBD._offline;
-            db.collection('businessDays').doc(cleanBD.id).set(cleanBD, { merge: true }).catch(() => {});
+        if (shouldQueueBusinessDay) {
+            bd._offline = true;
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
         }
 
         return transaction;
@@ -2619,26 +2534,6 @@ function getClosingCounts(transactions) {
     v52GetOpenBusinessDay = getCurrentBusinessDay;
 
     function v521RepairTodayOnly() {
-        const today = v521TodayCode();
-        let changed = false;
-
-        (state.transactions || []).forEach(t => {
-            const txDate = t.businessDate || v521DateCodeFromTimestamp(t.timestamp);
-            if ((t.type === 'SA' || t.type === 'CR' || t.type === 'EX' || (t.notes && t.notes.includes('CR-'))) && txDate === today) {
-                const beforeBD = t.businessDayId;
-                v52AttachBusinessDay(t);
-                if (beforeBD !== t.businessDayId || !t.businessDate) {
-                    changed = true;
-                    if (navigator.onLine && typeof db !== 'undefined' && db) {
-                        const cleanTx = { ...t };
-                        delete cleanTx._offline;
-                        db.collection('transactions').doc(t.id).set(cleanTx, { merge: true }).catch(() => {});
-                    }
-                }
-            }
-        });
-
-        if (changed && typeof sync === 'function') sync();
         if (typeof v52RefreshBusinessDayUI === 'function') v52RefreshBusinessDayUI();
         if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
     }
@@ -2717,12 +2612,11 @@ function getClosingCounts(transactions) {
     }
 
     function vc522GetDeletedSet() {
-        try { return new Set(JSON.parse(localStorage.getItem(VC_DELETED_TX_KEY_522) || '[]')); }
-        catch(e) { return new Set(); }
+        return new Set();
     }
 
     function vc522SaveDeletedSet(set) {
-        localStorage.setItem(VC_DELETED_TX_KEY_522, JSON.stringify(Array.from(set).slice(-500)));
+        try { localStorage.removeItem(VC_DELETED_TX_KEY_522); } catch(e) {}
     }
 
     function vc522ActivePeriodTransactions() {
@@ -2792,6 +2686,7 @@ function getClosingCounts(transactions) {
         }
 
         let bd = state.businessDays.find(x => x.id === bdId);
+        let bdChanged = false;
         if (!bd) {
             bd = {
                 id: bdId,
@@ -2806,11 +2701,13 @@ function getClosingCounts(transactions) {
                 version: 'v5.6.1'
             };
             state.businessDays.push(bd);
+            bdChanged = true;
         } else if (bd.status !== 'OPEN') {
             // Do not reopen a closed day unless there are still unclosed transactions.
             // For current testing, keep it open so End Day can close it properly.
             bd.status = 'OPEN';
             bd.closedAt = null;
+            bdChanged = true;
         }
 
         state.currentBusinessDayId = bd.id;
@@ -2821,18 +2718,14 @@ function getClosingCounts(transactions) {
                 t.businessDayId = bd.id;
                 t.businessDate = bd.date;
                 changedTx = true;
-                if (navigator.onLine && typeof db !== 'undefined' && db) {
-                    const clean = { ...t };
-                    delete clean._offline;
-                    db.collection('transactions').doc(t.id).set(clean, { merge: true }).catch(() => {});
-                }
+                t._offline = true;
+                if (typeof queueAction === 'function') queueAction('update', 'transactions', t);
             }
         });
 
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            const cleanBD = { ...bd };
-            delete cleanBD._offline;
-            db.collection('businessDays').doc(bd.id).set(cleanBD, { merge: true }).catch(() => {});
+        if (bdChanged) {
+            bd._offline = true;
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
         }
 
         if (changedTx || !localStorage.getItem('villacart_business_days_v520')) {
@@ -2964,17 +2857,8 @@ function getClosingCounts(transactions) {
         bd.summary = summary;
         state.currentBusinessDayId = null;
 
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            const cleanBD = { ...bd };
-            delete cleanBD._offline;
-            db.collection('businessDays').doc(bd.id).set(cleanBD, { merge: true }).catch(() => {
-                bd._offline = true;
-                queueAction && queueAction('update', 'businessDays', bd);
-            });
-        } else if (typeof queueAction === 'function') {
-            bd._offline = true;
-            queueAction('update', 'businessDays', bd);
-        }
+        bd._offline = true;
+        if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
 
         sync && sync();
         closeModal && closeModal('closing-summary-modal');
@@ -2990,9 +2874,6 @@ function getClosingCounts(transactions) {
         if (document.activeElement) document.activeElement.blur();
 
         const tx = (state.transactions || []).find(t => t.id === id);
-        const deleted = vc522GetDeletedSet();
-        deleted.add(id);
-        vc522SaveDeletedSet(deleted);
 
         if (tx) {
             const isSettlement = vc522IsSettlement(tx);
@@ -3011,16 +2892,7 @@ function getClosingCounts(transactions) {
         state.transactions = (state.transactions || []).filter(t => t.id !== id);
         lastTransactionId = null;
 
-        try {
-            if (navigator.onLine && typeof db !== 'undefined' && db) {
-                await db.collection('transactions').doc(id).delete();
-            } else if (typeof queueAction === 'function') {
-                queueAction('delete', 'transactions', { id });
-            }
-        } catch(e) {
-            console.error('Delete failed; queued for retry', e);
-            if (typeof queueAction === 'function') queueAction('delete', 'transactions', { id });
-        }
+        if (typeof queueAction === 'function') queueAction('delete', 'transactions', { id });
 
         ['mod-tx','pin-modal','receipt-modal','tx-detail-modal','transaction-detail-modal','mod-tx-details','transaction-modal'].forEach(mid => {
             const el = document.getElementById(mid);
@@ -3071,8 +2943,7 @@ function getClosingCounts(transactions) {
     }
 
     function vc523DeletedSet() {
-        try { return new Set(JSON.parse(localStorage.getItem('villacart_deleted_transactions') || '[]')); }
-        catch(e) { return new Set(); }
+        return new Set();
     }
 
     function vc523TodayOperationalTransactions() {
@@ -3109,6 +2980,7 @@ function getClosingCounts(transactions) {
 
         const todays = vc523TodayOperationalTransactions();
         let bd = state.businessDays.find(x => x.id === bdId);
+        let bdChanged = false;
 
         if (todays.length > 0) {
             if (!bd) {
@@ -3125,10 +2997,12 @@ function getClosingCounts(transactions) {
                     version: 'v5.6.1'
                 };
                 state.businessDays.push(bd);
+                bdChanged = true;
             }
             if (bd.status !== 'OPEN') {
                 bd.status = 'OPEN';
                 bd.closedAt = null;
+                bdChanged = true;
             }
             state.currentBusinessDayId = bd.id;
 
@@ -3136,18 +3010,14 @@ function getClosingCounts(transactions) {
                 if (t.businessDayId !== bd.id || t.businessDate !== bd.date) {
                     t.businessDayId = bd.id;
                     t.businessDate = bd.date;
-                    if (navigator.onLine && typeof db !== 'undefined' && db) {
-                        const clean = { ...t };
-                        delete clean._offline;
-                        db.collection('transactions').doc(t.id).set(clean, { merge: true }).catch(() => {});
-                    }
+                    t._offline = true;
+                    if (typeof queueAction === 'function') queueAction('update', 'transactions', t);
                 }
             });
 
-            if (navigator.onLine && typeof db !== 'undefined' && db) {
-                const cleanBD = { ...bd };
-                delete cleanBD._offline;
-                db.collection('businessDays').doc(bd.id).set(cleanBD, { merge: true }).catch(() => {});
+            if (bdChanged) {
+                bd._offline = true;
+                if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
             }
             sync && sync();
         }
@@ -3288,8 +3158,7 @@ function getClosingCounts(transactions) {
     }
 
     function vc524DeletedSet() {
-        try { return new Set(JSON.parse(localStorage.getItem('villacart_deleted_transactions') || '[]')); }
-        catch(e) { return new Set(); }
+        return new Set();
     }
 
     function vc524CleanTransactions(tx) {
@@ -3535,10 +3404,7 @@ function getClosingCounts(transactions) {
     }
 
     function vc525OutstandingCreditFixed() {
-        const deleted = (() => {
-            try { return new Set(JSON.parse(localStorage.getItem('villacart_deleted_transactions') || '[]')); }
-            catch(e) { return new Set(); }
-        })();
+        const deleted = new Set();
 
         const tx = (state.transactions || []).filter(t => t && t.id && !deleted.has(t.id));
 
@@ -3661,12 +3527,11 @@ function getClosingCounts(transactions) {
     const VC_DEV_DELETE_MODE = true;
 
     function vc530DeletedSet() {
-        try { return new Set(JSON.parse(localStorage.getItem('villacart_deleted_transactions') || '[]')); }
-        catch(e) { return new Set(); }
+        return new Set();
     }
 
     function vc530SaveDeletedSet(set) {
-        try { localStorage.setItem('villacart_deleted_transactions', JSON.stringify(Array.from(set).slice(-500))); } catch(e) {}
+        try { localStorage.removeItem('villacart_deleted_transactions'); } catch(e) {}
     }
 
     function vc530Norm(value) {
@@ -3739,15 +3604,8 @@ function getClosingCounts(transactions) {
         if (credit.balanceDue !== undefined) credit.balanceDue = Number(credit.total) || 0;
         if (credit.remaining !== undefined) credit.remaining = Number(credit.total) || 0;
 
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            const clean = { ...credit };
-            delete clean._offline;
-            db.collection('transactions').doc(credit.id).set(clean, { merge: true }).catch(() => {
-                if (typeof queueAction === 'function') queueAction('update', 'transactions', credit);
-            });
-        } else if (typeof queueAction === 'function') {
-            queueAction('update', 'transactions', credit);
-        }
+        credit._offline = true;
+        if (typeof queueAction === 'function') queueAction('update', 'transactions', credit);
     }
 
     function vc530RestockTransactionItems(tx) {
@@ -3765,16 +3623,7 @@ function getClosingCounts(transactions) {
     }
 
     async function vc530DeleteFromCloud(id) {
-        try {
-            if (navigator.onLine && typeof db !== 'undefined' && db) {
-                await db.collection('transactions').doc(id).delete();
-            } else if (typeof queueAction === 'function') {
-                queueAction('delete', 'transactions', { id });
-            }
-        } catch(e) {
-            console.error('Delete failed; queued for retry', e);
-            if (typeof queueAction === 'function') queueAction('delete', 'transactions', { id });
-        }
+        if (typeof queueAction === 'function') queueAction('delete', 'transactions', { id });
     }
 
     function vc530CloseTransactionModals() {
@@ -3805,9 +3654,6 @@ function getClosingCounts(transactions) {
     async function vc530DeleteTransaction(id, options = {}) {
         const tx = vc530FindTransaction(id);
         if (!tx) {
-            const deleted = vc530DeletedSet();
-            deleted.add(id);
-            vc530SaveDeletedSet(deleted);
             vc530RefreshAll();
             return;
         }
@@ -3832,10 +3678,6 @@ function getClosingCounts(transactions) {
             if (!confirm(`Delete transaction ${tx.id}?\n\nThis is allowed in testing mode.`)) return;
             vc530RestockTransactionItems(tx);
         }
-
-        const deleted = vc530DeletedSet();
-        deleted.add(tx.id);
-        vc530SaveDeletedSet(deleted);
 
         state.transactions = (state.transactions || []).filter(t => t.id !== tx.id);
         if (lastTransactionId === tx.id) lastTransactionId = null;
@@ -4080,6 +3922,7 @@ function getClosingCounts(transactions) {
 
         const bdId = `BD-${today.replaceAll('-', '')}`;
         let bd = state.businessDays.find(b => b.id === bdId);
+        let bdChanged = false;
         if (!bd) {
             bd = {
                 id: bdId,
@@ -4094,9 +3937,13 @@ function getClosingCounts(transactions) {
                 version: 'v5.6.1'
             };
             state.businessDays.push(bd);
+            bdChanged = true;
         }
-        if (bd.status !== 'CLOSED') {
+        if (bd.status !== 'CLOSED' && bd.status !== 'OPEN') {
             bd.status = 'OPEN';
+            state.currentBusinessDayId = bd.id;
+            bdChanged = true;
+        } else if (bd.status === 'OPEN') {
             state.currentBusinessDayId = bd.id;
         }
 
@@ -4106,18 +3953,14 @@ function getClosingCounts(transactions) {
                 t.businessDayId = bd.id;
                 t.businessDate = today;
                 changed = true;
-                if (navigator.onLine && typeof db !== 'undefined' && db) {
-                    const clean = { ...t };
-                    delete clean._offline;
-                    db.collection('transactions').doc(t.id).set(clean, { merge: true }).catch(() => {});
-                }
+                t._offline = true;
+                if (typeof queueAction === 'function') queueAction('update', 'transactions', t);
             }
         });
 
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            const cleanBD = { ...bd };
-            delete cleanBD._offline;
-            db.collection('businessDays').doc(bd.id).set(cleanBD, { merge: true }).catch(() => {});
+        if (bdChanged) {
+            bd._offline = true;
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
         }
 
         if (changed && typeof sync === 'function') sync();
@@ -4385,8 +4228,7 @@ function getClosingCounts(transactions) {
     }
 
     function vc532DeletedSet() {
-        try { return new Set(JSON.parse(localStorage.getItem('villacart_deleted_transactions') || '[]')); }
-        catch(e) { return new Set(); }
+        return new Set();
     }
 
     function vc532CleanTransactions() {
@@ -4426,13 +4268,8 @@ function getClosingCounts(transactions) {
         if (cr.balance !== undefined) cr.balance = Number(cr.total) || 0;
         if (cr.balanceDue !== undefined) cr.balanceDue = Number(cr.total) || 0;
         if (cr.remaining !== undefined) cr.remaining = Number(cr.total) || 0;
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            const clean = { ...cr };
-            delete clean._offline;
-            db.collection('transactions').doc(cr.id).set(clean, { merge: true }).catch(() => {
-                if (typeof queueAction === 'function') queueAction('update', 'transactions', cr);
-            });
-        } else if (typeof queueAction === 'function') queueAction('update', 'transactions', cr);
+        cr._offline = true;
+        if (typeof queueAction === 'function') queueAction('update', 'transactions', cr);
     }
 
     function vc532RestockItems(tx) {
@@ -4463,10 +4300,7 @@ function getClosingCounts(transactions) {
             return;
         }
 
-        // Fallback for an unexpected early call before the queue is available.
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            await db.collection('transactions').doc(id).delete();
-        }
+        console.warn('Transaction delete skipped because queueAction is unavailable:', id);
     }
 
     async function vc532DeleteTransaction(id, options = {}) {
@@ -4610,8 +4444,7 @@ function getClosingCounts(transactions) {
     }
 
     function vc541DeletedSet() {
-        try { return new Set(JSON.parse(localStorage.getItem('villacart_deleted_transactions') || '[]')); }
-        catch(e) { return new Set(); }
+        return new Set();
     }
 
     function vc541Clean(tx) {
@@ -4780,7 +4613,8 @@ function getClosingCounts(transactions) {
         };
     }
 
-    setInterval(vc541ForceUI, 1000);
+    window.addEventListener('focus', vc541ForceUI);
+    window.addEventListener('resize', vc541ForceUI);
     setTimeout(vc541ForceUI, 500);
     setTimeout(vc541ForceUI, 1500);
 
@@ -4957,13 +4791,14 @@ function getClosingCounts(transactions) {
     }
 
     setInterval(() => {
+        if (document.visibilityState === 'hidden') return;
         if (!document.getElementById('screen-insights')?.classList.contains('hidden')) {
             const list = document.getElementById('insight-transactions-list');
             if (list && (list.innerText || '').toUpperCase().includes('NO ACTIVITY') && vc542AllLiveTransactions().length) {
                 vc542RenderRecentActivities();
             }
         }
-    }, 1000);
+    }, 10000);
 
     setTimeout(vc542RenderRecentActivities, 1000);
 
@@ -5007,6 +4842,7 @@ function getClosingCounts(transactions) {
 
         const bdId = `BD-${today.replaceAll('-', '')}`;
         let bd = state.businessDays.find(b => b.id === bdId);
+        let bdChanged = false;
 
         if (!bd) {
             bd = {
@@ -5023,9 +4859,11 @@ function getClosingCounts(transactions) {
                 repairedFromTransactions: true
             };
             state.businessDays.push(bd);
-        } else if (bd.status !== 'CLOSED') {
+            bdChanged = true;
+        } else if (bd.status !== 'CLOSED' && bd.status !== 'OPEN') {
             bd.status = 'OPEN';
             bd.closedAt = null;
+            bdChanged = true;
         }
 
         state.currentBusinessDayId = bd.id;
@@ -5037,18 +4875,14 @@ function getClosingCounts(transactions) {
                 t.businessDate = bd.date;
                 changedTx = true;
 
-                if (navigator.onLine && typeof db !== 'undefined' && db) {
-                    const cleanTx = { ...t };
-                    delete cleanTx._offline;
-                    db.collection('transactions').doc(t.id).set(cleanTx, { merge: true }).catch(() => {});
-                }
+                t._offline = true;
+                if (typeof queueAction === 'function') queueAction('update', 'transactions', t);
             }
         });
 
-        if (navigator.onLine && typeof db !== 'undefined' && db) {
-            const cleanBD = { ...bd };
-            delete cleanBD._offline;
-            db.collection('businessDays').doc(bd.id).set(cleanBD, { merge: true }).catch(() => {});
+        if (bdChanged) {
+            bd._offline = true;
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
         }
 
         try {
@@ -5144,11 +4978,12 @@ function getClosingCounts(transactions) {
     }
 
     setInterval(() => {
+        if (document.visibilityState === 'hidden') return;
         const hasTx = vc543TodayTransactions().length > 0;
         const saysNoDay = (document.getElementById('business-day-text')?.innerText || '').toUpperCase().includes('NO');
         const saysNoActive = (document.getElementById('bd-status-title')?.innerText || '').toUpperCase().includes('NO ACTIVE');
         if (hasTx && (saysNoDay || saysNoActive)) vc543RefreshBusinessDayUI();
-    }, 1000);
+    }, 10000);
 
     setTimeout(vc543RefreshBusinessDayUI, 800);
     setTimeout(vc543RefreshBusinessDayUI, 1800);
@@ -5182,8 +5017,7 @@ function getClosingCounts(transactions) {
     }
 
     function vc544DeletedSet() {
-        try { return new Set(JSON.parse(localStorage.getItem('villacart_deleted_transactions') || '[]')); }
-        catch(e) { return new Set(); }
+        return new Set();
     }
 
     function vc544TodayTransactions() {
@@ -5362,17 +5196,8 @@ function getClosingCounts(transactions) {
             activeBD.closedBy = 'POS';
             state.currentBusinessDayId = null;
 
-            if (navigator.onLine && typeof db !== 'undefined' && db) {
-                const cleanBD = { ...activeBD };
-                delete cleanBD._offline;
-                db.collection('businessDays').doc(activeBD.id).set(cleanBD, { merge: true }).catch(() => {
-                    activeBD._offline = true;
-                    if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
-                });
-            } else if (typeof queueAction === 'function') {
-                activeBD._offline = true;
-                queueAction('update', 'businessDays', activeBD);
-            }
+            activeBD._offline = true;
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
             if (typeof sync === 'function') sync();
             if (typeof closeModal === 'function') closeModal('closing-summary-modal');
@@ -5464,7 +5289,7 @@ function getClosingCounts(transactions) {
     window.addEventListener('offline', vc545NormalizeHeaderStatus);
     window.addEventListener('resize', vc545RefreshTodayLine);
 
-    setInterval(vc545NormalizeHeaderStatus, 1500);
+    setInterval(vc545NormalizeHeaderStatus, 30000);
     setTimeout(vc545NormalizeHeaderStatus, 300);
     setTimeout(vc545NormalizeHeaderStatus, 1200);
 
@@ -5491,7 +5316,7 @@ function getClosingCounts(transactions) {
         }
     }
 
-    setInterval(vc547PremiumHeaderText, 1200);
+    setInterval(vc547PremiumHeaderText, 60000);
     window.addEventListener('resize', vc547PremiumHeaderText);
     setTimeout(vc547PremiumHeaderText, 200);
     setTimeout(vc547PremiumHeaderText, 1000);
@@ -5513,7 +5338,7 @@ function getClosingCounts(transactions) {
             : now.toLocaleDateString(undefined, { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
         copy.setAttribute('data-date-line', `${date} • Sync ${sync}`);
     }
-    setInterval(vc548UpdateCompactDate, 1200);
+    setInterval(vc548UpdateCompactDate, 60000);
     window.addEventListener('resize', vc548UpdateCompactDate);
     setTimeout(vc548UpdateCompactDate, 200);
     setTimeout(vc548UpdateCompactDate, 1200);
@@ -5577,7 +5402,7 @@ function getClosingCounts(transactions) {
     window.addEventListener('online', vc550RefreshHeader);
     window.addEventListener('offline', vc550RefreshHeader);
     window.addEventListener('resize', vc550RefreshHeader);
-    setInterval(vc550RefreshHeader, 1200);
+    setInterval(vc550RefreshHeader, 30000);
     setTimeout(vc550RefreshHeader, 250);
     setTimeout(vc550RefreshHeader, 1200);
 
@@ -5664,6 +5489,28 @@ function getClosingCounts(transactions) {
 
     setTimeout(vc551RefreshHeader, 200);
     setTimeout(vc551RefreshHeader, 1200);
+
+    // v5.6.16: Retire persistent deleted-transaction caches.
+    // Firestore/REST is the source of truth. Old deleted-ID caches could hide
+    // valid cloud transactions on one device after a failed delete.
+    try { localStorage.removeItem('villacart_deleted_transactions'); } catch(e) {}
+    [
+        'vc522GetDeletedSet',
+        'vc523DeletedSet',
+        'vc524DeletedSet',
+        'vc530DeletedSet',
+        'vc531DeletedSet',
+        'vc532DeletedSet',
+        'vc541DeletedSet',
+        'vc544DeletedSet'
+    ].forEach(name => {
+        if (typeof window[name] === 'function') window[name] = () => new Set();
+    });
+    ['vc522SaveDeletedSet', 'vc530SaveDeletedSet'].forEach(name => {
+        if (typeof window[name] === 'function') window[name] = () => {
+            try { localStorage.removeItem('villacart_deleted_transactions'); } catch(e) {}
+        };
+    });
 
 window.onload = () => {
         setTimeout(vc522UpdateInsightsNumbers, 1500);
