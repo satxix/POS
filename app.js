@@ -236,6 +236,45 @@
         // A reload while already online does not fire an `online` event. Drain
         // any saved work immediately instead of waiting for another sale/edit.
         if (navigator.onLine && offlineQueue.length > 0) setTimeout(syncNow, 0);
+        if (navigator.onLine) hydrateInitialStateFromRest();
+    }
+
+    async function hydrateInitialStateFromRest() {
+        try {
+            const [inventory, transactions, businessDays] = await Promise.all([
+                readCollectionWithFirestoreRest('inventory'),
+                readCollectionWithFirestoreRest('transactions'),
+                readCollectionWithFirestoreRest('businessDays')
+            ]);
+
+            const pending = (table) => new Set(offlineQueue.filter(task => task.table === table && task.data && task.data.id).map(task => task.data.id));
+            const merge = (server, local, table) => {
+                const pendingIds = pending(table);
+                const merged = new Map(server.filter(item => !pendingIds.has(item.id)).map(item => [item.id, item]));
+                local.filter(item => item && item._offline && pendingIds.has(item.id)).forEach(item => merged.set(item.id, item));
+                return Array.from(merged.values());
+            };
+
+            state.inventory = merge(inventory, state.inventory || [], 'inventory');
+            state.transactions = merge(transactions, state.transactions || [], 'transactions')
+                .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            state.businessDays = merge(businessDays, state.businessDays || [], 'businessDays');
+            const openDay = state.businessDays.find(day => day.status === 'OPEN');
+            state.currentBusinessDayId = openDay ? openDay.id : null;
+
+            sync();
+            renderInventory();
+            renderFavorites();
+            renderLedger();
+            renderInsights();
+            updateBusinessDayUI();
+            syncErrorMsg = null;
+            updateSyncUI();
+        } catch (error) {
+            console.error('Initial Firestore REST load failed', error);
+            syncErrorMsg = error.message || String(error);
+            updateSyncUI();
+        }
     }
 
 
