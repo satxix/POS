@@ -4329,50 +4329,6 @@ function getClosingCounts(transactions) {
         });
     }
 
-    function vc541OpenTx(id) {
-        if (typeof viewTxDetails === 'function') {
-            viewTxDetails(id);
-            return;
-        }
-        const t = (state.transactions || []).find(x => x.id === id);
-        if (t) alert(`${t.id}\n\n${vc541Peso(t.total)}\n${vc541Label(vc541Kind(t))}`);
-    }
-
-    function vc541RenderRecentActivities() {
-        const list = document.getElementById('insight-transactions-list');
-        if (!list) return;
-
-        const tx = vc541Clean(vc541PeriodTransactions())
-            .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0))
-            .slice(0,10);
-
-        list.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities</p>` +
-            (tx.map(t => {
-                const kind = vc541Kind(t);
-                const safeId = String(t.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const time = t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-                return `
-                    <button type="button" class="vc541-tx-card vc541-${kind}" onclick="vc541OpenTx('${safeId}')">
-                        <div class="vc541-tx-left">
-                            <div class="vc541-tx-icon vc541-icon-${kind}">
-                                <span class="material-symbols-outlined">${vc541Icon(kind)}</span>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <p class="vc541-tx-id truncate">${t.id}</p>
-                                    <span class="vc541-tx-badge vc541-badge-${kind}">${vc541Label(kind)}</span>
-                                </div>
-                                <p class="vc541-tx-time">${time}</p>
-                            </div>
-                        </div>
-                        <div class="vc541-tx-right">
-                            <p class="vc541-tx-amount">${vc541Peso(t.total)}</p>
-                            <span class="material-symbols-outlined vc541-chevron">chevron_right</span>
-                        </div>
-                    </button>`;
-            }).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`);
-    }
-
     function vc541BusinessDate() {
         if (typeof businessCalendarDate !== 'undefined' && businessCalendarDate instanceof Date) return businessCalendarDate;
         return new Date();
@@ -4435,20 +4391,7 @@ function getClosingCounts(transactions) {
     }
 
     function vc541ForceUI() {
-        if (!document.getElementById('screen-insights')?.classList.contains('hidden')) vc541RenderRecentActivities();
         if (!document.getElementById('screen-business')?.classList.contains('hidden')) vc541RefreshBusinessScreen();
-    }
-
-    // Run after any older renderers overwrite the screen.
-    const vc541OldInsights = typeof renderInsights === 'function' ? renderInsights : null;
-    if (vc541OldInsights && !window.__vcRenderInsights541Patched) {
-        window.__vcRenderInsights541Patched = true;
-        renderInsights = function() {
-            const result = vc541OldInsights();
-            setTimeout(vc541RenderRecentActivities, 0);
-            setTimeout(vc541RenderRecentActivities, 120);
-            return result;
-        };
     }
 
     const vc541OldBusiness = typeof renderBusinessCalendar === 'function' ? renderBusinessCalendar : null;
@@ -4467,10 +4410,6 @@ function getClosingCounts(transactions) {
         window.__vcSwitch541Patched = true;
         switchScreen = function(screen) {
             vc541OldSwitch(screen);
-            if (screen === 'insights') {
-                setTimeout(vc541RenderRecentActivities, 50);
-                setTimeout(vc541RenderRecentActivities, 250);
-            }
             if (screen === 'business') {
                 setTimeout(vc541RefreshBusinessScreen, 50);
                 setTimeout(vc541RefreshBusinessScreen, 250);
