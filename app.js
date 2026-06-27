@@ -5608,7 +5608,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32c: tablet/landscape payment modal reset polish.
+// v5.6.32d: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5670,7 +5670,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 })();
 
-// v5.6.32c Restore Pay Full Balance on the credit ledger after date-group UI patch.
+// v5.6.32d Restore Pay Full Balance on the credit ledger after date-group UI patch.
 (function(){
     if (window.__vc5632cCreditPayFullRestore) return;
     window.__vc5632cCreditPayFullRestore = true;
@@ -5763,5 +5763,153 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     setTimeout(function(){
         try { if ((activeLedgerTab || 'cash') === 'credit') renderCreditWithPayFull(); } catch (_) {}
+    }, 300);
+})();
+
+
+// v5.6.32d Credit Sales: force customer grouping and restore Pay Full Balance.
+(function(){
+    if (window.__vc5632dCreditCustomerGroups) return;
+    window.__vc5632dCreditCustomerGroups = true;
+
+    function vc5632dMoney(value) {
+        return '₱' + Number(value || 0).toLocaleString();
+    }
+
+    function vc5632dSafe(value) {
+        const div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
+    }
+
+    function vc5632dJs(value) {
+        return String(value == null ? '' : value)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'");
+    }
+
+    function vc5632dWhen(tx) {
+        const d = new Date(tx && tx.timestamp ? tx.timestamp : Date.now());
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString();
+    }
+
+    function vc5632dPending(tx) {
+        try { return typeof isPendingSync === 'function' && isPendingSync('transactions', tx.id); }
+        catch (_) { return false; }
+    }
+
+    function vc5632dSummaryCard(label, value, sub, tone) {
+        return '<div class="vc5629-summary-card vc5629-summary-' + tone + '">' +
+            '<p>' + vc5632dSafe(label) + '</p>' +
+            '<strong>' + vc5632dSafe(value) + '</strong>' +
+            '<span>' + vc5632dSafe(sub) + '</span>' +
+        '</div>';
+    }
+
+    function vc5632dCreditTicket(tx) {
+        return '<article class="vc5629-tx-card vc5629-credit vc5632d-credit-ticket">' +
+            '<div class="vc5629-tx-main">' +
+                '<div class="vc5629-tx-top">' +
+                    '<h3>' + vc5632dSafe(tx.id || 'Credit') + '</h3>' +
+                    '<div class="vc5629-pills">' +
+                        (vc5632dPending(tx) ? '<span class="vc5629-pill vc5629-pill-green">Synced</span>' : '<span class="vc5629-pill vc5629-pill-green">Synced</span>') +
+                        '<span class="vc5629-pill vc5629-pill-orange">Credit</span>' +
+                    '</div>' +
+                '</div>' +
+                '<p class="vc5629-time">' + vc5632dSafe(vc5632dWhen(tx)) + '</p>' +
+            '</div>' +
+            '<div class="vc5629-tx-side">' +
+                '<strong>' + vc5632dMoney(tx.total) + '</strong>' +
+                '<div class="vc5632-actions">' +
+                    '<button type="button" class="vc5632-mini-pay" onclick="payIndividualTicket(\'' + vc5632dJs(tx.id) + '\')">Pay</button>' +
+                    '<button type="button" onclick="viewTxDetails(\'' + vc5632dJs(tx.id) + '\')" aria-label="View transaction"><span class="material-symbols-outlined">visibility</span></button>' +
+                '</div>' +
+            '</div>' +
+        '</article>';
+    }
+
+    function vc5632dRenderCreditByCustomer() {
+        const summary = document.getElementById('ledger-summary-container');
+        const content = document.getElementById('ledger-content');
+        if (!summary || !content || !Array.isArray(state.transactions)) return false;
+
+        const credits = state.transactions
+            .filter(tx => tx && tx.type === 'CR' && !tx.paid)
+            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+        const groups = credits.reduce((acc, tx) => {
+            const raw = String(tx.customer || 'Guest').trim() || 'Guest';
+            const key = raw.toLowerCase();
+            if (!acc[key]) {
+                acc[key] = {
+                    name: typeof titleCase === 'function' ? titleCase(raw) : raw,
+                    rawName: raw,
+                    items: [],
+                    total: 0
+                };
+            }
+            acc[key].items.push(tx);
+            acc[key].total += Number(tx.total || 0);
+            return acc;
+        }, {});
+
+        const customerGroups = Object.values(groups).sort((a, b) => b.total - a.total);
+        const total = credits.reduce((sum, tx) => sum + Number(tx.total || 0), 0);
+
+        summary.innerHTML =
+            vc5632dSummaryCard('Outstanding Credit', vc5632dMoney(total), 'Unpaid balance', 'orange') +
+            vc5632dSummaryCard('Customers', String(customerGroups.length), 'With balance', 'purple') +
+            vc5632dSummaryCard('Credit Tickets', String(credits.length), 'Pending tickets', 'blue');
+
+        if (!credits.length) {
+            content.innerHTML = '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No open credits</strong><p>Credit sales will appear here.</p></div>';
+            return true;
+        }
+
+        content.innerHTML = customerGroups.map(group =>
+            '<section class="vc5629-credit-group vc5632d-credit-group">' +
+                '<div class="vc5629-credit-head">' +
+                    '<div><h3>' + vc5632dSafe(group.name) + '</h3><p>' + group.items.length + ' pending ticket(s)</p></div>' +
+                    '<strong>' + vc5632dMoney(group.total) + '</strong>' +
+                '</div>' +
+                '<button type="button" class="vc5629-pay-full vc5632d-pay-full" onclick="payFullBalance(\'' + vc5632dJs(group.rawName) + '\')">Pay Full Balance</button>' +
+                '<div class="vc5629-credit-list">' + group.items.map(vc5632dCreditTicket).join('') + '</div>' +
+            '</section>'
+        ).join('');
+        return true;
+    }
+
+    const vc5632dOldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
+    if (vc5632dOldRenderLedger) {
+        renderLedger = function() {
+            try {
+                if ((activeLedgerTab || 'cash') === 'credit') {
+                    return vc5632dRenderCreditByCustomer();
+                }
+            } catch (err) {
+                console.warn('Credit customer grouping override failed', err);
+            }
+            return vc5632dOldRenderLedger.apply(this, arguments);
+        };
+    }
+
+    const vc5632dOldSwitchLedgerTab = typeof switchLedgerTab === 'function' ? switchLedgerTab : null;
+    if (vc5632dOldSwitchLedgerTab) {
+        switchLedgerTab = function(tab) {
+            const result = vc5632dOldSwitchLedgerTab.apply(this, arguments);
+            if (tab === 'credit') {
+                setTimeout(vc5632dRenderCreditByCustomer, 0);
+                setTimeout(vc5632dRenderCreditByCustomer, 80);
+            }
+            return result;
+        };
+    }
+
+    window.vc5632dRenderCreditByCustomer = vc5632dRenderCreditByCustomer;
+    setTimeout(function(){
+        try {
+            if ((activeLedgerTab || 'cash') === 'credit') vc5632dRenderCreditByCustomer();
+        } catch (_) {}
     }, 300);
 })();
