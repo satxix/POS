@@ -5519,3 +5519,218 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
+
+
+// v5.6.33 UI responsiveness: stable Insights, faster Stock PIN, auto-focus searches.
+(function(){
+    if (window.__vcUiResponsiveness5633) return;
+    window.__vcUiResponsiveness5633 = true;
+
+    function vc5633Visible(el) {
+        if (!el) return false;
+        if (el.disabled || el.readOnly) return false;
+        if (el.closest('.hidden')) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+    }
+
+    function vc5633FocusSearch(context) {
+        setTimeout(() => {
+            try {
+                const root = context || document;
+                const selectors = [
+                    '#pos-search',
+                    '#vc5629-ledger-search',
+                    '#fav-picker-search',
+                    'input[type="search"]',
+                    'input[placeholder*="Search"]',
+                    'input[placeholder*="search"]'
+                ];
+                const input = selectors
+                    .flatMap(sel => Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : document.querySelectorAll(sel)))
+                    .find(vc5633Visible);
+                if (input) {
+                    input.focus({ preventScroll: true });
+                    if (typeof input.select === 'function') input.select();
+                }
+            } catch(e) {}
+        }, 120);
+    }
+
+    window.vcFocusActiveSearch = function() {
+        const visibleScreen = Array.from(document.querySelectorAll('.screen-transition')).find(el => !el.classList.contains('hidden'));
+        vc5633FocusSearch(visibleScreen || document);
+    };
+
+    const vc5633OldSwitchScreen = typeof switchScreen === 'function' ? switchScreen : null;
+    if (vc5633OldSwitchScreen && !window.__vcSwitchScreen5633Patched) {
+        window.__vcSwitchScreen5633Patched = true;
+        switchScreen = function(id) {
+            const result = vc5633OldSwitchScreen.apply(this, arguments);
+            if (id === 'pos' || id === 'inventory' || id === 'history') vc5633FocusSearch();
+            return result;
+        };
+    }
+
+    // Faster Stock unlock: show the Stock screen immediately after PIN verifies,
+    // then render the heavier inventory list on the next frame.
+    if (typeof validatePin === 'function' && !window.__vcValidatePin5633Patched) {
+        window.__vcValidatePin5633Patched = true;
+        validatePin = function() {
+            const entered = pinBuffer;
+            hashPin(entered).then(hash => {
+                if (hash === STORED_PIN_HASH) {
+                    const target = window._pinTarget;
+                    closeModal('pin-modal');
+                    if (target === 'inventory') {
+                        document.querySelectorAll('.screen-transition').forEach(s => s.classList.add('hidden'));
+                        const screen = document.getElementById('screen-inventory');
+                        if (screen) screen.classList.remove('hidden');
+                        document.querySelectorAll('.nav-item').forEach(n => {
+                            const active = n.dataset.screen === 'inventory';
+                            n.classList.toggle('text-primary', active);
+                            n.classList.toggle('text-on-surface-variant', !active);
+                        });
+                        requestAnimationFrame(() => {
+                            try { if (typeof renderInventory === 'function') renderInventory(); } catch(e) {}
+                            vc5633FocusSearch(screen);
+                        });
+                    } else if (target === 'change-pin') {
+                        openChangePinModal();
+                    } else if (target && target.action === 'delete') {
+                        deleteTransaction(target.id);
+                    }
+                    showToast('Verified', 'success');
+                } else {
+                    showToast('Incorrect PIN', 'error');
+                    pinBuffer = '';
+                    updatePinDots();
+                }
+            });
+        };
+    }
+
+    if (typeof pressPin === 'function' && !window.__vcPressPin5633Patched) {
+        window.__vcPressPin5633Patched = true;
+        pressPin = function(num) {
+            if (pinBuffer.length < 4) {
+                pinBuffer += num;
+                updatePinDots();
+                if (pinBuffer.length === 4) setTimeout(validatePin, 10);
+            }
+        };
+    }
+
+    function vc5633InsightSignature() {
+        const tx = Array.isArray(state.transactions) ? state.transactions : [];
+        const inv = Array.isArray(state.inventory) ? state.inventory : [];
+        return JSON.stringify({
+            period: typeof insightPeriod !== 'undefined' ? insightPeriod : 'day',
+            tx: tx.map(t => [t.id, t.total, t.timestamp, t.type, t.paid, t.businessDate, t._offline ? 1 : 0]).join('|'),
+            inv: inv.map(p => [p.id, p.stock, p.lowStock]).join('|')
+        });
+    }
+
+    // Stop chart flicker by updating the existing Chart.js instance instead of
+    // destroying/recreating it on every repaint.
+    if (typeof renderSalesChart === 'function' && !window.__vcSalesChart5633Patched) {
+        window.__vcSalesChart5633Patched = true;
+        let lastChartSig = '';
+        renderSalesChart = function(transactions) {
+            const canvas = document.getElementById('sales-chart');
+            if (!canvas || typeof Chart === 'undefined') return;
+            const salesByDate = {};
+            (Array.isArray(transactions) ? transactions : []).filter(isRevenueSale).forEach(t => {
+                const d = String(t.timestamp || '').split('T')[0];
+                if (!d) return;
+                salesByDate[d] = (salesByDate[d] || 0) + Number(t.total || 0);
+            });
+            const labelsRaw = Object.keys(salesByDate).sort();
+            const values = labelsRaw.map(d => salesByDate[d]);
+            const sig = labelsRaw.join('|') + '::' + values.join('|');
+            if (sig === lastChartSig) return;
+            lastChartSig = sig;
+            if (!labelsRaw.length) {
+                if (canvas.parentElement) canvas.parentElement.classList.add('hidden');
+                return;
+            }
+            if (canvas.parentElement) canvas.parentElement.classList.remove('hidden');
+            const labels = labelsRaw.map(d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+            if (typeof salesChartInstance !== 'undefined' && salesChartInstance) {
+                salesChartInstance.data.labels = labels;
+                salesChartInstance.data.datasets[0].data = values;
+                salesChartInstance.update('none');
+                return;
+            }
+            salesChartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ label: 'Sales (₱)', data: values, backgroundColor: '#1e3a5f', borderRadius: 6 }]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { callback: v => '₱' + v.toLocaleString() }, grid: { color: '#e2e8f0' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        };
+    }
+
+    // Make the delayed legacy Insights repaints harmless if data did not change.
+    if (typeof vc542RenderRecentActivities === 'function' && !window.__vc542Stable5633Patched) {
+        window.__vc542Stable5633Patched = true;
+        const old542 = vc542RenderRecentActivities;
+        let last542Sig = '';
+        vc542RenderRecentActivities = function() {
+            const list = document.getElementById('insight-transactions-list');
+            const sig = vc5633InsightSignature() + '::' + (list ? list.innerText.length : 0);
+            if (sig === last542Sig) return;
+            last542Sig = sig;
+            return old542.apply(this, arguments);
+        };
+    }
+
+    if (typeof vc560RefreshInsightsUI === 'function' && !window.__vc560Stable5633Patched) {
+        window.__vc560Stable5633Patched = true;
+        const old560 = vc560RefreshInsightsUI;
+        let last560Sig = '';
+        vc560RefreshInsightsUI = function() {
+            const sig = vc5633InsightSignature();
+            if (sig === last560Sig) return;
+            last560Sig = sig;
+            return old560.apply(this, arguments);
+        };
+    }
+
+    // Final guard around renderInsights itself: allow real data changes, skip
+    // duplicate timer repaints fired within the same burst.
+    if (typeof renderInsights === 'function' && !window.__vcRenderInsights5633Patched) {
+        window.__vcRenderInsights5633Patched = true;
+        const oldRenderInsights = renderInsights;
+        let lastSig = '';
+        let lastAt = 0;
+        renderInsights = function() {
+            const visible = !document.getElementById('screen-insights')?.classList.contains('hidden');
+            const sig = vc5633InsightSignature();
+            const now = Date.now();
+            if (visible && sig === lastSig && now - lastAt < 2500) return;
+            lastSig = sig;
+            lastAt = now;
+            return oldRenderInsights.apply(this, arguments);
+        };
+    }
+
+    document.addEventListener('click', event => {
+        const btn = event.target.closest('button,[onclick],.nav-item');
+        if (!btn) return;
+        setTimeout(vc5633FocusSearch, 180);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => setTimeout(vc5633FocusSearch, 600));
+    setTimeout(vc5633FocusSearch, 1000);
+})();
