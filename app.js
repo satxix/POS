@@ -5092,3 +5092,112 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (document.visibilityState !== 'hidden') setTimeout(() => vc5630AutoFlush('visible'), 1500);
     });
 })();
+
+
+// v5.6.31 Cross-device reconcile: keep realtime, plus safe focus/online cloud refresh.
+(function(){
+    if (window.__vcCrossDeviceReconcile5631) return;
+    window.__vcCrossDeviceReconcile5631 = true;
+
+    let vc5631Reconciling = false;
+    let vc5631LastAt = 0;
+    let vc5631WasHiddenAt = 0;
+    const MIN_RECONCILE_MS = 90 * 1000;
+    const BACKGROUND_REFRESH_MS = 20 * 1000;
+
+    function vc5631PendingIds(table) {
+        return new Set((Array.isArray(offlineQueue) ? offlineQueue : [])
+            .filter(task => task && task.table === table && task.data && task.data.id)
+            .map(task => task.data.id));
+    }
+
+    function vc5631MergeServer(table, serverList, localList) {
+        const pending = vc5631PendingIds(table);
+        const merged = new Map();
+        (Array.isArray(serverList) ? serverList : [])
+            .filter(item => item && item.id && !pending.has(item.id))
+            .forEach(item => merged.set(item.id, item));
+        (Array.isArray(localList) ? localList : [])
+            .filter(item => item && item.id && item._offline && pending.has(item.id))
+            .forEach(item => merged.set(item.id, item));
+        return Array.from(merged.values());
+    }
+
+    async function vc5631Reconcile(reason, options = {}) {
+        if (!navigator.onLine || vc5631Reconciling) return false;
+        if (typeof readCollectionWithFirestoreRest !== 'function') return false;
+        const now = Date.now();
+        const localEmpty = !(state.inventory || []).length || !(state.businessDays || []).length;
+        const force = !!options.force || localEmpty;
+        if (!force && now - vc5631LastAt < MIN_RECONCILE_MS) return false;
+
+        vc5631Reconciling = true;
+        vc5631LastAt = now;
+        try {
+            const [inventory, transactions, businessDays] = await Promise.all([
+                readCollectionWithFirestoreRest('inventory'),
+                readCollectionWithFirestoreRest('transactions'),
+                readCollectionWithFirestoreRest('businessDays')
+            ]);
+
+            state.inventory = vc5631MergeServer('inventory', inventory, state.inventory || [])
+                .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+            state.transactions = vc5631MergeServer('transactions', transactions, state.transactions || [])
+                .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            state.businessDays = vc5631MergeServer('businessDays', businessDays, state.businessDays || []);
+
+            const openDay = (state.businessDays || [])
+                .filter(day => day && day.status === 'OPEN')
+                .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0))[0];
+            state.currentBusinessDayId = openDay ? openDay.id : null;
+
+            if (typeof sync === 'function') sync();
+            if (typeof renderInventory === 'function') renderInventory();
+            if (typeof renderFavorites === 'function') renderFavorites();
+            if (typeof renderLedger === 'function') renderLedger();
+            if (typeof renderInsights === 'function') renderInsights();
+            if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI();
+            if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
+            if (typeof updateSyncUI === 'function') updateSyncUI();
+            syncErrorMsg = null;
+            return true;
+        } catch (error) {
+            console.warn('Cross-device reconcile failed', reason, error);
+            syncErrorMsg = error.message || String(error);
+            if (typeof updateSyncUI === 'function') updateSyncUI();
+            return false;
+        } finally {
+            vc5631Reconciling = false;
+        }
+    }
+
+    function vc5631Schedule(reason, options = {}) {
+        setTimeout(() => vc5631Reconcile(reason, options), options.delay || 900);
+    }
+
+    // Fresh browser/cache: auto-load once so inventory/sales appear without Diagnostics.
+    setTimeout(() => {
+        const empty = !(state.inventory || []).length || !(state.businessDays || []).length;
+        if (empty) vc5631Reconcile('fresh-start', { force: true });
+    }, 2500);
+
+    // When a phone/PWA wakes up from background, reconcile once. This catches
+    // tablet deletes/sales even if the mobile browser froze the realtime stream.
+    window.addEventListener('online', () => vc5631Schedule('online', { force: true, delay: 1200 }));
+    window.addEventListener('focus', () => {
+        const wasHiddenLongEnough = vc5631WasHiddenAt && Date.now() - vc5631WasHiddenAt > BACKGROUND_REFRESH_MS;
+        if (wasHiddenLongEnough) vc5631Schedule('focus-after-background');
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            vc5631WasHiddenAt = Date.now();
+            return;
+        }
+        const wasHiddenLongEnough = vc5631WasHiddenAt && Date.now() - vc5631WasHiddenAt > BACKGROUND_REFRESH_MS;
+        if (wasHiddenLongEnough) vc5631Schedule('visible-after-background');
+    });
+
+    window.vcRefreshFromCloud = function() {
+        return vc5631Reconcile('manual-console', { force: true });
+    };
+})();
