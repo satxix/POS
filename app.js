@@ -6492,3 +6492,407 @@ document.addEventListener('DOMContentLoaded',()=>{
         scheduledRefresh('startup', true);
     }, 800);
 })();
+
+
+// v5.6.36 hard UI/sync fix: no programmatic focus, cloned checkout input reset,
+// custom stable Insights chart, restored visible activity view buttons, and a
+// stronger inventory refresh fallback for tablet/phone mismatch.
+(function(){
+    if (window.__vc5636HardUiSyncFix) return;
+    window.__vc5636HardUiSyncFix = true;
+
+    let lastInventoryPull = 0;
+    let lastTxPull = 0;
+    let cloudBusy = false;
+    let lastInsightsChartHTML = '';
+    let lastInsightsActivityHTML = '';
+
+    function safe(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function js(v){ return String(v == null ? '' : v).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+    function peso(v){ return '₱' + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+    function dateCode(value = new Date()) {
+        const d = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(d.getTime())) return '';
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function txDate(t){ return t?.businessDate || dateCode(t?.timestamp || new Date()); }
+    function today(){ return dateCode(new Date()); }
+    function isSettlement(t){
+        const id = String(t?.id || '').toUpperCase();
+        const notes = String(t?.notes || '').toUpperCase();
+        return id.startsWith('PAY-') || id.startsWith('SET-') || notes.includes('CR-') || notes.startsWith('PARTIAL:');
+    }
+    function saleAmount(t){
+        if (!t || t.type === 'EX') return Number(t?.total || 0);
+        if (typeof window.vc5634SellingTotal === 'function') return window.vc5634SellingTotal(t);
+        if (Array.isArray(t.items) && t.items.length) {
+            const sum = t.items.reduce((s,i) => s + Number(i.price || 0) * Number(i.qty || 0), 0);
+            if (sum > 0) return sum;
+        }
+        return Number(t.total || 0);
+    }
+    function periodTx(){
+        const all = Array.isArray(state.transactions) ? state.transactions.slice() : [];
+        const period = typeof insightPeriod !== 'undefined' ? insightPeriod : 'day';
+        if (period === 'day') return all.filter(t => txDate(t) === today());
+        if (period === 'month') return all.filter(t => txDate(t).slice(0,7) === today().slice(0,7));
+        if (period === 'range') {
+            const start = document.getElementById('insight-start-date')?.value || '';
+            const end = document.getElementById('insight-end-date')?.value || '';
+            if (start && end) return all.filter(t => txDate(t) >= start && txDate(t) <= end);
+        }
+        return all;
+    }
+
+    // 1) Kill all old automatic focus behavior. Tapping an input still opens
+    // keyboard by normal browser behavior; JS focus calls do nothing.
+    if (!window.__vc5636NoProgramFocus) {
+        window.__vc5636NoProgramFocus = true;
+        HTMLInputElement.prototype.focus = function(){};
+        if (window.HTMLTextAreaElement) HTMLTextAreaElement.prototype.focus = function(){};
+        window.vcFocusActiveSearch = function(){};
+        window.__vcAllowSearchFocusUntil = 0;
+        window.__vc5635AllowProgramFocus = false;
+    }
+
+    // 2) Force checkout cash value reset by replacing the input node. This
+    // defeats PWA/browser form restoration that kept the last quick amount.
+    function rebuildCashInput(){
+        const old = document.getElementById('cash-input');
+        if (!old || !old.parentNode) return null;
+        const fresh = old.cloneNode(true);
+        fresh.value = '';
+        fresh.defaultValue = '';
+        fresh.setAttribute('autocomplete','off');
+        fresh.setAttribute('autocorrect','off');
+        fresh.setAttribute('inputmode','decimal');
+        fresh.oninput = function(){ if (typeof calculateChange === 'function') calculateChange(); };
+        old.parentNode.replaceChild(fresh, old);
+        return fresh;
+    }
+    function hardResetCheckout(){
+        const input = rebuildCashInput() || document.getElementById('cash-input');
+        if (input) input.value = '';
+        const customer = document.getElementById('credit-customer');
+        if (customer) { customer.value = ''; customer.defaultValue = ''; customer.setAttribute('autocomplete','off'); }
+        const change = document.getElementById('change-display');
+        if (change) change.classList.add('hidden');
+        document.querySelectorAll('#cash-quick-amounts .cash-quick-btn').forEach(btn => btn.classList.remove('vc5634-cash-selected','vc5635-cash-selected','vc5636-cash-selected'));
+    }
+    window.vc5636HardResetCheckout = hardResetCheckout;
+    if (typeof openReview === 'function') {
+        const prevOpenReview = openReview;
+        openReview = function(){
+            hardResetCheckout();
+            const result = prevOpenReview.apply(this, arguments);
+            hardResetCheckout();
+            setTimeout(hardResetCheckout, 50);
+            setTimeout(hardResetCheckout, 250);
+            setTimeout(hardResetCheckout, 650);
+            return result;
+        };
+    }
+    if (typeof closeModal === 'function') {
+        const prevCloseModal = closeModal;
+        closeModal = function(id){
+            const result = prevCloseModal.apply(this, arguments);
+            if (id === 'review-modal') hardResetCheckout();
+            return result;
+        };
+    }
+    if (typeof setCash === 'function') {
+        const prevSetCash = setCash;
+        setCash = function(v){
+            document.querySelectorAll('#cash-quick-amounts .cash-quick-btn').forEach(btn => btn.classList.toggle('vc5636-cash-selected', String(btn.dataset.cash) === String(v)));
+            return prevSetCash.apply(this, arguments);
+        };
+    }
+    if (typeof setExact === 'function') {
+        const prevSetExact = setExact;
+        setExact = function(){
+            document.querySelectorAll('#cash-quick-amounts .cash-quick-btn').forEach(btn => btn.classList.toggle('vc5636-cash-selected', btn.dataset.cash === 'exact'));
+            return prevSetExact.apply(this, arguments);
+        };
+    }
+    const reviewModal = document.getElementById('review-modal');
+    if (reviewModal && !window.__vc5636ReviewObserver) {
+        window.__vc5636ReviewObserver = true;
+        new MutationObserver(() => {
+            if (!reviewModal.classList.contains('hidden')) setTimeout(hardResetCheckout, 0);
+        }).observe(reviewModal, { attributes:true, attributeFilter:['class'] });
+    }
+
+    // 3) Custom non-Chart.js chart. We hide the old canvas and draw stable HTML.
+    function ensureCustomChart(){
+        const canvas = document.getElementById('sales-chart');
+        if (!canvas) return null;
+        canvas.style.display = 'none';
+        let chart = document.getElementById('vc5636-sales-chart');
+        if (!chart) {
+            chart = document.createElement('div');
+            chart.id = 'vc5636-sales-chart';
+            chart.className = 'vc5636-sales-chart';
+            canvas.parentElement && canvas.parentElement.appendChild(chart);
+        }
+        canvas.parentElement && canvas.parentElement.classList.remove('hidden');
+        return chart;
+    }
+    function renderCustomChart(){
+        const chart = ensureCustomChart();
+        if (!chart) return;
+        const byDate = {};
+        periodTx().filter(t => (t.type === 'SA' || t.type === 'CR') && !isSettlement(t)).forEach(t => {
+            const d = txDate(t);
+            byDate[d] = (byDate[d] || 0) + saleAmount(t);
+        });
+        const keys = Object.keys(byDate).sort();
+        const max = Math.max(1, ...keys.map(k => byDate[k]));
+        const html = keys.length ? keys.map(k => {
+            const h = Math.max(8, Math.round((byDate[k] / max) * 100));
+            const label = new Date(k + 'T00:00:00').toLocaleDateString(undefined, { month:'short', day:'numeric' });
+            return '<div class="vc5636-chart-col"><div class="vc5636-chart-value">' + peso(byDate[k]) + '</div><div class="vc5636-chart-bar-wrap"><div class="vc5636-chart-bar" style="height:' + h + '%"></div></div><span>' + safe(label) + '</span></div>';
+        }).join('') : '<div class="vc5636-chart-empty">No sales yet for this period</div>';
+        if (html !== lastInsightsChartHTML) {
+            lastInsightsChartHTML = html;
+            chart.innerHTML = html;
+        }
+    }
+    if (typeof renderSalesChart === 'function') renderSalesChart = function(){ renderCustomChart(); };
+
+    // 4) Stable clickable Insight activity cards with an always-visible View button.
+    function renderInsightActivities(){
+        const list = document.getElementById('insight-transactions-list');
+        if (!list) return;
+        const tx = periodTx().sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)).slice(0, 10);
+        const html = '<div class="vc560-section-title">Recent Period Activities</div>' + (tx.length ? tx.map(t => {
+            const d = new Date(t.timestamp || Date.now());
+            const time = Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+            const kind = t.type === 'EX' ? 'expense' : t.type === 'CR' ? 'credit' : isSettlement(t) ? 'payment' : 'cash';
+            return '<article class="vc5636-activity vc5636-' + kind + '" role="button" tabindex="0" onclick="viewTxDetails(\'' + js(t.id) + '\')"><div class="vc5636-activity-main"><strong>' + safe(t.id) + '</strong><span>' + safe(time) + '</span></div><div class="vc5636-activity-side"><em>' + peso(t.type === 'EX' ? t.total : saleAmount(t)) + '</em><button class="vc5636-view-btn" type="button" onclick="event.stopPropagation(); viewTxDetails(\'' + js(t.id) + '\')"><span class="material-symbols-outlined">visibility</span><b>View</b></button></div></article>';
+        }).join('') : '<div class="vc560-empty-state">No activity yet</div>');
+        if (html !== lastInsightsActivityHTML) {
+            lastInsightsActivityHTML = html;
+            list.innerHTML = html;
+        }
+    }
+    function stableInsights(){
+        try { renderCustomChart(); } catch(e) {}
+        try { renderInsightActivities(); } catch(e) {}
+        document.getElementById('business-day-status-card')?.classList.remove('hidden');
+        document.getElementById('sales-chart')?.parentElement?.classList.remove('hidden');
+    }
+    if (typeof renderInsights === 'function') {
+        const prevRenderInsights = renderInsights;
+        renderInsights = function(){
+            const result = prevRenderInsights.apply(this, arguments);
+            stableInsights();
+            setTimeout(stableInsights, 0);
+            setTimeout(stableInsights, 250);
+            return result;
+        };
+    }
+    if (typeof switchInsightPeriod === 'function') {
+        const prevSwitchInsight = switchInsightPeriod;
+        switchInsightPeriod = function(period){
+            const result = prevSwitchInsight.apply(this, arguments);
+            lastInsightsChartHTML = '';
+            lastInsightsActivityHTML = '';
+            stableInsights();
+            return result;
+        };
+    }
+
+    // 5) Stronger inventory/transaction fallback. Realtime is still first, but
+    // PWA/tablet sometimes stalls; this pulls Firestore on foreground every 30s.
+    function pendingIds(table){
+        try { return new Set((offlineQueue || []).filter(q => q.table === table && q.data && q.data.id).map(q => q.data.id)); }
+        catch(e) { return new Set(); }
+    }
+    function merge(table, server, local){
+        const pending = pendingIds(table);
+        const map = new Map();
+        (Array.isArray(server) ? server : []).forEach(item => { if (item && item.id && !pending.has(item.id)) map.set(item.id, item); });
+        (Array.isArray(local) ? local : []).forEach(item => { if (item && item.id && item._offline && pending.has(item.id)) map.set(item.id, item); });
+        return Array.from(map.values());
+    }
+    async function pullCloud(reason, includeInventory){
+        if (cloudBusy || !navigator.onLine || document.visibilityState === 'hidden' || typeof readCollectionWithFirestoreRest !== 'function') return false;
+        cloudBusy = true;
+        try {
+            try { if (db && typeof db.enableNetwork === 'function') await db.enableNetwork(); } catch(e) {}
+            const jobs = includeInventory
+                ? [readCollectionWithFirestoreRest('inventory'), readCollectionWithFirestoreRest('transactions'), readCollectionWithFirestoreRest('businessDays')]
+                : [Promise.resolve(null), readCollectionWithFirestoreRest('transactions'), readCollectionWithFirestoreRest('businessDays')];
+            const [inventory, transactions, businessDays] = await Promise.all(jobs);
+            let changed = false;
+            if (includeInventory && inventory) {
+                const before = (state.inventory || []).map(p => p.id + ':' + p.stock).join('|');
+                state.inventory = merge('inventory', inventory, state.inventory || []);
+                changed = changed || before !== (state.inventory || []).map(p => p.id + ':' + p.stock).join('|');
+            }
+            if (transactions) {
+                const before = (state.transactions || []).map(t => t.id + ':' + t.total + ':' + t.paid).join('|');
+                state.transactions = merge('transactions', transactions, state.transactions || []).sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+                changed = changed || before !== (state.transactions || []).map(t => t.id + ':' + t.total + ':' + t.paid).join('|');
+            }
+            if (businessDays) {
+                const before = (state.businessDays || []).map(b => b.id + ':' + b.status).join('|');
+                state.businessDays = merge('businessDays', businessDays, state.businessDays || []);
+                changed = changed || before !== (state.businessDays || []).map(b => b.id + ':' + b.status).join('|');
+            }
+            if (changed) {
+                try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch(e) {}
+                try { renderInventory && renderInventory(); } catch(e) {}
+                try { renderFavorites && renderFavorites(); } catch(e) {}
+                try { renderLedger && renderLedger(); } catch(e) {}
+                try { renderInsights && renderInsights(); } catch(e) {}
+                try { renderBusinessCalendar && renderBusinessCalendar(); } catch(e) {}
+            }
+            return changed;
+        } catch(e) {
+            console.warn('v5.6.36 cloud pull failed', reason, e);
+            return false;
+        } finally {
+            cloudBusy = false;
+        }
+    }
+    window.vc5636SyncNow = function(){ lastInventoryPull = 0; lastTxPull = 0; return pullCloud('manual', true); };
+    function schedulePull(reason, forceInv){
+        const now = Date.now();
+        const includeInv = forceInv || now - lastInventoryPull > 30000;
+        const includeTx = now - lastTxPull > 15000;
+        if (!includeInv && !includeTx) return;
+        if (includeInv) lastInventoryPull = now;
+        if (includeTx) lastTxPull = now;
+        pullCloud(reason, includeInv);
+    }
+    setInterval(() => schedulePull('foreground', false), 8000);
+    window.addEventListener('focus', () => setTimeout(() => schedulePull('focus', true), 500));
+    window.addEventListener('online', () => setTimeout(() => schedulePull('online', true), 800));
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(() => schedulePull('visible', true), 500); });
+
+    setTimeout(() => { hardResetCheckout(); stableInsights(); schedulePull('startup', true); }, 900);
+})();
+
+
+// v5.6.37 Inventory refresh tuning: Firestore has the inventory source of truth,
+// but do not poll the full inventory every few seconds. Refresh inventory only
+// on startup/focus/visible/online and when opening Stock; keep small tx fallback.
+(function(){
+    if (window.__vc5637InventoryRefreshTuning) return;
+    window.__vc5637InventoryRefreshTuning = true;
+
+    let invBusy = false;
+    let txBusy = false;
+    let lastInvAt = 0;
+    let lastTxAt = 0;
+    const INV_MIN_MS = 120000; // normal foreground inventory refresh: at most every 2 minutes
+    const TX_MIN_MS = 30000;   // transaction fallback: lightweight enough, at most every 30s
+
+    function pendingIds(table){
+        try { return new Set((offlineQueue || []).filter(q => q.table === table && q.data && q.data.id).map(q => q.data.id)); }
+        catch(e) { return new Set(); }
+    }
+    function mergeServer(table, server, local){
+        const pending = pendingIds(table);
+        const map = new Map();
+        (Array.isArray(server) ? server : []).forEach(item => { if (item && item.id && !pending.has(item.id)) map.set(item.id, item); });
+        (Array.isArray(local) ? local : []).forEach(item => { if (item && item.id && item._offline && pending.has(item.id)) map.set(item.id, item); });
+        return Array.from(map.values());
+    }
+    function persistAndRender(kind, changed){
+        if (!changed) return;
+        try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch(e) {}
+        if (kind === 'inventory') {
+            try { renderInventory && renderInventory(); } catch(e) {}
+            try { renderFavorites && renderFavorites(); } catch(e) {}
+            try { renderInsights && renderInsights(); } catch(e) {}
+        } else {
+            try { renderLedger && renderLedger(); } catch(e) {}
+            try { renderInsights && renderInsights(); } catch(e) {}
+            try { renderBusinessCalendar && renderBusinessCalendar(); } catch(e) {}
+        }
+        try { updateSyncUI && updateSyncUI(); } catch(e) {}
+    }
+    async function refreshInventory(reason, force = false){
+        if (invBusy || !navigator.onLine || document.visibilityState === 'hidden' || typeof readCollectionWithFirestoreRest !== 'function') return false;
+        if (!force && Date.now() - lastInvAt < INV_MIN_MS) return false;
+        invBusy = true;
+        lastInvAt = Date.now();
+        try {
+            const server = await readCollectionWithFirestoreRest('inventory');
+            const before = (state.inventory || []).map(p => p.id + ':' + p.stock + ':' + p.name).join('|');
+            state.inventory = mergeServer('inventory', server, state.inventory || []);
+            const after = (state.inventory || []).map(p => p.id + ':' + p.stock + ':' + p.name).join('|');
+            const changed = before !== after;
+            persistAndRender('inventory', changed);
+            console.info('Inventory refreshed', reason, state.inventory.length);
+            return changed;
+        } catch(e) {
+            console.warn('Inventory refresh failed', reason, e);
+            return false;
+        } finally {
+            invBusy = false;
+        }
+    }
+    async function refreshTransactions(reason, force = false){
+        if (txBusy || !navigator.onLine || document.visibilityState === 'hidden' || typeof readCollectionWithFirestoreRest !== 'function') return false;
+        if (!force && Date.now() - lastTxAt < TX_MIN_MS) return false;
+        txBusy = true;
+        lastTxAt = Date.now();
+        try {
+            const [transactions, businessDays] = await Promise.all([
+                readCollectionWithFirestoreRest('transactions'),
+                readCollectionWithFirestoreRest('businessDays')
+            ]);
+            const before = (state.transactions || []).map(t => t.id + ':' + t.total + ':' + t.paid).join('|') + '::' + (state.businessDays || []).map(b => b.id + ':' + b.status).join('|');
+            state.transactions = mergeServer('transactions', transactions, state.transactions || []).sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            state.businessDays = mergeServer('businessDays', businessDays, state.businessDays || []);
+            const after = (state.transactions || []).map(t => t.id + ':' + t.total + ':' + t.paid).join('|') + '::' + (state.businessDays || []).map(b => b.id + ':' + b.status).join('|');
+            const changed = before !== after;
+            persistAndRender('transactions', changed);
+            return changed;
+        } catch(e) {
+            console.warn('Transaction refresh failed', reason, e);
+            return false;
+        } finally {
+            txBusy = false;
+        }
+    }
+
+    window.vcInventorySyncNow = function(){ return refreshInventory('manual', true); };
+    window.vcCloudSyncNow = function(){ return Promise.all([refreshInventory('manual-all', true), refreshTransactions('manual-all', true)]); };
+
+    // Override the v5.6.36 aggressive combined sync entrypoints/timers by
+    // providing lighter foreground behavior after this patch loads.
+    window.vc5636SyncNow = window.vcCloudSyncNow;
+
+    setInterval(() => refreshTransactions('foreground-tx'), TX_MIN_MS);
+    window.addEventListener('focus', () => {
+        setTimeout(() => refreshTransactions('focus', true), 500);
+        setTimeout(() => refreshInventory('focus', false), 900);
+    });
+    window.addEventListener('online', () => {
+        setTimeout(() => refreshTransactions('online', true), 700);
+        setTimeout(() => refreshInventory('online', true), 1200);
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            setTimeout(() => refreshTransactions('visible', true), 500);
+            setTimeout(() => refreshInventory('visible', false), 900);
+        }
+    });
+
+    if (typeof switchScreen === 'function') {
+        const previousSwitchScreen = switchScreen;
+        switchScreen = function(id){
+            const result = previousSwitchScreen.apply(this, arguments);
+            if (id === 'inventory') setTimeout(() => refreshInventory('open-stock', true), 300);
+            return result;
+        };
+    }
+    setTimeout(() => {
+        refreshTransactions('startup', true);
+        refreshInventory('startup', true);
+    }, 900);
+})();
