@@ -6896,3 +6896,205 @@ document.addEventListener('DOMContentLoaded',()=>{
         refreshInventory('startup', true);
     }, 900);
 })();
+
+
+// v5.6.38 Low-read sync: realtime listeners are primary. REST collection reads
+// are allowed only for intentional events/manual sync, so old timer fallbacks
+// cannot quietly spend Firestore reads all day.
+(function(){
+    if (window.__vc5638LowReadSync) return;
+    window.__vc5638LowReadSync = true;
+
+    const originalRestRead = typeof readCollectionWithFirestoreRest === 'function' ? readCollectionWithFirestoreRest : null;
+    if (!originalRestRead) return;
+
+    let restAllowUntil = 0;
+    let restAllowTables = new Set();
+    let restBusy = false;
+    let lastIntentionalRead = { inventory: 0, transactions: 0, businessDays: 0 };
+
+    const MIN_INTENTIONAL_MS = {
+        inventory: 120000,
+        transactions: 45000,
+        businessDays: 120000
+    };
+
+    function cacheFor(collection) {
+        if (collection === 'inventory') return Array.isArray(state.inventory) ? state.inventory : [];
+        if (collection === 'transactions') return Array.isArray(state.transactions) ? state.transactions : [];
+        if (collection === 'businessDays') return Array.isArray(state.businessDays) ? state.businessDays : [];
+        return [];
+    }
+    function allowRest(tables, ms = 8000) {
+        restAllowUntil = Date.now() + ms;
+        restAllowTables = new Set(tables || ['inventory', 'transactions', 'businessDays']);
+    }
+    function isAllowed(collection) {
+        return Date.now() <= restAllowUntil && restAllowTables.has(collection);
+    }
+
+    readCollectionWithFirestoreRest = async function(collection) {
+        // Old v5.6.36/v5.6.37 timers still call this function. If this is not
+        // an intentional window, return local cache and spend zero Firestore reads.
+        if (!isAllowed(collection)) {
+            return cacheFor(collection);
+        }
+
+        const now = Date.now();
+        const minMs = MIN_INTENTIONAL_MS[collection] || 60000;
+        if (lastIntentionalRead[collection] && now - lastIntentionalRead[collection] < minMs) {
+            return cacheFor(collection);
+        }
+
+        lastIntentionalRead[collection] = now;
+        return originalRestRead.apply(this, arguments);
+    };
+
+    function pendingIds(table){
+        try {
+            return new Set((offlineQueue || [])
+                .filter(q => q.table === table && q.data && q.data.id)
+                .map(q => q.data.id));
+        } catch(e) { return new Set(); }
+    }
+    function mergeServer(table, server, local){
+        const pending = pendingIds(table);
+        const map = new Map();
+        (Array.isArray(server) ? server : []).forEach(item => {
+            if (item && item.id && !pending.has(item.id)) map.set(item.id, item);
+        });
+        (Array.isArray(local) ? local : []).forEach(item => {
+            if (item && item.id && item._offline && pending.has(item.id)) map.set(item.id, item);
+        });
+        return Array.from(map.values());
+    }
+    function saveState() {
+        try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch(e) {}
+    }
+    function rerenderAfterSync(tables) {
+        if (tables.includes('inventory')) {
+            try { if (typeof renderInventory === 'function') renderInventory(); } catch(e) {}
+            try { if (typeof renderFavorites === 'function') renderFavorites(); } catch(e) {}
+        }
+        if (tables.includes('transactions') || tables.includes('businessDays')) {
+            try { if (typeof renderLedger === 'function') renderLedger(); } catch(e) {}
+            try { if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar(); } catch(e) {}
+        }
+        try { if (typeof renderInsights === 'function') renderInsights(); } catch(e) {}
+        try { if (typeof updateSyncUI === 'function') updateSyncUI(); } catch(e) {}
+    }
+
+    async function intentionalSync(reason, tables, options = {}) {
+        if (restBusy || !navigator.onLine || document.visibilityState === 'hidden') return false;
+        const requested = Array.from(new Set(tables || ['transactions', 'businessDays']));
+        const now = Date.now();
+        const due = requested.filter(table => options.force || !lastIntentionalRead[table] || now - lastIntentionalRead[table] >= (MIN_INTENTIONAL_MS[table] || 60000));
+        if (!due.length) return false;
+
+        restBusy = true;
+        allowRest(due, 12000);
+        try {
+            const results = {};
+            for (const table of due) {
+                results[table] = await readCollectionWithFirestoreRest(table);
+            }
+
+            let changed = false;
+            if (results.inventory) {
+                const before = (state.inventory || []).map(p => [p.id, p.name, p.stock, p.price].join(':')).join('|');
+                state.inventory = mergeServer('inventory', results.inventory, state.inventory || []);
+                const after = (state.inventory || []).map(p => [p.id, p.name, p.stock, p.price].join(':')).join('|');
+                changed = changed || before !== after;
+            }
+            if (results.transactions) {
+                const before = (state.transactions || []).map(t => [t.id, t.total, t.paid, t.timestamp].join(':')).join('|');
+                state.transactions = mergeServer('transactions', results.transactions, state.transactions || [])
+                    .sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+                const after = (state.transactions || []).map(t => [t.id, t.total, t.paid, t.timestamp].join(':')).join('|');
+                changed = changed || before !== after;
+            }
+            if (results.businessDays) {
+                const before = (state.businessDays || []).map(b => [b.id, b.status, b.totalSales, b.cashReceived, b.transactionCount].join(':')).join('|');
+                state.businessDays = mergeServer('businessDays', results.businessDays, state.businessDays || []);
+                const open = (state.businessDays || []).find(b => b.status === 'OPEN');
+                if (open) state.currentBusinessDayId = open.id;
+                const after = (state.businessDays || []).map(b => [b.id, b.status, b.totalSales, b.cashReceived, b.transactionCount].join(':')).join('|');
+                changed = changed || before !== after;
+            }
+            if (changed) {
+                saveState();
+                rerenderAfterSync(due);
+            }
+            console.info('Low-read cloud sync', reason, due.join(', '), changed ? 'updated' : 'no-change');
+            return changed;
+        } catch(e) {
+            console.warn('Low-read cloud sync failed', reason, e);
+            return false;
+        } finally {
+            restBusy = false;
+            restAllowUntil = 0;
+            restAllowTables = new Set();
+        }
+    }
+
+    window.vcLowReadSyncNow = function() {
+        return intentionalSync('manual', ['inventory', 'transactions', 'businessDays'], { force: true });
+    };
+    window.vcCloudSyncNow = window.vcLowReadSyncNow;
+    window.vcInventorySyncNow = function() {
+        return intentionalSync('manual-inventory', ['inventory'], { force: true });
+    };
+    window.vc5636SyncNow = window.vcLowReadSyncNow;
+
+    // Intentional, event-based sync only. No timer-based collection reads.
+    setTimeout(() => intentionalSync('startup', ['inventory', 'transactions', 'businessDays'], { force: true }), 1200);
+    window.addEventListener('online', () => setTimeout(() => intentionalSync('online', ['inventory', 'transactions', 'businessDays'], { force: true }), 900));
+    window.addEventListener('focus', () => setTimeout(() => intentionalSync('focus', ['transactions', 'businessDays']), 700));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            setTimeout(() => intentionalSync('visible', ['transactions', 'businessDays']), 700);
+        }
+    });
+
+    // Opening Stock is an intentional inventory read, but still throttled.
+    if (typeof switchScreen === 'function') {
+        const previousSwitchScreen = switchScreen;
+        switchScreen = function(id) {
+            const result = previousSwitchScreen.apply(this, arguments);
+            if (id === 'inventory') setTimeout(() => intentionalSync('open-stock', ['inventory'], { force: false }), 350);
+            if (id === 'business') setTimeout(() => intentionalSync('open-business', ['businessDays'], { force: false }), 350);
+            return result;
+        };
+    }
+
+    // Ledger defaults: Cash/Expenses = Today. Credit = all unpaid/outstanding.
+    const ledgerModeByTab = { cash: 'today', expense: 'today', credit: 'all' };
+    function applyLedgerDateDefault(tab) {
+        const mode = ledgerModeByTab[tab || activeLedgerTab] || 'today';
+        const select = document.getElementById('vc5629-ledger-date');
+        if (select && select.value !== mode) select.value = mode;
+    }
+    document.addEventListener('change', event => {
+        if (event.target && event.target.id === 'vc5629-ledger-date') {
+            ledgerModeByTab[activeLedgerTab || 'cash'] = event.target.value || 'today';
+        }
+    }, true);
+    if (typeof switchLedgerTab === 'function') {
+        const previousSwitchLedgerTab = switchLedgerTab;
+        switchLedgerTab = function(tab) {
+            activeLedgerTab = tab;
+            setTimeout(() => {
+                applyLedgerDateDefault(tab);
+                try { if (typeof renderLedger === 'function') renderLedger(); } catch(e) {}
+            }, 0);
+            return previousSwitchLedgerTab.apply(this, arguments);
+        };
+    }
+    if (typeof renderLedger === 'function') {
+        const previousRenderLedger = renderLedger;
+        renderLedger = function() {
+            applyLedgerDateDefault(activeLedgerTab || 'cash');
+            return previousRenderLedger.apply(this, arguments);
+        };
+    }
+})();
