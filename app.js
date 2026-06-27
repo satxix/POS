@@ -5534,33 +5534,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         return rect.width > 0 && rect.height > 0;
     }
 
-    function vc5633FocusSearch(context) {
-        setTimeout(() => {
-            try {
-                const root = context || document;
-                const selectors = [
-                    '#pos-search',
-                    '#vc5629-ledger-search',
-                    '#fav-picker-search',
-                    'input[type="search"]',
-                    'input[placeholder*="Search"]',
-                    'input[placeholder*="search"]'
-                ];
-                const input = selectors
-                    .flatMap(sel => Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : document.querySelectorAll(sel)))
-                    .find(vc5633Visible);
-                if (input) {
-                    input.focus({ preventScroll: true });
-                    if (typeof input.select === 'function') input.select();
-                }
-            } catch(e) {}
-        }, 120);
-    }
+    function vc5633FocusSearch(context) { return; }
 
-    window.vcFocusActiveSearch = function() {
-        const visibleScreen = Array.from(document.querySelectorAll('.screen-transition')).find(el => !el.classList.contains('hidden'));
-        vc5633FocusSearch(visibleScreen || document);
-    };
+    window.vcFocusActiveSearch = function() { return; };
 
     const vc5633OldSwitchScreen = typeof switchScreen === 'function' ? switchScreen : null;
     if (vc5633OldSwitchScreen && !window.__vcSwitchScreen5633Patched) {
@@ -5593,7 +5569,6 @@ document.addEventListener('DOMContentLoaded',()=>{
                         });
                         requestAnimationFrame(() => {
                             try { if (typeof renderInventory === 'function') renderInventory(); } catch(e) {}
-                            vc5633FocusSearch(screen);
                         });
                     } else if (target === 'change-pin') {
                         openChangePinModal();
@@ -6118,21 +6093,13 @@ document.addEventListener('DOMContentLoaded',()=>{
             return originalFocus.call(this, options);
         };
     }
-    window.vcFocusActiveSearch = function() {
-        window.__vcAllowSearchFocusUntil = Date.now() + 500;
-        const screen = Array.from(document.querySelectorAll('.screen-transition')).find(el => !el.classList.contains('hidden')) || document;
-        const input = screen.querySelector?.('#pos-search,#vc5629-ledger-search,#fav-picker-search,input[type="search"],input[placeholder*="Search"],input[placeholder*="search"]');
-        if (input && !input.closest('.hidden')) input.focus({ preventScroll:true });
-    };
+    window.vcFocusActiveSearch = function() { return; };
     if (typeof switchScreen === 'function' && !window.__vcSwitchScreen5634) {
         window.__vcSwitchScreen5634 = true;
         const oldSwitchScreen = switchScreen;
         switchScreen = function(id) {
             const result = oldSwitchScreen.apply(this, arguments);
-            if (id === 'pos' || id === 'inventory' || id === 'history') {
-                window.__vcAllowSearchFocusUntil = Date.now() + 700;
-                setTimeout(() => window.vcFocusActiveSearch(), 100);
-            }
+            if (id === 'pos' || id === 'inventory' || id === 'history') { /* autofocus removed */ }
             if (id === 'insights') {
                 vc5634LastInsightSig = '';
                 setTimeout(renderInsightsStable, 50);
@@ -6263,4 +6230,13 @@ document.addEventListener('DOMContentLoaded',()=>{
             return oldRenderInsights.apply(this, arguments);
         };
     }
+})();
+
+// v5.6.34b: remove automatic focus feature completely.
+// Manual user taps/clicks still focus inputs normally; screen changes/PIN unlocks must not open the virtual keyboard.
+(function(){
+    if (window.__vcRemoveAutoFocusCompletely5634b) return;
+    window.__vcRemoveAutoFocusCompletely5634b = true;
+    window.vcFocusActiveSearch = function(){ return; };
+    window.__vcAllowSearchFocusUntil = 0;
 })();
