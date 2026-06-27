@@ -6775,13 +6775,13 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.41 Safe boot: always show POS first, then run optional startup work in guards.
+// v5.6.42 Safe boot: always show POS first, then run optional startup work in guards.
 (function(){
     if (window.__vc5641SafeBoot) return;
     window.__vc5641SafeBoot = true;
 
     function vc5641Log(label, err) {
-        try { console.warn('[VC v5.6.41 safe boot]', label, err); } catch (_) {}
+        try { console.warn('[VC v5.6.42 safe boot]', label, err); } catch (_) {}
     }
 
     function vc5641Call(label, fn) {
