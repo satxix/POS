@@ -38,7 +38,7 @@
             document.head.appendChild(link);
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js?v=5.6.26').catch(err => console.log('SW registration failed:', err));
+                navigator.serviceWorker.register('sw.js?v=5.6.27').catch(err => console.log('SW registration failed:', err));
             }
         })();
     </script>
@@ -362,6 +362,8 @@
 <p class="business-sub">Amount still owed by customers</p>
 </div>
 </div>
+
+<div class="vc560-quick-grid" id="vc560-quick-metrics"></div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
 <div class="bg-primary text-white p-7 rounded-[32px] shadow-xl lg:col-span-1">
