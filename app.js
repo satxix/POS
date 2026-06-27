@@ -2912,7 +2912,7 @@ function getClosingCounts(transactions) {
 
     function vc531SetText(id, value) {
         const el = document.getElementById(id);
-        if (el) el.innerText = value;
+        if (el && el.innerText !== String(value)) el.innerText = value;
     }
 
     function vc531SetMoney(id, value) {
@@ -2988,14 +2988,22 @@ function getClosingCounts(transactions) {
             if (title) title.innerText = bd.id;
             if (sub) sub.innerText = `Opened ${new Date(bd.openedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} • ${m.transactionCount} transaction(s)`;
             if (badge) {
-                badge.innerText = bd.status === 'CLOSED' ? 'CLOSED' : 'OPEN';
-                badge.classList.remove('none','closed','open');
-                badge.classList.add(bd.status === 'CLOSED' ? 'closed' : 'open');
+                const badgeText = bd.status === 'CLOSED' ? 'CLOSED' : 'OPEN';
+                if (badge.innerText !== badgeText) badge.innerText = badgeText;
+                const badgeClass = bd.status === 'CLOSED' ? 'closed' : 'open';
+                if (!badge.classList.contains(badgeClass)) {
+                    badge.classList.remove('none','closed','open');
+                    badge.classList.add(badgeClass);
+                }
             }
             if (pill && pillText) {
-                pill.classList.remove('hidden','none','closed','open');
-                pill.classList.add(bd.status === 'CLOSED' ? 'closed' : 'open');
-                pillText.innerText = bd.status === 'CLOSED' ? 'CLOSED' : 'OPEN';
+                const pillClass = bd.status === 'CLOSED' ? 'closed' : 'open';
+                if (!pill.classList.contains(pillClass) || pill.classList.contains('hidden') || pill.classList.contains('none')) {
+                    pill.classList.remove('hidden','none','closed','open');
+                    pill.classList.add(pillClass);
+                }
+                const pillLabel = bd.status === 'CLOSED' ? 'CLOSED' : 'OPEN';
+                if (pillText.innerText !== pillLabel) pillText.innerText = pillLabel;
             }
         } else {
             if (title) title.innerText = 'No active business day';
@@ -3017,7 +3025,7 @@ function getClosingCounts(transactions) {
         const list = document.getElementById('insight-transactions-list');
         if (!list) return;
         const recent = vc531CleanTransactions(tx).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0)).slice(0,10);
-        list.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities</p>` +
+        const html = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities</p>` +
             (recent.map(t => {
                 const label = vc531IsSettlement(t) ? 'PAYMENT' : t.type;
                 return `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2">
@@ -3028,9 +3036,13 @@ function getClosingCounts(transactions) {
                         </div>
                         <p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</p>
                     </div>
-                    <span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">${vc531Peso(t.total)}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">${vc531Peso(t.total)}</span>
+                        <button onclick="viewTxDetails('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button>
+                    </div>
                 </div>`;
             }).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`);
+        if (list.innerHTML !== html) list.innerHTML = html;
     }
 
     function vc531RenderTopProducts(tx) {
@@ -3038,10 +3050,11 @@ function getClosingCounts(transactions) {
         if (!list) return;
         const top = vc531Metrics(tx).topProducts.slice(0,5);
         if (!top.length) {
-            list.innerHTML = `<div class="text-center py-8 opacity-40 font-bold uppercase text-[10px]">No product sales yet</div>`;
+            const empty = `<div class="text-center py-8 opacity-40 font-bold uppercase text-[10px]">No product sales yet</div>`;
+            if (list.innerHTML !== empty) list.innerHTML = empty;
             return;
         }
-        list.innerHTML = top.map((p, idx) => `
+        const html = top.map((p, idx) => `
             <div class="flex items-center justify-between bg-surface-container/70 border border-border-subtle rounded-2xl p-3">
                 <div class="flex items-center gap-3 min-w-0">
                     <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xs font-black">${idx+1}</div>
@@ -3053,6 +3066,7 @@ function getClosingCounts(transactions) {
                 <p class="font-black text-xs text-primary">${vc531Peso(p.revenue)}</p>
             </div>
         `).join('');
+        if (list.innerHTML !== html) list.innerHTML = html;
     }
 
     function vc531RenderSalesChart(tx) {
@@ -3065,28 +3079,38 @@ function getClosingCounts(transactions) {
             byDate[d] = (byDate[d] || 0) + (Number(t.total) || 0);
         });
 
-        const labels = Object.keys(byDate).sort();
-        const values = labels.map(d => byDate[d]);
+        const rawLabels = Object.keys(byDate).sort();
+        const labels = rawLabels.map(d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'}));
+        const values = rawLabels.map(d => byDate[d]);
+        const parent = canvas.parentElement;
+        if (parent) parent.classList.remove('hidden');
+
+        const sig = JSON.stringify([labels, values]);
+        if (canvas.dataset.vc531ChartSig === sig) return;
+        canvas.dataset.vc531ChartSig = sig;
+
+        if (window.salesChartInstance && window.salesChartInstance.canvas === canvas) {
+            window.salesChartInstance.data.labels = labels;
+            window.salesChartInstance.data.datasets[0].data = values;
+            window.salesChartInstance.update('none');
+            return;
+        }
 
         if (window.salesChartInstance) {
             try { window.salesChartInstance.destroy(); } catch(e) {}
             window.salesChartInstance = null;
         }
 
-        if (!labels.length) {
-            canvas.parentElement.classList.remove('hidden');
-            return;
-        }
-
-        canvas.parentElement.classList.remove('hidden');
         window.salesChartInstance = new Chart(canvas, {
             type: 'bar',
             data: {
-                labels: labels.map(d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'})),
+                labels,
                 datasets: [{ label: 'Sales', data: values, borderRadius: 8 }]
             },
             options: {
                 responsive: true,
+                animation: false,
+                transitions: { active: { animation: { duration: 0 } }, resize: { animation: { duration: 0 } } },
                 plugins: { legend: { display: false } },
                 scales: { y: { ticks: { callback: v => '₱' + Number(v).toLocaleString() } }, x: { grid: { display: false } } }
             }
@@ -3158,12 +3182,11 @@ function getClosingCounts(transactions) {
         }
     }
 
-    // Replace renderInsights with an authoritative one that still lets original layout updates run first.
+    // Replace renderInsights with an authoritative stable renderer.
     const vcOriginalRenderInsights531 = typeof renderInsights === 'function' ? renderInsights : null;
     if (vcOriginalRenderInsights531 && !window.__vcRenderInsights531Patched) {
         window.__vcRenderInsights531Patched = true;
         renderInsights = function() {
-            try { vcOriginalRenderInsights531(); } catch(e) { console.warn('Original renderInsights warning', e); }
             vc531RefreshInsights();
         };
     }
@@ -3357,7 +3380,7 @@ function getClosingCounts(transactions) {
     voidTx = vc532DeleteTransaction;
 
     function vc532DecorateCards() {
-        document.querySelectorAll('#ledger-content > div, #insight-transactions-list > div').forEach(card => {
+        document.querySelectorAll('#ledger-content > div').forEach(card => {
             const text = vc532Norm(card.innerText);
             card.classList.remove('tx-card-credit','tx-card-settlement','tx-card-cash','tx-card-expense');
             if (text.includes('PAYMENT') || text.includes('SETTLEMENT') || (text.includes('SA-') && text.includes('CR-'))) card.classList.add('tx-card-settlement');
@@ -3704,11 +3727,7 @@ function getClosingCounts(transactions) {
     if (vc542OldInsights && !window.__vcRenderInsights542Patched) {
         window.__vcRenderInsights542Patched = true;
         renderInsights = function() {
-            const result = vc542OldInsights();
-            setTimeout(vc542RenderRecentActivities, 0);
-            setTimeout(vc542RenderRecentActivities, 200);
-            setTimeout(vc542RenderRecentActivities, 600);
-            return result;
+            return vc542OldInsights();
         };
     }
 
@@ -3718,8 +3737,7 @@ function getClosingCounts(transactions) {
         switchScreen = function(screen) {
             vc542OldSwitch(screen);
             if (screen === 'insights') {
-                setTimeout(vc542RenderRecentActivities, 100);
-                setTimeout(vc542RenderRecentActivities, 500);
+                // Recent Activities is owned by vc531RefreshInsights to avoid flicker.
             }
         };
     }
@@ -3731,7 +3749,7 @@ function getClosingCounts(transactions) {
         sync = function() {
             const result = vc542OldSync();
             if (!document.getElementById('screen-insights')?.classList.contains('hidden')) {
-                setTimeout(vc542RenderRecentActivities, 100);
+                // Recent Activities is owned by vc531RefreshInsights to avoid repaint flicker.
             }
             return result;
         };
@@ -3747,7 +3765,7 @@ function getClosingCounts(transactions) {
         }
     }, 10000);
 
-    setTimeout(vc542RenderRecentActivities, 1000);
+    // Initial Recent Activities repaint disabled; vc531RefreshInsights owns this area.
 
 
     // v5.6.1 Cross-device Business Day Card Fix
@@ -3858,15 +3876,23 @@ function getClosingCounts(transactions) {
             if (sub) sub.innerText = `Opened ${opened} • ${todaysTx.length} transaction(s)`;
 
             if (badge) {
-                badge.innerText = bd.status === 'CLOSED' ? 'CLOSED' : 'OPEN';
-                badge.classList.remove('none','closed','open');
-                badge.classList.add(bd.status === 'CLOSED' ? 'closed' : 'open');
+                const badgeText = bd.status === 'CLOSED' ? 'CLOSED' : 'OPEN';
+                if (badge.innerText !== badgeText) badge.innerText = badgeText;
+                const badgeClass = bd.status === 'CLOSED' ? 'closed' : 'open';
+                if (!badge.classList.contains(badgeClass)) {
+                    badge.classList.remove('none','closed','open');
+                    badge.classList.add(badgeClass);
+                }
             }
 
             if (pill && pillText) {
-                pill.classList.remove('hidden','none','closed','open');
-                pill.classList.add(bd.status === 'CLOSED' ? 'closed' : 'open');
-                pillText.innerText = bd.status === 'CLOSED' ? 'CLOSED' : 'OPEN';
+                const pillClass = bd.status === 'CLOSED' ? 'closed' : 'open';
+                if (!pill.classList.contains(pillClass) || pill.classList.contains('hidden') || pill.classList.contains('none')) {
+                    pill.classList.remove('hidden','none','closed','open');
+                    pill.classList.add(pillClass);
+                }
+                const pillLabel = bd.status === 'CLOSED' ? 'CLOSED' : 'OPEN';
+                if (pillText.innerText !== pillLabel) pillText.innerText = pillLabel;
             }
         } else {
             if (title) title.innerText = 'No active business day';
@@ -3895,10 +3921,7 @@ function getClosingCounts(transactions) {
     if (vc543OldRenderInsights && !window.__vcRenderInsights543Patched) {
         window.__vcRenderInsights543Patched = true;
         renderInsights = function() {
-            const result = vc543OldRenderInsights();
-            setTimeout(vc543RefreshBusinessDayUI, 0);
-            setTimeout(vc543RefreshBusinessDayUI, 300);
-            return result;
+            return vc543OldRenderInsights();
         };
     }
 
@@ -3907,7 +3930,7 @@ function getClosingCounts(transactions) {
         window.__vcSwitchScreen543Patched = true;
         switchScreen = function(screen) {
             vc543OldSwitchScreen(screen);
-            if (screen === 'insights' || screen === 'business') {
+            if (screen === 'business') {
                 setTimeout(vc543RefreshBusinessDayUI, 100);
                 setTimeout(vc543RefreshBusinessDayUI, 500);
             }
@@ -4599,7 +4622,7 @@ function getClosingCounts(transactions) {
         const tx = vc560PeriodTransactions();
         vc560RenderQuickMetrics(tx);
         vc560RenderTopProducts(tx);
-        vc560RenderActivities(tx);
+        // Recent Activities is rendered by vc531RenderRecentActivities only.
     }
 
     const vc560OldRenderInsights = typeof renderInsights === 'function' ? renderInsights : null;
@@ -4607,9 +4630,7 @@ function getClosingCounts(transactions) {
         window.__vcRenderInsights560Patched = true;
         renderInsights = function() {
             const result = vc560OldRenderInsights.apply(this, arguments);
-            setTimeout(vc560RefreshInsightsUI, 0);
-            setTimeout(vc560RefreshInsightsUI, 250);
-            setTimeout(vc560RefreshInsightsUI, 750);
+            vc560RefreshInsightsUI();
             return result;
         };
     }
@@ -4620,15 +4641,13 @@ function getClosingCounts(transactions) {
         switchScreen = function(screen) {
             const result = vc560OldSwitchScreen.apply(this, arguments);
             if (screen === 'insights') {
-                setTimeout(vc560RefreshInsightsUI, 80);
-                setTimeout(vc560RefreshInsightsUI, 400);
-                setTimeout(vc560RefreshInsightsUI, 800);
+                vc560RefreshInsightsUI();
             }
             return result;
         };
     }
 
-    setTimeout(vc560RefreshInsightsUI, 1000);
+    // Delayed Insights repaint disabled to prevent flicker.
 
 window.onload = () => {
         setTimeout(v52RefreshBusinessDayUI, 1200);
@@ -5434,6 +5453,42 @@ document.addEventListener('DOMContentLoaded',()=>{
         }).join('');
     }
 
+
+    function vc5632RenderCreditCustomers(list) {
+        if (!list.length) {
+            return '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No open credits</strong><p>Credit sales will appear here.</p></div>';
+        }
+        const groups = {};
+        list.forEach(t => {
+            const raw = String(t.customer || 'Guest').trim() || 'Guest';
+            const key = raw.toLowerCase();
+            if (!groups[key]) {
+                groups[key] = {
+                    rawName: raw,
+                    displayName: typeof titleCase === 'function' ? titleCase(raw) : raw,
+                    items: [],
+                    total: 0
+                };
+            }
+            groups[key].items.push(t);
+            groups[key].total += Number(t.total || 0);
+        });
+        return Object.values(groups)
+            .sort((a, b) => b.total - a.total || a.displayName.localeCompare(b.displayName))
+            .map(group => {
+                return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
+                    '<div class="vc5629-credit-head">' +
+                        '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + ' pending ticket(s)</p></div>' +
+                        '<strong>' + vc5632Peso(group.total) + '</strong>' +
+                    '</div>' +
+                    '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full">Pay Full Balance</button>' +
+                    '<div class="vc5629-credit-list">' +
+                        group.items.map(t => vc5632TxCard(t, 'credit')).join('') +
+                    '</div>' +
+                '</section>';
+            }).join('');
+    }
+
     const vc5632OldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
     if (vc5632OldRenderLedger && !window.__vcRenderLedger5632Patched) {
         window.__vcRenderLedger5632Patched = true;
@@ -5465,7 +5520,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     summary.innerHTML = vc5632SummaryCard('Total Expenses', vc5632Peso(total), 'Recorded expense amount', 'red') + vc5632SummaryCard('Expense Records', String(list.length), 'Matching records', 'purple') + vc5632SummaryCard('Categories', String(categories.size), 'Expense groups', 'blue');
                     kind = 'expense';
                 }
-                content.innerHTML = vc5632RenderGroups(list, kind);
+                content.innerHTML = kind === 'credit' ? vc5632RenderCreditCustomers(list) : vc5632RenderGroups(list, kind);
             } catch (error) {
                 console.warn('Ledger date grouping fallback', error);
                 return vc5632OldRenderLedger.apply(this, arguments);
@@ -5608,7 +5663,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32d: tablet/landscape payment modal reset polish.
+// v5.6.32k: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5670,246 +5725,79 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 })();
 
-// v5.6.32d Restore Pay Full Balance on the credit ledger after date-group UI patch.
+
+// v5.6.32k Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
-    if (window.__vc5632cCreditPayFullRestore) return;
-    window.__vc5632cCreditPayFullRestore = true;
+    if (window.__vc5632gInsightsFlickerGuard) return;
+    window.__vc5632gInsightsFlickerGuard = true;
 
-    function money(value) {
-        return '₱' + Number(value || 0).toLocaleString();
-    }
-    function safe(value) {
-        const div = document.createElement('div');
-        div.textContent = value == null ? '' : String(value);
-        return div.innerHTML;
-    }
-    function js(value) {
-        return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    }
-    function when(tx) {
-        const d = new Date(tx && tx.timestamp ? tx.timestamp : Date.now());
-        return isNaN(d.getTime()) ? '' : d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    function isPending(tx) {
-        try { return typeof isPendingSync === 'function' && isPendingSync('transactions', tx.id); }
-        catch (_) { return false; }
-    }
-    function creditTicketCard(tx) {
-        return '<article class="vc5629-tx-card vc5629-credit vc5632c-credit-ticket">' +
-            '<div class="vc5629-tx-main">' +
-                '<div class="vc5629-tx-top"><h3>' + safe(tx.id || 'Credit') + '</h3><div class="vc5629-pills">' +
-                    '<span class="vc5629-pill vc5629-pill-orange">Credit</span>' +
-                    (isPending(tx) ? '<span class="vc5629-pill vc5629-pill-orange">Pending</span>' : '') +
-                '</div></div>' +
-                '<p class="vc5629-time">' + safe(when(tx)) + '</p>' +
-            '</div>' +
-            '<div class="vc5629-tx-side">' +
-                '<strong>' + money(tx.total) + '</strong>' +
-                '<div class="vc5632-actions">' +
-                    '<button type="button" onclick="payIndividualTicket(\'' + js(tx.id) + '\')">Pay</button>' +
-                    '<button type="button" onclick="viewTxDetails(\'' + js(tx.id) + '\')" aria-label="View transaction"><span class="material-symbols-outlined">visibility</span></button>' +
-                '</div>' +
-            '</div>' +
-        '</article>';
-    }
-    function renderCreditWithPayFull() {
-        const summary = document.getElementById('ledger-summary-container');
-        const content = document.getElementById('ledger-content');
-        if (!summary || !content || !Array.isArray(state.transactions)) return false;
-        const list = state.transactions
-            .filter(t => t && t.type === 'CR' && !t.paid)
-            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-        const groups = list.reduce((acc, tx) => {
-            const raw = String(tx.customer || 'Guest').trim() || 'Guest';
-            const key = raw.toLowerCase();
-            if (!acc[key]) acc[key] = { name: typeof titleCase === 'function' ? titleCase(raw) : raw, items: [], total: 0 };
-            acc[key].items.push(tx);
-            acc[key].total += Number(tx.total || 0);
-            return acc;
-        }, {});
-        const total = list.reduce((sum, tx) => sum + Number(tx.total || 0), 0);
-        const groupCount = Object.keys(groups).length;
-        const card = (label, value, sub, tone) =>
-            '<div class="vc5629-summary-card vc5629-summary-' + tone + '"><p>' + safe(label) + '</p><strong>' + safe(value) + '</strong><span>' + safe(sub) + '</span></div>';
-        summary.innerHTML =
-            card('Outstanding Credit', money(total), 'Unpaid balance', 'orange') +
-            card('Customers', String(groupCount), 'With balance', 'purple') +
-            card('Credit Tickets', String(list.length), 'Pending tickets', 'blue');
-        if (!list.length) {
-            content.innerHTML = '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No open credits</strong><p>Credit sales will appear here.</p></div>';
-            return true;
-        }
-        content.innerHTML = Object.values(groups).map(group =>
-            '<section class="vc5629-credit-group vc5632c-credit-group">' +
-                '<div class="vc5629-credit-head"><div><h3>' + safe(group.name) + '</h3><p>' + group.items.length + ' pending ticket(s)</p></div><strong>' + money(group.total) + '</strong></div>' +
-                '<button type="button" onclick="payFullBalance(\'' + js(group.name) + '\')" class="vc5629-pay-full vc5632c-pay-full">Pay Full Balance</button>' +
-                '<div class="vc5629-credit-list">' + group.items.map(creditTicketCard).join('') + '</div>' +
-            '</section>'
-        ).join('');
-        return true;
+    function onInsights() {
+        const screen = document.getElementById('screen-insights');
+        return !!screen && !screen.classList.contains('hidden');
     }
 
-    const oldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
-    if (oldRenderLedger) {
-        renderLedger = function() {
-            const result = oldRenderLedger.apply(this, arguments);
-            try {
-                if ((activeLedgerTab || 'cash') === 'credit') renderCreditWithPayFull();
-            } catch (err) {
-                console.warn('Credit pay full restore skipped', err);
-            }
-            return result;
+    if (typeof vc542RenderRecentActivities === 'function') {
+        const oldVc542Recent = vc542RenderRecentActivities;
+        vc542RenderRecentActivities = function() {
+            if (onInsights() && typeof vc531RenderRecentActivities === 'function') return;
+            return oldVc542Recent.apply(this, arguments);
         };
     }
-    setTimeout(function(){
-        try { if ((activeLedgerTab || 'cash') === 'credit') renderCreditWithPayFull(); } catch (_) {}
-    }, 300);
+
+    if (typeof vc560RenderActivities === 'function') {
+        const oldVc560Activities = vc560RenderActivities;
+        vc560RenderActivities = function() {
+            if (onInsights() && typeof vc531RenderRecentActivities === 'function') return;
+            return oldVc560Activities.apply(this, arguments);
+        };
+    }
 })();
 
 
-// v5.6.32d Credit Sales: force customer grouping and restore Pay Full Balance.
+// v5.6.32k Insights Business Day card flicker guard.
+// On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
-    if (window.__vc5632dCreditCustomerGroups) return;
-    window.__vc5632dCreditCustomerGroups = true;
+    if (window.__vc5632kBusinessDayFlickerGuard) return;
+    window.__vc5632kBusinessDayFlickerGuard = true;
 
-    function vc5632dMoney(value) {
-        return '₱' + Number(value || 0).toLocaleString();
+    function onInsights() {
+        const screen = document.getElementById('screen-insights');
+        return !!screen && !screen.classList.contains('hidden');
     }
 
-    function vc5632dSafe(value) {
-        const div = document.createElement('div');
-        div.textContent = value == null ? '' : String(value);
-        return div.innerHTML;
+    function stableInsightsBusinessDay() {
+        if (typeof vc531RefreshBusinessDayCard === 'function') vc531RefreshBusinessDayCard();
     }
 
-    function vc5632dJs(value) {
-        return String(value == null ? '' : value)
-            .replace(/\\/g, '\\\\')
-            .replace(/'/g, "\\'");
-    }
-
-    function vc5632dWhen(tx) {
-        const d = new Date(tx && tx.timestamp ? tx.timestamp : Date.now());
-        if (isNaN(d.getTime())) return '';
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString();
-    }
-
-    function vc5632dPending(tx) {
-        try { return typeof isPendingSync === 'function' && isPendingSync('transactions', tx.id); }
-        catch (_) { return false; }
-    }
-
-    function vc5632dSummaryCard(label, value, sub, tone) {
-        return '<div class="vc5629-summary-card vc5629-summary-' + tone + '">' +
-            '<p>' + vc5632dSafe(label) + '</p>' +
-            '<strong>' + vc5632dSafe(value) + '</strong>' +
-            '<span>' + vc5632dSafe(sub) + '</span>' +
-        '</div>';
-    }
-
-    function vc5632dCreditTicket(tx) {
-        return '<article class="vc5629-tx-card vc5629-credit vc5632d-credit-ticket">' +
-            '<div class="vc5629-tx-main">' +
-                '<div class="vc5629-tx-top">' +
-                    '<h3>' + vc5632dSafe(tx.id || 'Credit') + '</h3>' +
-                    '<div class="vc5629-pills">' +
-                        (vc5632dPending(tx) ? '<span class="vc5629-pill vc5629-pill-green">Synced</span>' : '<span class="vc5629-pill vc5629-pill-green">Synced</span>') +
-                        '<span class="vc5629-pill vc5629-pill-orange">Credit</span>' +
-                    '</div>' +
-                '</div>' +
-                '<p class="vc5629-time">' + vc5632dSafe(vc5632dWhen(tx)) + '</p>' +
-            '</div>' +
-            '<div class="vc5629-tx-side">' +
-                '<strong>' + vc5632dMoney(tx.total) + '</strong>' +
-                '<div class="vc5632-actions">' +
-                    '<button type="button" class="vc5632-mini-pay" onclick="payIndividualTicket(\'' + vc5632dJs(tx.id) + '\')">Pay</button>' +
-                    '<button type="button" onclick="viewTxDetails(\'' + vc5632dJs(tx.id) + '\')" aria-label="View transaction"><span class="material-symbols-outlined">visibility</span></button>' +
-                '</div>' +
-            '</div>' +
-        '</article>';
-    }
-
-    function vc5632dRenderCreditByCustomer() {
-        const summary = document.getElementById('ledger-summary-container');
-        const content = document.getElementById('ledger-content');
-        if (!summary || !content || !Array.isArray(state.transactions)) return false;
-
-        const credits = state.transactions
-            .filter(tx => tx && tx.type === 'CR' && !tx.paid)
-            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-
-        const groups = credits.reduce((acc, tx) => {
-            const raw = String(tx.customer || 'Guest').trim() || 'Guest';
-            const key = raw.toLowerCase();
-            if (!acc[key]) {
-                acc[key] = {
-                    name: typeof titleCase === 'function' ? titleCase(raw) : raw,
-                    rawName: raw,
-                    items: [],
-                    total: 0
-                };
+    if (typeof v52RefreshBusinessDayUI === 'function') {
+        const oldV52RefreshBusinessDayUI = v52RefreshBusinessDayUI;
+        v52RefreshBusinessDayUI = function() {
+            if (onInsights()) {
+                stableInsightsBusinessDay();
+                return;
             }
-            acc[key].items.push(tx);
-            acc[key].total += Number(tx.total || 0);
-            return acc;
-        }, {});
-
-        const customerGroups = Object.values(groups).sort((a, b) => b.total - a.total);
-        const total = credits.reduce((sum, tx) => sum + Number(tx.total || 0), 0);
-
-        summary.innerHTML =
-            vc5632dSummaryCard('Outstanding Credit', vc5632dMoney(total), 'Unpaid balance', 'orange') +
-            vc5632dSummaryCard('Customers', String(customerGroups.length), 'With balance', 'purple') +
-            vc5632dSummaryCard('Credit Tickets', String(credits.length), 'Pending tickets', 'blue');
-
-        if (!credits.length) {
-            content.innerHTML = '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No open credits</strong><p>Credit sales will appear here.</p></div>';
-            return true;
-        }
-
-        content.innerHTML = customerGroups.map(group =>
-            '<section class="vc5629-credit-group vc5632d-credit-group">' +
-                '<div class="vc5629-credit-head">' +
-                    '<div><h3>' + vc5632dSafe(group.name) + '</h3><p>' + group.items.length + ' pending ticket(s)</p></div>' +
-                    '<strong>' + vc5632dMoney(group.total) + '</strong>' +
-                '</div>' +
-                '<button type="button" class="vc5629-pay-full vc5632d-pay-full" onclick="payFullBalance(\'' + vc5632dJs(group.rawName) + '\')">Pay Full Balance</button>' +
-                '<div class="vc5629-credit-list">' + group.items.map(vc5632dCreditTicket).join('') + '</div>' +
-            '</section>'
-        ).join('');
-        return true;
-    }
-
-    const vc5632dOldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
-    if (vc5632dOldRenderLedger) {
-        renderLedger = function() {
-            try {
-                if ((activeLedgerTab || 'cash') === 'credit') {
-                    return vc5632dRenderCreditByCustomer();
-                }
-            } catch (err) {
-                console.warn('Credit customer grouping override failed', err);
-            }
-            return vc5632dOldRenderLedger.apply(this, arguments);
+            return oldV52RefreshBusinessDayUI.apply(this, arguments);
         };
     }
 
-    const vc5632dOldSwitchLedgerTab = typeof switchLedgerTab === 'function' ? switchLedgerTab : null;
-    if (vc5632dOldSwitchLedgerTab) {
-        switchLedgerTab = function(tab) {
-            const result = vc5632dOldSwitchLedgerTab.apply(this, arguments);
-            if (tab === 'credit') {
-                setTimeout(vc5632dRenderCreditByCustomer, 0);
-                setTimeout(vc5632dRenderCreditByCustomer, 80);
+    if (typeof vc543RefreshBusinessDayUI === 'function') {
+        const oldVc543RefreshBusinessDayUI = vc543RefreshBusinessDayUI;
+        vc543RefreshBusinessDayUI = function() {
+            if (onInsights()) {
+                stableInsightsBusinessDay();
+                return;
             }
+            return oldVc543RefreshBusinessDayUI.apply(this, arguments);
+        };
+    }
+
+    const oldRenderInsights = typeof renderInsights === 'function' ? renderInsights : null;
+    if (oldRenderInsights && !window.__vc5632kRenderInsightsBDStable) {
+        window.__vc5632kRenderInsightsBDStable = true;
+        renderInsights = function() {
+            const result = oldRenderInsights.apply(this, arguments);
+            stableInsightsBusinessDay();
             return result;
         };
     }
-
-    window.vc5632dRenderCreditByCustomer = vc5632dRenderCreditByCustomer;
-    setTimeout(function(){
-        try {
-            if ((activeLedgerTab || 'cash') === 'credit') vc5632dRenderCreditByCustomer();
-        } catch (_) {}
-    }, 300);
 })();
