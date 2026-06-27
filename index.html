@@ -6,7 +6,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v5.6.42</title>
+<title>Villacart POS v5.6.36</title>
 
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg==" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg=="/>
@@ -38,16 +38,16 @@
             document.head.appendChild(link);
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js?v=5.6.42').catch(err => console.log('SW registration failed:', err));
+                navigator.serviceWorker.register('sw.js?v=5.6.36').catch(err => console.log('SW registration failed:', err));
             }
         })();
     </script>
-<script async src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -103,7 +103,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=5.6.42"/>
+<link rel="stylesheet" href="styles.css"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -116,7 +116,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v5.6.42</span>
+                    <span class="vc551-version">v5.6.36</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -975,7 +975,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=5.6.42"></script>
+<script src="app.js"></script>
 
 
 
@@ -1012,7 +1012,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=5.6.42"></script>
+<script src="diagnostics.js"></script>
 
 
 
