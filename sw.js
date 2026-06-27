@@ -1,12 +1,12 @@
-const CACHE_NAME = 'villacart-pos-v5.6.45';
+const CACHE_NAME = 'villacart-pos-v5.6.46';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=5.6.44',
-  './app.js?v=5.6.44',
-  './diagnostics.js?v=5.6.44',
-  './vendor/firebase-app-compat.js?v=5.6.45',
-  './vendor/firebase-firestore-compat.js?v=5.6.45'
+  './styles.css?v=5.6.46',
+  './app.js?v=5.6.46',
+  './diagnostics.js?v=5.6.46',
+  './vendor/firebase-app-compat.js?v=5.6.46',
+  './vendor/firebase-firestore-compat.js?v=5.6.46'
 ];
 
 self.addEventListener('install', event => {
