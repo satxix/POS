@@ -296,7 +296,7 @@
 })();
 
 (function(){
-  // v5.6.1 Hidden Diagnostics Shortcut
+  // v5.6.47 Hidden Diagnostics Shortcut
   // Tap the version badge 5 times to open diagnostics. Floating button stays hidden.
   let vc561VersionTapCount = 0;
   let vc561VersionTapTimer = null;
