@@ -6156,3 +6156,111 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     setTimeout(() => { try { renderBusinessStable(); renderInsightsStable(); renderLedgerStable(); } catch(e) {} }, 700);
 })();
+
+
+// v5.6.34a requested fixes only:
+// 1) no automatic search focus / virtual keyboard popups
+// 2) stable Insights render guard
+// 3) reset Complete Sale modal state on open/close
+(function(){
+    if (window.__vcStable5634aRequestedFixes) return;
+    window.__vcStable5634aRequestedFixes = true;
+
+    function resetReviewPaymentModal() {
+        try {
+            const cash = document.getElementById('cash-input');
+            if (cash) {
+                cash.value = '';
+                cash.classList.remove('cash-input-highlight');
+                cash.blur();
+                cash.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            const customer = document.getElementById('credit-customer');
+            if (customer) {
+                customer.value = '';
+                customer.blur();
+            }
+            const change = document.getElementById('change-display');
+            if (change) change.classList.add('hidden');
+            const changeAmount = document.getElementById('change-amount');
+            if (changeAmount) changeAmount.innerText = '₱0.00';
+            if (typeof switchPayMode === 'function') switchPayMode('cash');
+        } catch (e) {
+            console.warn('review payment reset skipped', e);
+        }
+    }
+
+    // Disable all programmatic search focus. User taps/clicks still focus inputs normally.
+    window.vcFocusActiveSearch = function(){};
+    const nativeFocus = HTMLElement.prototype.focus;
+    if (!window.__vcStable5634aFocusGuard) {
+        window.__vcStable5634aFocusGuard = true;
+        HTMLElement.prototype.focus = function(options) {
+            try {
+                const isSearch = this && this.matches && this.matches(
+                    '#pos-search,#vc5629-ledger-search,#fav-picker-search,input[type="search"],input[placeholder*="Search"],input[placeholder*="search"]'
+                );
+                if (isSearch && !window.__vcUserInitiatedFocus) return;
+            } catch (_) {}
+            return nativeFocus.call(this, options);
+        };
+        ['pointerdown','mousedown','touchstart','keydown'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                window.__vcUserInitiatedFocus = true;
+                setTimeout(() => { window.__vcUserInitiatedFocus = false; }, 350);
+            }, true);
+        });
+    }
+
+    // Wrap open/close review modal so amount does not persist between sales.
+    if (typeof openReview === 'function' && !window.__vcStable5634aOpenReview) {
+        window.__vcStable5634aOpenReview = true;
+        const oldOpenReview = openReview;
+        openReview = function() {
+            resetReviewPaymentModal();
+            const result = oldOpenReview.apply(this, arguments);
+            setTimeout(resetReviewPaymentModal, 0);
+            return result;
+        };
+    }
+
+    if (typeof closeModal === 'function' && !window.__vcStable5634aCloseModal) {
+        window.__vcStable5634aCloseModal = true;
+        const oldCloseModal = closeModal;
+        closeModal = function(id) {
+            const result = oldCloseModal.apply(this, arguments);
+            if (id === 'review-modal') resetReviewPaymentModal();
+            return result;
+        };
+    }
+
+    // Guard Insights against repeated same-state re-renders. This prevents visible flicker
+    // without changing calculations.
+    if (typeof renderInsights === 'function' && !window.__vcStable5634aInsightsGuard) {
+        window.__vcStable5634aInsightsGuard = true;
+        const oldRenderInsights = renderInsights;
+        let lastSig = '';
+        let lastAt = 0;
+        renderInsights = function() {
+            let sig = '';
+            try {
+                const tx = Array.isArray(state.transactions) ? state.transactions : [];
+                const inv = Array.isArray(state.inventory) ? state.inventory : [];
+                sig = JSON.stringify({
+                    period: typeof insightPeriod !== 'undefined' ? insightPeriod : 'day',
+                    txCount: tx.length,
+                    txLast: tx.slice(0, 12).map(t => [t.id, t.total, t.timestamp, t.type, t.paid, t.businessDate]).join('|'),
+                    invCount: inv.length,
+                    invStock: inv.slice(0, 30).map(p => [p.id, p.stock, p.lowStock]).join('|')
+                });
+            } catch (_) {
+                sig = String(Date.now());
+            }
+            const now = Date.now();
+            if (sig === lastSig && now - lastAt < 1200) return;
+            lastSig = sig;
+            lastAt = now;
+            return oldRenderInsights.apply(this, arguments);
+        };
+    }
+})();
