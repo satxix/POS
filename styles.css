@@ -3409,3 +3409,127 @@
         justify-content: space-between;
     }
 }
+
+
+/* v5.6.32 Ledger date grouping + PIN/insights stability polish */
+.vc5632-ledger .vc5632-ledger-date-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.vc5632-date-group {
+    border-radius: 1.8rem;
+    background: rgba(255,255,255,.72);
+    border: 1px solid rgba(148,163,184,.22);
+    box-shadow: 0 16px 34px rgba(15,23,42,.045);
+    overflow: hidden;
+}
+
+.vc5632-date-header {
+    width: 100%;
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border: 0;
+    background: rgba(248,250,252,.88);
+    color: #0f172a;
+    text-align: left;
+}
+
+.vc5632-date-header > div {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: .7rem;
+}
+
+.vc5632-date-header .material-symbols-outlined {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .9rem;
+    background: #dbeafe;
+    color: #2563eb;
+    transition: transform .16s ease;
+}
+
+.vc5632-date-group.collapsed .vc5632-date-header .material-symbols-outlined {
+    transform: rotate(-90deg);
+}
+
+.vc5632-date-header strong {
+    display: block;
+    font-size: .95rem;
+    font-weight: 1000;
+    color: #1e3a8a;
+    letter-spacing: -.01em;
+}
+
+.vc5632-date-header small {
+    display: block;
+    color: #64748b;
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+.vc5632-date-header em {
+    color: #064e3b;
+    font-style: normal;
+    font-size: 1.35rem;
+    font-weight: 1000;
+    letter-spacing: -.05em;
+    white-space: nowrap;
+}
+
+.vc5632-date-body {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.vc5632-date-group.collapsed .vc5632-date-body {
+    display: none;
+}
+
+.vc5632-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+}
+
+.vc5632-mini-pay {
+    width: auto !important;
+    min-width: 46px;
+    padding: 0 .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    background: #d1fae5 !important;
+    color: #047857 !important;
+}
+
+@media (max-width: 1180px) {
+    .vc5632-date-body {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .vc5632-date-body {
+        grid-template-columns: 1fr;
+        padding: .75rem;
+    }
+    .vc5632-date-header {
+        border-radius: 0;
+    }
+    .vc5632-date-header em {
+        font-size: 1.1rem;
+    }
+}
