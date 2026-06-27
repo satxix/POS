@@ -4389,6 +4389,241 @@ function getClosingCounts(transactions) {
         };
     });
 
+    // v5.6.26 Insights UI Polish
+    // Presentation-only layer: improves the Insights dashboard layout without touching sync, Firestore, queue, or transaction logic.
+    function vc560Peso(value) {
+        return `₱${(Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function vc560SafeText(value) {
+        return String(value ?? '').replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch]));
+    }
+
+    function vc560Norm(value) {
+        return String(value || '').trim().toUpperCase();
+    }
+
+    function vc560IsSettlement(t) {
+        if (!t) return false;
+        const id = vc560Norm(t.id);
+        const type = vc560Norm(t.type);
+        const notes = vc560Norm(t.notes);
+        return !!(
+            t.settlementFor ||
+            t.creditRef ||
+            t.relatedCreditId ||
+            (type === 'SA' && notes.includes('CR-')) ||
+            (id.startsWith('SA-') && notes.includes('CR-')) ||
+            notes.includes('SETTLEMENT') ||
+            notes.includes('PAID CREDIT') ||
+            notes.includes('PAYMENT')
+        );
+    }
+
+    function vc560Kind(t) {
+        if (vc560IsSettlement(t)) return 'payment';
+        if (t && vc560Norm(t.type) === 'CR') return 'credit';
+        if (t && vc560Norm(t.type) === 'EX') return 'expense';
+        return 'cash';
+    }
+
+    function vc560Label(kind) {
+        return ({ cash: 'SA', credit: 'CR', payment: 'PAYMENT', expense: 'EX' })[kind] || 'TX';
+    }
+
+    function vc560Icon(kind) {
+        return ({ cash: 'payments', credit: 'schedule', payment: 'task_alt', expense: 'remove_circle' })[kind] || 'receipt_long';
+    }
+
+    function vc560PeriodTransactions() {
+        try {
+            if (typeof vc542PeriodTransactionsSafe === 'function') return vc542PeriodTransactionsSafe();
+            if (typeof vc531PeriodTransactions === 'function') return vc531PeriodTransactions();
+            if (typeof getPeriodTransactions === 'function') return getPeriodTransactions();
+        } catch(e) {}
+        return Array.isArray(state.transactions) ? state.transactions : [];
+    }
+
+    function vc560Metrics(tx) {
+        const clean = (tx || []).filter(t => t && t.id);
+        const revenue = clean.filter(t => (t.type === 'SA' || t.type === 'CR') && !vc560IsSettlement(t));
+        const totalSales = revenue.reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+        const avgSale = revenue.length ? totalSales / revenue.length : 0;
+        const productMap = {};
+
+        revenue.forEach(t => (t.items || []).forEach(item => {
+            const qty = (Number(item.qty) || 0) * (Number(item.deduct) || 1);
+            const key = item.name || item.id || 'Unknown Item';
+            if (!productMap[key]) productMap[key] = { name: key, qty: 0, revenue: 0 };
+            productMap[key].qty += qty;
+            productMap[key].revenue += (Number(item.price) || 0) * (Number(item.qty) || 0);
+        }));
+
+        const topProducts = Object.values(productMap).sort((a, b) => b.qty - a.qty || b.revenue - a.revenue);
+        const lowStock = (state.inventory || []).filter(p => {
+            const stock = Number(p.stock) || 0;
+            const low = Number(p.lowStock);
+            return !Number.isNaN(low) && low >= 0 && stock <= low;
+        });
+
+        return { clean, revenue, totalSales, avgSale, topProducts, topProduct: topProducts[0] || null, lowStock };
+    }
+
+    function vc560EnsureInsightsShell() {
+        const screen = document.getElementById('screen-insights');
+        if (!screen) return null;
+        screen.classList.add('vc560-insights');
+
+        const title = screen.querySelector('h2');
+        if (title) {
+            title.innerText = 'Insights';
+            if (!document.getElementById('vc560-insights-subtitle')) {
+                const sub = document.createElement('p');
+                sub.id = 'vc560-insights-subtitle';
+                sub.className = 'vc560-insights-subtitle';
+                sub.innerText = 'Daily sales, profit, stock, and activity at a glance.';
+                title.insertAdjacentElement('afterend', sub);
+            }
+        }
+
+        const dashboard = document.getElementById('business-dashboard-cards');
+        if (dashboard) {
+            dashboard.classList.add('vc560-summary-grid');
+            if (!document.getElementById('vc560-quick-metrics')) {
+                const quick = document.createElement('div');
+                quick.id = 'vc560-quick-metrics';
+                quick.className = 'vc560-quick-grid';
+                dashboard.insertAdjacentElement('afterend', quick);
+            }
+        }
+
+        const chart = document.getElementById('sales-chart');
+        if (chart && chart.parentElement) chart.parentElement.classList.add('vc560-chart-card');
+        const topList = document.getElementById('best-sellers-list');
+        if (topList && topList.parentElement) topList.parentElement.classList.add('vc560-top-products-card');
+        const activities = document.getElementById('insight-transactions-list');
+        if (activities) activities.classList.add('vc560-activities-list');
+
+        return screen;
+    }
+
+    function vc560RenderQuickMetrics(tx) {
+        const quick = document.getElementById('vc560-quick-metrics');
+        if (!quick) return;
+        const m = vc560Metrics(tx);
+        const best = m.topProduct;
+        quick.innerHTML = `
+            <div class="vc560-mini-card vc560-mini-blue">
+                <span class="material-symbols-outlined">star</span>
+                <p>Best Seller</p>
+                <strong>${best ? vc560SafeText(best.name) : '—'}</strong>
+                <small>${best ? `${best.qty.toLocaleString()} sold` : 'No product sales yet'}</small>
+            </div>
+            <div class="vc560-mini-card vc560-mini-orange">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <p>Low Stock</p>
+                <strong>${m.lowStock.length}</strong>
+                <small>${m.lowStock.length === 1 ? 'item needs attention' : 'items need attention'}</small>
+            </div>
+            <div class="vc560-mini-card vc560-mini-green">
+                <span class="material-symbols-outlined">receipt_long</span>
+                <p>Avg Sale</p>
+                <strong>${vc560Peso(m.avgSale)}</strong>
+                <small>Per sales transaction</small>
+            </div>
+            <div class="vc560-mini-card vc560-mini-purple">
+                <span class="material-symbols-outlined">tag</span>
+                <p>Transactions</p>
+                <strong>${m.clean.length.toLocaleString()}</strong>
+                <small>In selected period</small>
+            </div>`;
+    }
+
+    function vc560RenderTopProducts(tx) {
+        const list = document.getElementById('best-sellers-list');
+        if (!list) return;
+        const top = vc560Metrics(tx).topProducts.slice(0, 5);
+        if (!top.length) {
+            list.innerHTML = `<div class="vc560-empty-state">No product sales yet</div>`;
+            return;
+        }
+        list.innerHTML = top.map((p, idx) => `
+            <div class="vc560-product-row">
+                <div class="vc560-rank">${idx + 1}</div>
+                <div class="vc560-product-main">
+                    <p>${vc560SafeText(p.name)}</p>
+                    <span>${p.qty.toLocaleString()} sold</span>
+                </div>
+                <strong>${vc560Peso(p.revenue)}</strong>
+            </div>`).join('');
+    }
+
+    function vc560RenderActivities(tx) {
+        const list = document.getElementById('insight-transactions-list');
+        if (!list) return;
+        const recent = (tx || [])
+            .filter(t => t && t.id)
+            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+            .slice(0, 8);
+
+        if (!recent.length) {
+            list.innerHTML = `<div class="vc560-section-title">Recent Activities</div><div class="vc560-empty-state">No activity yet</div>`;
+            return;
+        }
+
+        list.innerHTML = `<div class="vc560-section-title">Recent Activities</div>` + recent.map(t => {
+            const kind = vc560Kind(t);
+            const time = t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            const safeId = vc560SafeText(t.id);
+            return `
+                <button type="button" class="vc560-activity vc560-${kind}" onclick="typeof vc542OpenTx==='function' ? vc542OpenTx('${safeId}') : (typeof viewTxDetails==='function' && viewTxDetails('${safeId}'))">
+                    <div class="vc560-activity-icon"><span class="material-symbols-outlined">${vc560Icon(kind)}</span></div>
+                    <div class="vc560-activity-main">
+                        <div><strong>${safeId}</strong><span>${vc560Label(kind)}</span></div>
+                        <p>${time}</p>
+                    </div>
+                    <div class="vc560-activity-amount">${vc560Peso(t.total)}</div>
+                    <span class="material-symbols-outlined vc560-chevron">chevron_right</span>
+                </button>`;
+        }).join('');
+    }
+
+    function vc560RefreshInsightsUI() {
+        if (!vc560EnsureInsightsShell()) return;
+        const tx = vc560PeriodTransactions();
+        vc560RenderQuickMetrics(tx);
+        vc560RenderTopProducts(tx);
+        vc560RenderActivities(tx);
+    }
+
+    const vc560OldRenderInsights = typeof renderInsights === 'function' ? renderInsights : null;
+    if (vc560OldRenderInsights && !window.__vcRenderInsights560Patched) {
+        window.__vcRenderInsights560Patched = true;
+        renderInsights = function() {
+            const result = vc560OldRenderInsights.apply(this, arguments);
+            setTimeout(vc560RefreshInsightsUI, 0);
+            setTimeout(vc560RefreshInsightsUI, 250);
+            setTimeout(vc560RefreshInsightsUI, 750);
+            return result;
+        };
+    }
+
+    const vc560OldSwitchScreen = typeof switchScreen === 'function' ? switchScreen : null;
+    if (vc560OldSwitchScreen && !window.__vcSwitchScreen560Patched) {
+        window.__vcSwitchScreen560Patched = true;
+        switchScreen = function(screen) {
+            const result = vc560OldSwitchScreen.apply(this, arguments);
+            if (screen === 'insights') {
+                setTimeout(vc560RefreshInsightsUI, 80);
+                setTimeout(vc560RefreshInsightsUI, 400);
+                setTimeout(vc560RefreshInsightsUI, 800);
+            }
+            return result;
+        };
+    }
+
+    setTimeout(vc560RefreshInsightsUI, 1000);
+
 window.onload = () => {
         setTimeout(v52RefreshBusinessDayUI, 1200);
         setTimeout(forceUpdateInsightsNumbersFromTransactions, 800);
