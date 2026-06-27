@@ -5608,7 +5608,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32b: tablet/landscape payment modal reset polish.
+// v5.6.32c: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5668,4 +5668,100 @@ document.addEventListener('DOMContentLoaded',()=>{
             return result;
         };
     }
+})();
+
+// v5.6.32c Restore Pay Full Balance on the credit ledger after date-group UI patch.
+(function(){
+    if (window.__vc5632cCreditPayFullRestore) return;
+    window.__vc5632cCreditPayFullRestore = true;
+
+    function money(value) {
+        return '₱' + Number(value || 0).toLocaleString();
+    }
+    function safe(value) {
+        const div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
+    }
+    function js(value) {
+        return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+    function when(tx) {
+        const d = new Date(tx && tx.timestamp ? tx.timestamp : Date.now());
+        return isNaN(d.getTime()) ? '' : d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    function isPending(tx) {
+        try { return typeof isPendingSync === 'function' && isPendingSync('transactions', tx.id); }
+        catch (_) { return false; }
+    }
+    function creditTicketCard(tx) {
+        return '<article class="vc5629-tx-card vc5629-credit vc5632c-credit-ticket">' +
+            '<div class="vc5629-tx-main">' +
+                '<div class="vc5629-tx-top"><h3>' + safe(tx.id || 'Credit') + '</h3><div class="vc5629-pills">' +
+                    '<span class="vc5629-pill vc5629-pill-orange">Credit</span>' +
+                    (isPending(tx) ? '<span class="vc5629-pill vc5629-pill-orange">Pending</span>' : '') +
+                '</div></div>' +
+                '<p class="vc5629-time">' + safe(when(tx)) + '</p>' +
+            '</div>' +
+            '<div class="vc5629-tx-side">' +
+                '<strong>' + money(tx.total) + '</strong>' +
+                '<div class="vc5632-actions">' +
+                    '<button type="button" onclick="payIndividualTicket(\'' + js(tx.id) + '\')">Pay</button>' +
+                    '<button type="button" onclick="viewTxDetails(\'' + js(tx.id) + '\')" aria-label="View transaction"><span class="material-symbols-outlined">visibility</span></button>' +
+                '</div>' +
+            '</div>' +
+        '</article>';
+    }
+    function renderCreditWithPayFull() {
+        const summary = document.getElementById('ledger-summary-container');
+        const content = document.getElementById('ledger-content');
+        if (!summary || !content || !Array.isArray(state.transactions)) return false;
+        const list = state.transactions
+            .filter(t => t && t.type === 'CR' && !t.paid)
+            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        const groups = list.reduce((acc, tx) => {
+            const raw = String(tx.customer || 'Guest').trim() || 'Guest';
+            const key = raw.toLowerCase();
+            if (!acc[key]) acc[key] = { name: typeof titleCase === 'function' ? titleCase(raw) : raw, items: [], total: 0 };
+            acc[key].items.push(tx);
+            acc[key].total += Number(tx.total || 0);
+            return acc;
+        }, {});
+        const total = list.reduce((sum, tx) => sum + Number(tx.total || 0), 0);
+        const groupCount = Object.keys(groups).length;
+        const card = (label, value, sub, tone) =>
+            '<div class="vc5629-summary-card vc5629-summary-' + tone + '"><p>' + safe(label) + '</p><strong>' + safe(value) + '</strong><span>' + safe(sub) + '</span></div>';
+        summary.innerHTML =
+            card('Outstanding Credit', money(total), 'Unpaid balance', 'orange') +
+            card('Customers', String(groupCount), 'With balance', 'purple') +
+            card('Credit Tickets', String(list.length), 'Pending tickets', 'blue');
+        if (!list.length) {
+            content.innerHTML = '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No open credits</strong><p>Credit sales will appear here.</p></div>';
+            return true;
+        }
+        content.innerHTML = Object.values(groups).map(group =>
+            '<section class="vc5629-credit-group vc5632c-credit-group">' +
+                '<div class="vc5629-credit-head"><div><h3>' + safe(group.name) + '</h3><p>' + group.items.length + ' pending ticket(s)</p></div><strong>' + money(group.total) + '</strong></div>' +
+                '<button type="button" onclick="payFullBalance(\'' + js(group.name) + '\')" class="vc5629-pay-full vc5632c-pay-full">Pay Full Balance</button>' +
+                '<div class="vc5629-credit-list">' + group.items.map(creditTicketCard).join('') + '</div>' +
+            '</section>'
+        ).join('');
+        return true;
+    }
+
+    const oldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
+    if (oldRenderLedger) {
+        renderLedger = function() {
+            const result = oldRenderLedger.apply(this, arguments);
+            try {
+                if ((activeLedgerTab || 'cash') === 'credit') renderCreditWithPayFull();
+            } catch (err) {
+                console.warn('Credit pay full restore skipped', err);
+            }
+            return result;
+        };
+    }
+    setTimeout(function(){
+        try { if ((activeLedgerTab || 'cash') === 'credit') renderCreditWithPayFull(); } catch (_) {}
+    }, 300);
 })();
