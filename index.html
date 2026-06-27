@@ -6,7 +6,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v5.6.43</title>
+<title>Villacart POS v5.6.45</title>
 
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg==" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg=="/>
@@ -17,8 +17,9 @@
             const manifest = {
                 "name": "Villacart POS",
                 "short_name": "Villacart",
-                "start_url": ".",
+                "start_url": "./",
                 "display": "standalone",
+                "scope": "./",
                 "background_color": "#f0f4f8",
                 "theme_color": "#1e3a5f",
                 "icons": [
@@ -38,19 +39,18 @@
             document.head.appendChild(link);
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js?v=5.6.43').catch(err => console.log('SW registration failed:', err));
+                navigator.serviceWorker.register('sw.js?v=5.6.45').catch(err => console.log('SW registration failed:', err));
             }
         })();
     </script>
-<script src="vendor/tailwind-forms-container.js?v=5.6.43"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script defer src="vendor/quagga.min.js?v=5.6.43"></script>
-<script defer src="vendor/html2canvas.min.js?v=5.6.43"></script>
-<script defer src="vendor/chart.umd.min.js?v=5.6.43"></script>
+<script defer src="vendor/quagga.min.js?v=5.6.45"></script>
+<script defer src="vendor/html2canvas.min.js?v=5.6.45"></script>
+<script defer src="vendor/chart.umd.min.js?v=5.6.45"></script>
 <!-- Firebase SDKs -->
-<script src="vendor/firebase-app-compat.js?v=5.6.43"></script>
-<script src="vendor/firebase-firestore-compat.js?v=5.6.43"></script>
+<script src="vendor/firebase-app-compat.js?v=5.6.45"></script>
+<script src="vendor/firebase-firestore-compat.js?v=5.6.45"></script>
 <script id="tailwind-config">
       tailwind.config = {
         theme: {
@@ -103,7 +103,20 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=5.6.43"/>
+<script>
+  // v5.6.45: delay Tailwind browser compiler so it cannot block first app open.
+  window.__vc5644LoadTailwindLater = function(){
+    if (window.__vc5644TailwindRequested) return;
+    window.__vc5644TailwindRequested = true;
+    var s = document.createElement('script');
+    s.src = 'vendor/tailwind-forms-container.js?v=5.6.45';
+    s.async = true;
+    s.onerror = function(){ console.warn('Tailwind helper failed to load; app can continue.'); };
+    document.head.appendChild(s);
+  };
+  setTimeout(window.__vc5644LoadTailwindLater, 3500);
+</script>
+<link rel="stylesheet" href="styles.css?v=5.6.45"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -116,7 +129,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v5.6.43</span>
+                    <span class="vc551-version">v5.6.45</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -975,14 +988,14 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=5.6.43"></script>
+<script src="app.js?v=5.6.45"></script>
 
 
 
 
 
 
-<!-- v5.6.43: Collections Tab Planned / Ledger Grouping Foundation -->
+<!-- v5.6.45: Collections Tab Planned / Ledger Grouping Foundation -->
 
 <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
@@ -1012,7 +1025,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=5.6.43"></script>
+<script src="diagnostics.js?v=5.6.45"></script>
 
 
 

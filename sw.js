@@ -1,16 +1,12 @@
-const CACHE_NAME = 'villacart-pos-v5.6.43';
+const CACHE_NAME = 'villacart-pos-v5.6.45';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=5.6.43',
-  './app.js?v=5.6.43',
-  './diagnostics.js?v=5.6.43',
-  './vendor/tailwind-forms-container.js?v=5.6.43',
-  './vendor/quagga.min.js?v=5.6.43',
-  './vendor/html2canvas.min.js?v=5.6.43',
-  './vendor/chart.umd.min.js?v=5.6.43',
-  './vendor/firebase-app-compat.js?v=5.6.43',
-  './vendor/firebase-firestore-compat.js?v=5.6.43'
+  './styles.css?v=5.6.44',
+  './app.js?v=5.6.44',
+  './diagnostics.js?v=5.6.44',
+  './vendor/firebase-app-compat.js?v=5.6.45',
+  './vendor/firebase-firestore-compat.js?v=5.6.45'
 ];
 
 self.addEventListener('install', event => {
@@ -30,7 +26,6 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-
   event.respondWith(
     fetch(req, { cache: 'no-store' })
       .then(res => {
