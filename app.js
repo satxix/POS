@@ -5608,3 +5608,64 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
+// v5.6.32b: tablet/landscape payment modal reset polish.
+// Clears visible quick-cash selection and button state in addition to the cash input.
+(function(){
+    if (window.__vc5632bTabletPaymentReset) return;
+    window.__vc5632bTabletPaymentReset = true;
+
+    function hardResetPaymentUi() {
+        try {
+            document.querySelectorAll('.cash-quick-btn').forEach(btn => {
+                btn.classList.remove('cash-selected');
+                btn.setAttribute('aria-pressed', 'false');
+            });
+            const cash = document.getElementById('cash-input');
+            if (cash) {
+                cash.value = '';
+                cash.classList.remove('cash-input-highlight');
+                cash.blur();
+            }
+            const customer = document.getElementById('credit-customer');
+            if (customer) customer.value = '';
+            const change = document.getElementById('change-display');
+            if (change) {
+                change.classList.add('hidden');
+                change.classList.remove('change-ok', 'change-short', 'change-pulse');
+            }
+            const status = document.getElementById('change-status-label');
+            if (status) status.innerText = 'Waiting for Payment';
+            const amount = document.getElementById('change-amount');
+            if (amount) amount.innerText = '₱0.00';
+            const confirmBtn = document.getElementById('confirm-checkout');
+            if (confirmBtn) {
+                confirmBtn.classList.remove('bg-secondary');
+                const label = confirmBtn.querySelector('span:last-child');
+                if (label) label.innerText = 'Confirm Transaction';
+            }
+            if (typeof switchPayMode === 'function') switchPayMode('cash');
+        } catch(e) {}
+    }
+
+    if (typeof openReview === 'function' && !window.__vc5632bOpenReviewHardReset) {
+        window.__vc5632bOpenReviewHardReset = true;
+        const oldOpenReview = openReview;
+        openReview = function() {
+            hardResetPaymentUi();
+            const result = oldOpenReview.apply(this, arguments);
+            setTimeout(hardResetPaymentUi, 0);
+            setTimeout(hardResetPaymentUi, 80);
+            return result;
+        };
+    }
+
+    if (typeof closeModal === 'function' && !window.__vc5632bCloseModalHardReset) {
+        window.__vc5632bCloseModalHardReset = true;
+        const oldCloseModal = closeModal;
+        closeModal = function(id) {
+            const result = oldCloseModal.apply(this, arguments);
+            if (id === 'review-modal') hardResetPaymentUi();
+            return result;
+        };
+    }
+})();
