@@ -6156,3 +6156,339 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     setTimeout(() => { try { renderBusinessStable(); renderInsightsStable(); renderLedgerStable(); } catch(e) {} }, 700);
 })();
+
+
+// v5.6.35 Device UI + sync fix: remove automatic keyboard focus, make checkout
+// tablet-safe, restore clickable Insight activity actions, speed up PIN unlock,
+// and add foreground cloud freshness checks when realtime stalls on PWAs.
+(function(){
+    if (window.__vc5635DeviceUiSync) return;
+    window.__vc5635DeviceUiSync = true;
+
+    const TX_REFRESH_MS = 25000;
+    const INVENTORY_REFRESH_MS = 65000;
+    let lastTxRefresh = 0;
+    let lastInventoryRefresh = 0;
+    let refreshing = false;
+    let lastActivitiesHTML = '';
+
+    function safe(value) {
+        return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+    function js(value) { return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+    function peso(value) { return '₱' + Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+    function dateCode(value = new Date()) {
+        const d = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(d.getTime())) return '';
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function txDate(t) { return t?.businessDate || dateCode(t?.timestamp || new Date()); }
+    function todayCode() { return dateCode(new Date()); }
+    function isSettlement(t) {
+        const id = String(t?.id || '').toUpperCase();
+        const notes = String(t?.notes || '').toUpperCase();
+        return id.startsWith('PAY-') || id.startsWith('SET-') || notes.includes('CR-') || notes.startsWith('PARTIAL:');
+    }
+    function amount(t) {
+        if (!t || t.type === 'EX') return Number(t?.total || 0);
+        if (typeof window.vc5634SellingTotal === 'function') return window.vc5634SellingTotal(t);
+        if (Array.isArray(t.items) && t.items.length) {
+            const itemTotal = t.items.reduce((s,item) => s + Number(item.price || 0) * Number(item.qty || 0), 0);
+            if (itemTotal > 0) return itemTotal;
+        }
+        return Number(t.total || 0);
+    }
+    function getPeriodTx() {
+        const all = Array.isArray(state.transactions) ? state.transactions.slice() : [];
+        const period = typeof insightPeriod !== 'undefined' ? insightPeriod : 'day';
+        if (period === 'day') return all.filter(t => txDate(t) === todayCode());
+        if (period === 'month') return all.filter(t => txDate(t).slice(0,7) === todayCode().slice(0,7));
+        if (period === 'range') {
+            const start = document.getElementById('insight-start-date')?.value || '';
+            const end = document.getElementById('insight-end-date')?.value || '';
+            if (start && end) return all.filter(t => txDate(t) >= start && txDate(t) <= end);
+        }
+        return all;
+    }
+
+    // 1) Fully revert automatic programmatic focus. User taps still work normally,
+    // but old "focus search after every button" timers no longer open the keyboard.
+    if (!window.__vc5635NoAutoKeyboard) {
+        window.__vc5635NoAutoKeyboard = true;
+        const nativeFocus = HTMLInputElement.prototype.focus;
+        const nativeTextAreaFocus = HTMLTextAreaElement && HTMLTextAreaElement.prototype.focus;
+        let userFocusUntil = 0;
+        document.addEventListener('pointerdown', event => {
+            if (event.target && event.target.closest && event.target.closest('input, textarea, select')) {
+                userFocusUntil = Date.now() + 1200;
+            }
+        }, true);
+        HTMLInputElement.prototype.focus = function(options) {
+            if (Date.now() > userFocusUntil && !window.__vc5635AllowProgramFocus) return;
+            return nativeFocus.call(this, options);
+        };
+        if (nativeTextAreaFocus) {
+            HTMLTextAreaElement.prototype.focus = function(options) {
+                if (Date.now() > userFocusUntil && !window.__vc5635AllowProgramFocus) return;
+                return nativeTextAreaFocus.call(this, options);
+            };
+        }
+        window.vcFocusActiveSearch = function(){};
+        window.__vcAllowSearchFocusUntil = 0;
+    }
+
+    // 2) Checkout reset that runs before/after open and after close. This also
+    // defeats browser value restoration on tablet/PWA.
+    function resetCheckout() {
+        const cash = document.getElementById('cash-input');
+        const customer = document.getElementById('credit-customer');
+        const change = document.getElementById('change-display');
+        if (cash) {
+            cash.value = '';
+            cash.defaultValue = '';
+            cash.setAttribute('autocomplete', 'off');
+            cash.setAttribute('autocorrect', 'off');
+        }
+        if (customer) {
+            customer.value = '';
+            customer.defaultValue = '';
+            customer.setAttribute('autocomplete', 'off');
+        }
+        if (change) change.classList.add('hidden');
+        document.querySelectorAll('#cash-quick-amounts .cash-quick-btn').forEach(btn => btn.classList.remove('vc5634-cash-selected','vc5635-cash-selected'));
+    }
+    window.vc5635ResetCheckout = resetCheckout;
+    if (typeof openReview === 'function') {
+        const previousOpenReview = openReview;
+        openReview = function() {
+            resetCheckout();
+            const result = previousOpenReview.apply(this, arguments);
+            resetCheckout();
+            setTimeout(resetCheckout, 0);
+            setTimeout(resetCheckout, 120);
+            return result;
+        };
+    }
+    if (typeof closeModal === 'function') {
+        const previousCloseModal = closeModal;
+        closeModal = function(id) {
+            const result = previousCloseModal.apply(this, arguments);
+            if (id === 'review-modal') {
+                resetCheckout();
+                setTimeout(resetCheckout, 0);
+            }
+            return result;
+        };
+    }
+    if (typeof setCash === 'function') {
+        const previousSetCash = setCash;
+        setCash = function(v) {
+            document.querySelectorAll('#cash-quick-amounts .cash-quick-btn').forEach(btn => btn.classList.toggle('vc5635-cash-selected', String(btn.dataset.cash) === String(v)));
+            return previousSetCash.apply(this, arguments);
+        };
+    }
+    if (typeof setExact === 'function') {
+        const previousSetExact = setExact;
+        setExact = function() {
+            document.querySelectorAll('#cash-quick-amounts .cash-quick-btn').forEach(btn => btn.classList.toggle('vc5635-cash-selected', btn.dataset.cash === 'exact'));
+            return previousSetExact.apply(this, arguments);
+        };
+    }
+
+    // 3) Faster Stock PIN: show Stock immediately and render once, instead of
+    // going through every old switchScreen wrapper.
+    function showInventoryFast() {
+        document.querySelectorAll('.screen-transition').forEach(s => s.classList.add('hidden'));
+        const screen = document.getElementById('screen-inventory');
+        if (screen) screen.classList.remove('hidden');
+        document.querySelectorAll('.nav-item').forEach(n => {
+            const active = n.dataset.screen === 'inventory';
+            n.classList.toggle('text-primary', active);
+            n.classList.toggle('text-on-surface-variant', !active);
+        });
+        requestAnimationFrame(() => {
+            try { if (typeof renderInventory === 'function') renderInventory(); } catch(e) {}
+            setTimeout(() => { try { if (typeof updateActiveNavigation === 'function') updateActiveNavigation('inventory'); } catch(e) {} }, 0);
+        });
+    }
+    if (typeof validatePin === 'function') {
+        validatePin = function() {
+            const entered = pinBuffer;
+            Promise.resolve(hashPin(entered)).then(hash => {
+                if (hash === STORED_PIN_HASH) {
+                    const target = window._pinTarget;
+                    closeModal('pin-modal');
+                    if (target === 'inventory') showInventoryFast();
+                    else if (target === 'change-pin') openChangePinModal();
+                    else if (target && target.action === 'delete') deleteTransaction(target.id);
+                    showToast('Verified', 'success');
+                } else {
+                    showToast('Incorrect PIN', 'error');
+                    pinBuffer = '';
+                    updatePinDots();
+                }
+            });
+        };
+    }
+    if (typeof pressPin === 'function') {
+        pressPin = function(num) {
+            if (pinBuffer.length < 4) {
+                pinBuffer += num;
+                updatePinDots();
+                if (pinBuffer.length === 4) setTimeout(validatePin, 0);
+            }
+        };
+    }
+
+    // Avoid expensive repeat inventory DOM rebuilds when nothing changed.
+    if (typeof renderInventory === 'function') {
+        const previousRenderInventory = renderInventory;
+        let lastInvSig = '';
+        renderInventory = function(filter = '') {
+            const inv = Array.isArray(state.inventory) ? state.inventory : [];
+            const sig = String(filter || '') + '::' + inv.map(p => [p.id,p.name,p.stock,p.price,p.cost,p.category,p.lowStock].join(':')).join('|');
+            const list = document.getElementById('inventory-list');
+            if (sig === lastInvSig && list && list.innerHTML) return;
+            lastInvSig = sig;
+            return previousRenderInventory.apply(this, arguments);
+        };
+    }
+
+    // 4) Restore Insight activity actions after the stable renderer paints.
+    function renderActivityActions() {
+        const list = document.getElementById('insight-transactions-list');
+        if (!list) return;
+        const tx = getPeriodTx().sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)).slice(0, 10);
+        const html = '<div class="vc560-section-title">Recent Period Activities</div>' + (tx.length ? tx.map(t => {
+            const kind = t.type === 'CR' ? 'credit' : t.type === 'EX' ? 'expense' : isSettlement(t) ? 'payment' : 'cash';
+            const d = new Date(t.timestamp || Date.now());
+            const time = Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            return '<article class="vc5635-activity vc5635-' + kind + '" onclick="viewTxDetails(\'' + js(t.id) + '\')"><div class="vc5635-activity-main"><strong>' + safe(t.id) + '</strong><span>' + safe(time) + '</span></div><div class="vc5635-activity-side"><em>' + peso(t.type === 'EX' ? t.total : amount(t)) + '</em><button type="button" onclick="event.stopPropagation(); viewTxDetails(\'' + js(t.id) + '\')" aria-label="View ' + safe(t.id) + '"><span class="material-symbols-outlined">visibility</span></button></div></article>';
+        }).join('') : '<div class="vc560-empty-state">No activity yet</div>');
+        if (html !== lastActivitiesHTML) {
+            lastActivitiesHTML = html;
+            list.innerHTML = html;
+        }
+    }
+    if (typeof renderInsights === 'function') {
+        const previousRenderInsights = renderInsights;
+        renderInsights = function() {
+            const result = previousRenderInsights.apply(this, arguments);
+            renderActivityActions();
+            keepInsightCardsStable();
+            return result;
+        };
+    }
+    if (typeof switchInsightPeriod === 'function') {
+        const previousSwitchInsightPeriod = switchInsightPeriod;
+        switchInsightPeriod = function(period) {
+            const result = previousSwitchInsightPeriod.apply(this, arguments);
+            setTimeout(() => { renderActivityActions(); keepInsightCardsStable(); }, 0);
+            return result;
+        };
+    }
+
+    // Keep the Sales Trend card from being hidden/recreated by older delayed
+    // renderers, which is the visible flicker users were seeing.
+    function keepInsightCardsStable() {
+        const chart = document.getElementById('sales-chart');
+        if (chart && chart.parentElement) chart.parentElement.classList.remove('hidden');
+        const bd = document.getElementById('business-day-status-card');
+        if (bd) bd.classList.remove('hidden');
+    }
+    const insightsScreen = document.getElementById('screen-insights');
+    if (insightsScreen && !window.__vc5635InsightObserver) {
+        window.__vc5635InsightObserver = true;
+        const observer = new MutationObserver(() => keepInsightCardsStable());
+        observer.observe(insightsScreen, { attributes:true, subtree:true, attributeFilter:['class'] });
+        keepInsightCardsStable();
+    }
+
+    // 5) Foreground cloud freshness. Realtime listeners still handle instant
+    // sync when the browser allows it; this catches PWA/tablet listeners that
+    // silently stop while the app remains open.
+    function pendingIds(table) {
+        try { return new Set((offlineQueue || []).filter(q => q.table === table && q.data && q.data.id).map(q => q.data.id)); }
+        catch(e) { return new Set(); }
+    }
+    function mergeServer(table, serverList, localList) {
+        const pending = pendingIds(table);
+        const merged = new Map();
+        (Array.isArray(serverList) ? serverList : []).forEach(item => { if (item && item.id && !pending.has(item.id)) merged.set(item.id, item); });
+        (Array.isArray(localList) ? localList : []).forEach(item => { if (item && item.id && item._offline && pending.has(item.id)) merged.set(item.id, item); });
+        return Array.from(merged.values());
+    }
+    async function refreshCloud(reason, includeInventory) {
+        if (refreshing || !navigator.onLine || document.visibilityState === 'hidden') return false;
+        if (typeof readCollectionWithFirestoreRest !== 'function') return false;
+        refreshing = true;
+        try {
+            if (db && typeof db.enableNetwork === 'function') {
+                try { await db.enableNetwork(); } catch(e) {}
+            }
+            const reads = includeInventory
+                ? await Promise.all([readCollectionWithFirestoreRest('inventory'), readCollectionWithFirestoreRest('transactions'), readCollectionWithFirestoreRest('businessDays')])
+                : await Promise.all([Promise.resolve(null), readCollectionWithFirestoreRest('transactions'), readCollectionWithFirestoreRest('businessDays')]);
+            const [inventory, transactions, businessDays] = reads;
+            let changed = false;
+            if (includeInventory && inventory) {
+                const before = (state.inventory || []).map(p => p.id + ':' + p.stock).join('|');
+                state.inventory = mergeServer('inventory', inventory, state.inventory || []);
+                const after = (state.inventory || []).map(p => p.id + ':' + p.stock).join('|');
+                changed = changed || before !== after;
+            }
+            if (transactions) {
+                const before = (state.transactions || []).map(t => t.id + ':' + t.total + ':' + t.paid).join('|');
+                state.transactions = mergeServer('transactions', transactions, state.transactions || []).sort((a,b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+                const after = (state.transactions || []).map(t => t.id + ':' + t.total + ':' + t.paid).join('|');
+                changed = changed || before !== after;
+            }
+            if (businessDays) {
+                const before = (state.businessDays || []).map(b => b.id + ':' + b.status).join('|');
+                state.businessDays = mergeServer('businessDays', businessDays, state.businessDays || []);
+                const open = (state.businessDays || []).find(b => b.status === 'OPEN');
+                state.currentBusinessDayId = open ? open.id : state.currentBusinessDayId;
+                const after = (state.businessDays || []).map(b => b.id + ':' + b.status).join('|');
+                changed = changed || before !== after;
+            }
+            try { localStorage.setItem(DB_KEY, JSON.stringify(state)); } catch(e) {}
+            if (changed) {
+                try { if (typeof renderInventory === 'function') renderInventory(); } catch(e) {}
+                try { if (typeof renderFavorites === 'function') renderFavorites(); } catch(e) {}
+                try { if (typeof renderLedger === 'function') renderLedger(); } catch(e) {}
+                try { if (typeof renderInsights === 'function') renderInsights(); } catch(e) {}
+                try { if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar(); } catch(e) {}
+            }
+            try { if (typeof updateSyncUI === 'function') updateSyncUI(); } catch(e) {}
+            return changed;
+        } catch(e) {
+            console.warn('v5.6.35 cloud freshness failed', reason, e);
+            return false;
+        } finally {
+            refreshing = false;
+        }
+    }
+    window.vc5635RefreshNow = function(){ return refreshCloud('manual', true); };
+    function scheduledRefresh(reason, forceInventory) {
+        const now = Date.now();
+        const doTx = now - lastTxRefresh > TX_REFRESH_MS;
+        const doInv = forceInventory || now - lastInventoryRefresh > INVENTORY_REFRESH_MS;
+        if (!doTx && !doInv) return;
+        if (doTx) lastTxRefresh = now;
+        if (doInv) lastInventoryRefresh = now;
+        refreshCloud(reason, doInv);
+    }
+    setInterval(() => scheduledRefresh('foreground-timer', false), 10000);
+    window.addEventListener('focus', () => setTimeout(() => scheduledRefresh('focus', true), 500));
+    window.addEventListener('online', () => setTimeout(() => scheduledRefresh('online', true), 900));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') setTimeout(() => scheduledRefresh('visible', true), 500);
+    });
+
+    setTimeout(() => {
+        resetCheckout();
+        renderActivityActions();
+        keepInsightCardsStable();
+        scheduledRefresh('startup', true);
+    }, 800);
+})();

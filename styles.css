@@ -3602,3 +3602,101 @@
     letter-spacing: .06em;
     box-shadow: 0 12px 24px rgba(5,150,105,.22);
 }
+
+
+/* v5.6.35 device UI sync */
+#review-modal {
+    align-items: flex-end;
+}
+#review-modal > .bg-surface {
+    max-height: 94dvh;
+}
+#review-modal > .bg-surface > .p-6 {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+#confirm-checkout {
+    position: sticky;
+    bottom: .35rem;
+    z-index: 2;
+    box-shadow: 0 18px 34px rgba(37,99,235,.28);
+}
+@media (min-width: 768px) {
+    #review-modal {
+        align-items: center;
+    }
+    #review-modal > .bg-surface {
+        max-height: min(720px, 92dvh);
+    }
+}
+.vc5635-cash-selected {
+    background: #1d4ed8 !important;
+    color: #fff !important;
+    border-color: #1d4ed8 !important;
+}
+#screen-insights .business-day-status-card,
+#screen-insights #business-dashboard-cards,
+#screen-insights #sales-chart,
+#screen-insights #sales-chart + *,
+#screen-insights .vc560-activity,
+#screen-insights .vc5635-activity {
+    transition: none !important;
+    animation: none !important;
+}
+#screen-insights canvas {
+    opacity: 1 !important;
+}
+.vc5635-activity {
+    width: 100%;
+    min-height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid rgba(148,163,184,.24);
+    border-radius: 1.45rem;
+    background: rgba(255,255,255,.86);
+    padding: 1rem 1.1rem;
+    box-shadow: 0 14px 28px rgba(15,23,42,.04);
+    cursor: pointer;
+}
+.vc5635-activity-main strong {
+    display: block;
+    color: #1d4ed8;
+    font-size: 1rem;
+    font-weight: 1000;
+}
+.vc5635-activity-main span {
+    display: block;
+    color: #64748b;
+    font-size: .78rem;
+    font-weight: 850;
+    margin-top: .25rem;
+}
+.vc5635-activity-side {
+    display: inline-flex;
+    align-items: center;
+    gap: .8rem;
+}
+.vc5635-activity-side em {
+    color: #0f172a;
+    font-style: normal;
+    font-size: 1.15rem;
+    font-weight: 1000;
+    white-space: nowrap;
+}
+.vc5635-activity-side button {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 1rem;
+    background: #dbeafe;
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.vc5635-expense .vc5635-activity-side em {
+    color: #dc2626;
+}
