@@ -198,7 +198,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v7.1.1: Inventory is local-first/manual-refresh.
+        // v7.1.2: Inventory is local-first/manual-refresh.
         // Do not keep a full inventory realtime listener open; it reads the
         // whole inventory collection on startup and reconnection. Product
         // add/edit/delete/restock writes still sync automatically through
@@ -379,7 +379,7 @@
     }
 
 
-    // v7.1.1: Auto-sync read scope.
+    // v7.1.2: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -1486,20 +1486,79 @@ function switchScreen(id) {
         ).join('');
     }
 
-    async function shareReceipt() {
-        const tx = state.transactions.find(t => t.id === lastTransactionId); if (!tx) return;
-        const receiptEl = document.getElementById('receipt-content'); if (!receiptEl) return;
-        const shareBtn = document.getElementById('share-receipt-btn'); const originalBtnHtml = shareBtn.innerHTML;
-        shareBtn.disabled = true; shareBtn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Processing...`;
-        try {
-            const canvas = await html2canvas(receiptEl, { scale: 2, backgroundColor: "#ffffff" });
-            canvas.toBlob(async (blob) => {
-                if (!blob) throw new Error(); const fileName = `Villacart_Receipt_${tx.id}.png`; const file = new File([blob], fileName, { type: 'image/png' });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: `Receipt ${tx.id}` }); showToast("Shared", "success"); }
-                else { const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = fileName; link.click(); URL.revokeObjectURL(url); showToast("Downloaded", "info"); }
-                shareBtn.disabled = false; shareBtn.innerHTML = originalBtnHtml;
+    function canvasToPngBlob(canvas) {
+        return new Promise((resolve, reject) => {
+            if (!canvas || typeof canvas.toBlob !== 'function') {
+                reject(new Error('Receipt image could not be created.'));
+                return;
+            }
+            canvas.toBlob(blob => {
+                if (blob) resolve(blob);
+                else reject(new Error('Receipt image is empty.'));
             }, 'image/png');
-        } catch (e) { shareBtn.disabled = false; shareBtn.innerHTML = originalBtnHtml; showToast("Error", "error"); }
+        });
+    }
+
+    function downloadBlob(blob, fileName) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function shareReceipt() {
+        const tx = state.transactions.find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
+        if (!tx) { showToast('Receipt not found', 'error'); return; }
+        const receiptEl = document.getElementById('receipt-content');
+        if (!receiptEl) { showToast('Receipt not ready', 'error'); return; }
+        const shareBtn = document.getElementById('share-receipt-btn');
+        const originalBtnHtml = shareBtn ? shareBtn.innerHTML : '';
+        if (shareBtn) {
+            shareBtn.disabled = true;
+            shareBtn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Processing...`;
+        }
+        try {
+            if (typeof html2canvas !== 'function') throw new Error('Image tool not loaded.');
+            const canvas = await html2canvas(receiptEl, {
+                scale: Math.min(2, window.devicePixelRatio || 2),
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false
+            });
+            const blob = await canvasToPngBlob(canvas);
+            const fileName = `Villacart_Receipt_${tx.id}.png`;
+            const canShareFile = typeof File === 'function' && navigator.share && navigator.canShare;
+            if (canShareFile) {
+                const file = new File([blob], fileName, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({ files: [file], title: `Receipt ${tx.id}`, text: `Villacart receipt ${tx.id}` });
+                        showToast('Shared', 'success');
+                        return;
+                    } catch (shareError) {
+                        if (shareError && shareError.name === 'AbortError') {
+                            showToast('Share cancelled', 'info');
+                            return;
+                        }
+                    }
+                }
+            }
+            downloadBlob(blob, fileName);
+            showToast('Receipt image downloaded', 'success');
+        } catch (error) {
+            console.error('Share receipt failed:', error);
+            showToast('Could not create image', 'error');
+        } finally {
+            if (shareBtn) {
+                shareBtn.disabled = false;
+                shareBtn.innerHTML = originalBtnHtml;
+            }
+        }
     }
 
     function exportSalesCSV() {
@@ -5062,9 +5121,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v7.1.1 cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v7.1.2 cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v7.1.1 renderer below.
+    // active renderer is the single v7.1.2 renderer below.
 })();
 
 
@@ -5308,7 +5367,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            // v7.1.1: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
+            // v7.1.2: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5590,7 +5649,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v7.1.1: Credit must never use date grouping. This keeps phone,
+        // v7.1.2: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -5837,7 +5896,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.1.1: tablet/landscape payment modal reset polish.
+// v7.1.2: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5900,7 +5959,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.1 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.1.2 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -5928,7 +5987,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.1 Insights Business Day card flicker guard.
+// v7.1.2 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -5977,7 +6036,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.1: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.1.2: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6070,7 +6129,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.1: Correct Cash Received and default Ledger to Today.
+// v7.1.2: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6148,7 +6207,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.1: Inventory cloud reconcile.
+// v7.1.2: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6233,10 +6292,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v7.1.1: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.1.2: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
 
 
-// v7.1.1: Calendar-month backup/archive. Inventory is never archived/deleted.
+// v7.1.2: Calendar-month backup/archive. Inventory is never archived/deleted.
 (function(){
     if (window.__vc710CalendarArchive) return;
     window.__vc710CalendarArchive = true;
@@ -6317,7 +6376,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v7.1.1',
+                backupVersion: 'v7.1.2',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
