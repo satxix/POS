@@ -389,7 +389,7 @@
     }
 
 
-    // v5.6.32q: Auto-sync read scope.
+    // v5.6.32r: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -4876,8 +4876,8 @@ document.addEventListener('DOMContentLoaded',()=>{
                     <input id="vc5629-ledger-search" type="search" placeholder="Search transaction, customer, notes..." autocomplete="off">
                 </label>
                 <select id="vc5629-ledger-date">
+                    <option value="today" selected>Today only</option>
                     <option value="all">All dates</option>
-                    <option value="today">Today only</option>
                 </select>
             `;
             const anchor = tabs || summary;
@@ -4958,9 +4958,9 @@ document.addEventListener('DOMContentLoaded',()=>{
                         <h3>${vc5629Text(name)}</h3>
                         <p>${data.items.length} pending ticket(s)</p>
                     </div>
-                    <strong>${vc5629Peso(data.total)}</strong>
+                    <div class="vc5632-credit-head-actions"><strong>${vc5629Peso(data.total)}</strong><button type="button" onclick="payFullBalance('${vc5629Js(name)}')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button></div>
                 </div>
-                <button type="button" onclick="payFullBalance('${vc5629Js(name)}')" class="vc5629-pay-full">Pay Full Balance</button>
+                <button type="button" onclick="payFullBalance('${vc5629Js(name)}')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>
                 <div class="vc5629-credit-list">
                     ${data.items.map(t => `
                         <div class="vc5629-credit-ticket">
@@ -5608,9 +5608,10 @@ document.addEventListener('DOMContentLoaded',()=>{
                 return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
                     '<div class="vc5629-credit-head">' +
                         '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + ' pending ticket(s)</p></div>' +
-                        '<strong>' + vc5632Peso(group.total) + '</strong>' +
+                        '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong>' +
+                        '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button></div>' +
                     '</div>' +
-                    '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full">Pay Full Balance</button>' +
+                    '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>' +
                     '<div class="vc5629-credit-list">' +
                         group.items.map(t => vc5632TxCard(t, 'credit')).join('') +
                     '</div>' +
@@ -5795,7 +5796,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32q: tablet/landscape payment modal reset polish.
+// v5.6.32r: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5858,7 +5859,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32q Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v5.6.32r Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -5886,7 +5887,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32q Insights Business Day card flicker guard.
+// v5.6.32r Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -5935,7 +5936,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32q: Today-first auto sync + on-demand Month/Range cloud loads.
+// v5.6.32r: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6028,7 +6029,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32q: Correct Cash Received and default Ledger to Today.
+// v5.6.32r: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6116,7 +6117,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32q: Inventory cloud reconcile.
+// v5.6.32r: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6185,4 +6186,45 @@ document.addEventListener('DOMContentLoaded',()=>{
             setTimeout(() => reconcileInventoryFromCloud('visible'), 1200);
         }
     });
+})();
+
+
+// v5.6.32r: Ledger defaults to Today and phone-visible Pay Full fallback.
+(function(){
+    if (window.__vc5632rLedgerTodayAndPhonePayFull) return;
+    window.__vc5632rLedgerTodayAndPhonePayFull = true;
+
+    function defaultLedgerToday() {
+        const select = document.getElementById('vc5629-ledger-date');
+        if (select && !select.dataset.vcUserPickedDate) {
+            select.value = 'today';
+        }
+    }
+
+    document.addEventListener('change', function(event) {
+        if (event.target && event.target.id === 'vc5629-ledger-date') {
+            event.target.dataset.vcUserPickedDate = '1';
+        }
+    }, true);
+
+    const oldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
+    if (oldRenderLedger) {
+        renderLedger = function() {
+            defaultLedgerToday();
+            const result = oldRenderLedger.apply(this, arguments);
+            defaultLedgerToday();
+            return result;
+        };
+    }
+
+    const oldSwitchLedgerTab = typeof switchLedgerTab === 'function' ? switchLedgerTab : null;
+    if (oldSwitchLedgerTab) {
+        switchLedgerTab = function(tab) {
+            const result = oldSwitchLedgerTab.apply(this, arguments);
+            defaultLedgerToday();
+            return result;
+        };
+    }
+
+    setTimeout(defaultLedgerToday, 250);
 })();

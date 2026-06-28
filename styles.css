@@ -3533,3 +3533,42 @@
         font-size: 1.1rem;
     }
 }
+
+
+/* v5.6.32r: phone-visible credit Pay Full button */
+.vc5632-credit-head-actions {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.vc5632-pay-full-inline {
+    display: none;
+    min-height: 40px;
+    padding: 0 .95rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    white-space: nowrap;
+}
+.vc5632-pay-full-block {
+    display: block;
+}
+@media (max-width: 760px) {
+    .vc5629-credit-head {
+        align-items: flex-start;
+    }
+    .vc5632-credit-head-actions {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: .45rem;
+    }
+    .vc5632-pay-full-inline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .vc5632-pay-full-block {
+        display: none;
+    }
+}
