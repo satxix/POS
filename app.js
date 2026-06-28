@@ -389,7 +389,7 @@
     }
 
 
-    // v5.6.32r: Auto-sync read scope.
+    // v5.6.32s: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -5796,7 +5796,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32r: tablet/landscape payment modal reset polish.
+// v5.6.32s: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5859,7 +5859,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32r Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v5.6.32s Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -5887,7 +5887,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32r Insights Business Day card flicker guard.
+// v5.6.32s Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -5936,7 +5936,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32r: Today-first auto sync + on-demand Month/Range cloud loads.
+// v5.6.32s: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6029,7 +6029,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32r: Correct Cash Received and default Ledger to Today.
+// v5.6.32s: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6117,7 +6117,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32r: Inventory cloud reconcile.
+// v5.6.32s: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6189,7 +6189,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32r: Ledger defaults to Today and phone-visible Pay Full fallback.
+// v5.6.32s: Ledger defaults to Today and phone-visible Pay Full fallback.
 (function(){
     if (window.__vc5632rLedgerTodayAndPhonePayFull) return;
     window.__vc5632rLedgerTodayAndPhonePayFull = true;
@@ -6227,4 +6227,64 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     setTimeout(defaultLedgerToday, 250);
+})();
+
+
+// v5.6.32s: Force Credit ledger to customer groups on every device.
+// This prevents the mobile/date-group renderer from showing individual credit
+// tickets without the customer-level Pay Full Balance action.
+(function(){
+    if (window.__vc5632sForceCreditCustomerGroups) return;
+    window.__vc5632sForceCreditCustomerGroups = true;
+
+    function renderCreditCustomersOnly() {
+        try {
+            if ((activeLedgerTab || 'cash') !== 'credit') return false;
+            const content = document.getElementById('ledger-content');
+            const summary = document.getElementById('ledger-summary-container');
+            if (!content || !summary || typeof vc5632RenderCreditCustomers !== 'function') return false;
+            const tx = Array.isArray(state.transactions) ? state.transactions : [];
+            let list = tx.filter(t => t && t.type === 'CR' && !t.paid);
+            if (typeof vc5632Filtered === 'function') list = vc5632Filtered(list);
+            const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
+            const customers = new Set(list.map(t => String(t.customer || 'Guest').trim().toLowerCase() || 'guest'));
+            if (typeof vc5632SummaryCard === 'function' && typeof vc5632Peso === 'function') {
+                summary.innerHTML =
+                    vc5632SummaryCard('Outstanding Credit', vc5632Peso(total), 'Unpaid balance', 'orange') +
+                    vc5632SummaryCard('Customers', String(customers.size), 'With balance', 'purple') +
+                    vc5632SummaryCard('Credit Tickets', String(list.length), 'Pending tickets', 'blue');
+            }
+            content.classList.remove('vc5632-ledger-date-list');
+            content.classList.add('vc5632-credit-customer-list');
+            content.innerHTML = vc5632RenderCreditCustomers(list);
+            return true;
+        } catch (error) {
+            console.warn('Credit customer force render skipped', error);
+            return false;
+        }
+    }
+
+    const oldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
+    if (oldRenderLedger) {
+        renderLedger = function() {
+            const result = oldRenderLedger.apply(this, arguments);
+            renderCreditCustomersOnly();
+            return result;
+        };
+    }
+
+    const oldSwitchLedgerTab = typeof switchLedgerTab === 'function' ? switchLedgerTab : null;
+    if (oldSwitchLedgerTab) {
+        switchLedgerTab = function(tab) {
+            const result = oldSwitchLedgerTab.apply(this, arguments);
+            if (tab === 'credit') {
+                renderCreditCustomersOnly();
+                setTimeout(renderCreditCustomersOnly, 50);
+            }
+            return result;
+        };
+    }
+
+    window.vc5632sRenderCreditCustomersOnly = renderCreditCustomersOnly;
+    setTimeout(renderCreditCustomersOnly, 350);
 })();

@@ -3535,7 +3535,7 @@
 }
 
 
-/* v5.6.32r: phone-visible credit Pay Full button */
+/* v5.6.32s: phone-visible credit Pay Full button */
 .vc5632-credit-head-actions {
     display: flex;
     align-items: center;
@@ -3570,5 +3570,20 @@
     }
     .vc5632-pay-full-block {
         display: none;
+    }
+}
+
+
+/* v5.6.32s: Credit ledger customer groups on phone/tablet */
+.vc5632-credit-customer-list {
+    display: grid;
+    gap: 1rem;
+}
+@media (max-width: 760px) {
+    .vc5632-credit-customer-list {
+        grid-template-columns: 1fr;
+    }
+    .vc5632-credit-customer-list .vc5629-credit-group {
+        min-height: 0;
     }
 }
