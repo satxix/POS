@@ -214,7 +214,14 @@
             updateSyncUI();
         });
 
-        transactionsUnsubscribe = db.collection('transactions').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
+        const vc5632lBounds = typeof vc5632mTodayBounds === 'function' ? vc5632mTodayBounds() : (typeof vc5632lMonthBounds === 'function' ? vc5632lMonthBounds() : null);
+        let vc5632lTxQuery = db.collection('transactions');
+        if (vc5632lBounds) {
+            vc5632lTxQuery = vc5632lTxQuery
+                .where('businessDate', '>=', vc5632lBounds.start)
+                .where('businessDate', '<=', vc5632lBounds.end);
+        }
+        transactionsUnsubscribe = vc5632lTxQuery.onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
             // Only hide a transaction while its delete request is still queued.
             // A permanent local "deleted IDs" list hid real Firestore records
             // (for example SA-260626-009) after a failed delete.
@@ -234,6 +241,9 @@
             filteredCloudTrans.forEach(t => mergedMap.set(t.id, t));
             activeOfflineTrans.forEach(t => mergedMap.set(t.id, t));
             
+            (state.transactions || [])
+                .filter(t => t && t.id && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, vc5632lBounds))
+                .forEach(t => mergedMap.set(t.id, t));
             state.transactions = Array.from(mergedMap.values()).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
             updateLastSyncedTime();
@@ -249,21 +259,31 @@
             updateSyncUI();
         });
 
-        businessDaysUnsubscribe = db.collection('businessDays').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
+        const vc5632pDayBounds = typeof vc5632mTodayBounds === 'function' ? vc5632mTodayBounds() : null;
+        let vc5632pBusinessDaysQuery = db.collection('businessDays');
+        if (vc5632pDayBounds) {
+            vc5632pBusinessDaysQuery = vc5632pBusinessDaysQuery
+                .where('date', '>=', vc5632pDayBounds.start)
+                .where('date', '<=', vc5632pDayBounds.end);
+        }
+        businessDaysUnsubscribe = vc5632pBusinessDaysQuery.onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
             const cloudDays = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const offlineIds = new Set(offlineQueue.filter(q => q.table === 'businessDays').map(q => q.data.id));
 
-            // v5.6.1: Preserve local business-day records while Firestore catches up.
-            // The first transaction can create a local business day before the cloud snapshot returns it.
-            // If we replace state.businessDays with an empty/stale cloud snapshot, the UI shows "No active business day".
+            // Preserve local older days and pending/offline day changes. The
+            // realtime listener is scoped to today; Month/Range loads older days
+            // on demand together with their transactions.
             const localDays = Array.isArray(state.businessDays) ? state.businessDays : [];
             const merged = new Map();
             localDays.forEach(bd => { if (bd && bd.id) merged.set(bd.id, bd); });
-            cloudDays.forEach(bd => { if (bd && bd.id) merged.set(bd.id, bd); });
+            cloudDays
+                .filter(bd => bd && bd.id && !offlineIds.has(bd.id))
+                .forEach(bd => merged.set(bd.id, bd));
 
             state.businessDays = Array.from(merged.values());
+            const today = vc5632pDayBounds ? vc5632pDayBounds.start : new Date().toISOString().slice(0, 10);
             const open = state.businessDays
-                .filter(bd => bd.status === 'OPEN')
+                .filter(bd => bd && bd.status === 'OPEN' && (bd.date === today || !bd.date))
                 .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0))[0];
             state.currentBusinessDayId = open ? open.id : null;
             sync();
@@ -282,10 +302,21 @@
 
     async function hydrateInitialStateFromRest() {
         try {
+            const bounds = typeof vc5632mTodayBounds === 'function' ? vc5632mTodayBounds() : (typeof vc5632lMonthBounds === 'function' ? vc5632lMonthBounds() : null);
             const [inventory, transactions, businessDays] = await Promise.all([
                 readCollectionWithFirestoreRest('inventory'),
-                readCollectionWithFirestoreRest('transactions'),
-                readCollectionWithFirestoreRest('businessDays')
+                bounds && typeof queryCollectionWithFirestoreRest === 'function'
+                    ? queryCollectionWithFirestoreRest('transactions', [
+                        { field: 'businessDate', op: 'GREATER_THAN_OR_EQUAL', value: bounds.start },
+                        { field: 'businessDate', op: 'LESS_THAN_OR_EQUAL', value: bounds.end }
+                    ], 500)
+                    : readCollectionWithFirestoreRest('transactions'),
+                bounds && typeof queryCollectionWithFirestoreRest === 'function'
+                    ? queryCollectionWithFirestoreRest('businessDays', [
+                        { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: bounds.start },
+                        { field: 'date', op: 'LESS_THAN_OR_EQUAL', value: bounds.end }
+                    ], 80)
+                    : readCollectionWithFirestoreRest('businessDays')
             ]);
 
             const pending = (table) => new Set(offlineQueue.filter(task => task.table === table && task.data && task.data.id).map(task => task.data.id));
@@ -297,9 +328,13 @@
             };
 
             state.inventory = merge(inventory, state.inventory || [], 'inventory');
-            state.transactions = merge(transactions, state.transactions || [], 'transactions')
+            const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
+            const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
+            state.transactions = [...merge(transactions, state.transactions || [], 'transactions'), ...localOldTransactions]
+                .filter((item, idx, arr) => item && item.id && arr.findIndex(other => other && other.id === item.id) === idx)
                 .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-            state.businessDays = merge(businessDays, state.businessDays || [], 'businessDays');
+            state.businessDays = [...merge(businessDays, state.businessDays || [], 'businessDays'), ...localOldBusinessDays]
+                .filter((item, idx, arr) => item && item.id && arr.findIndex(other => other && other.id === item.id) === idx);
             const openDay = state.businessDays.find(day => day.status === 'OPEN');
             state.currentBusinessDayId = openDay ? openDay.id : null;
 
@@ -353,6 +388,49 @@
         if (tsEl) tsEl.innerText = `Today • ${dateText} • Last Synced: ${timeStr}`;
     }
 
+
+    // v5.6.32p: Auto-sync read scope.
+    // Keep automatic sync, but avoid re-reading old transaction history forever.
+    function vc5632lDateCode(value = new Date()) {
+        const d = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function vc5632lMonthBounds(value = new Date()) {
+        const d = value instanceof Date ? value : new Date(value);
+        const start = new Date(d.getFullYear(), d.getMonth(), 1);
+        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        return { start: vc5632lDateCode(start), end: vc5632lDateCode(end) };
+    }
+
+    function vc5632lTransactionDate(tx) {
+        return tx && (tx.businessDate || (tx.timestamp ? vc5632lDateCode(tx.timestamp) : ''));
+    }
+
+    function vc5632lInCurrentMonth(tx) {
+        const bounds = vc5632lMonthBounds();
+        const d = vc5632lTransactionDate(tx);
+        return !!d && d >= bounds.start && d <= bounds.end;
+    }
+
+    function vc5632lBusinessDayInScope(day) {
+        const bounds = vc5632lMonthBounds();
+        const d = day && (day.date || (day.openedAt ? vc5632lDateCode(day.openedAt) : ''));
+        return !!d && d >= bounds.start && d <= bounds.end;
+    }
+
+    function vc5632mTodayBounds() {
+        const today = vc5632lDateCode(new Date());
+        return { start: today, end: today };
+    }
+
+    function vc5632mInDateRange(item, bounds) {
+        if (!bounds) return true;
+        const d = item && (item.businessDate || item.date || (item.timestamp ? vc5632lDateCode(item.timestamp) : ''));
+        return !!d && d >= bounds.start && d <= bounds.end;
+    }
+
     function sync() { 
         localStorage.setItem(DB_KEY, JSON.stringify(state)); 
         localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
@@ -403,6 +481,42 @@
             id: document.name.split('/').pop(),
             ...Object.fromEntries(Object.entries(document.fields || {}).map(([key, value]) => [key, firestoreRestToValue(value)]))
         }));
+    }
+
+
+    async function queryCollectionWithFirestoreRest(collection, filters = [], limit = 500) {
+        const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(firebaseConfig.projectId)}/databases/(default)/documents:runQuery?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
+        const fieldFilters = filters.map(filter => ({
+            fieldFilter: {
+                field: { fieldPath: filter.field },
+                op: filter.op,
+                value: firestoreRestValue(filter.value)
+            }
+        }));
+        const where = fieldFilters.length === 0 ? undefined
+            : fieldFilters.length === 1 ? fieldFilters[0]
+            : { compositeFilter: { op: 'AND', filters: fieldFilters } };
+        const body = {
+            structuredQuery: {
+                from: [{ collectionId: collection }],
+                ...(where ? { where } : {}),
+                limit
+            }
+        };
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error(`Firestore query REST ${response.status}: ${(await response.text()).slice(0, 240)}`);
+        const payload = await response.json();
+        return payload
+            .map(row => row.document)
+            .filter(Boolean)
+            .map(document => ({
+                id: document.name.split('/').pop(),
+                ...Object.fromEntries(Object.entries(document.fields || {}).map(([key, value]) => [key, firestoreRestToValue(value)]))
+            }));
     }
 
     async function syncTaskWithFirestoreRest(task) {
@@ -4779,7 +4893,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     function vc5629Filters(list) {
         const q = String(document.getElementById('vc5629-ledger-search')?.value || '').trim().toLowerCase();
-        const dateMode = document.getElementById('vc5629-ledger-date')?.value || 'all';
+        const dateMode = document.getElementById('vc5629-ledger-date')?.value || 'today';
         let filtered = Array.isArray(list) ? list.slice() : [];
         if (dateMode === 'today') filtered = filtered.filter(vc5629IsToday);
         if (q) {
@@ -4884,7 +4998,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             if (tab === 'cash') {
                 list = vc5629Filters(tx.filter(t => t && (t.type === 'SA' || vc5629IsSettlement(t))));
                 const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
-                const cashReceived = list.reduce((sum, t) => sum + Number(t.cashReceived != null ? t.cashReceived : t.total || 0), 0);
+                const cashReceived = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
                 summaryHtml =
                     vc5629SummaryCard('Total Cash Sales', vc5629Peso(total), 'Cash sales and payments', 'blue') +
                     vc5629SummaryCard('Cash Received', vc5629Peso(cashReceived), 'Collected amount', 'green') +
@@ -5153,17 +5267,32 @@ document.addEventListener('DOMContentLoaded',()=>{
         vc5631Reconciling = true;
         vc5631LastAt = now;
         try {
+            const bounds = typeof vc5632mTodayBounds === 'function' ? vc5632mTodayBounds() : (typeof vc5632lMonthBounds === 'function' ? vc5632lMonthBounds() : null);
             const [inventory, transactions, businessDays] = await Promise.all([
                 readCollectionWithFirestoreRest('inventory'),
-                readCollectionWithFirestoreRest('transactions'),
-                readCollectionWithFirestoreRest('businessDays')
+                bounds && typeof queryCollectionWithFirestoreRest === 'function'
+                    ? queryCollectionWithFirestoreRest('transactions', [
+                        { field: 'businessDate', op: 'GREATER_THAN_OR_EQUAL', value: bounds.start },
+                        { field: 'businessDate', op: 'LESS_THAN_OR_EQUAL', value: bounds.end }
+                    ], 500)
+                    : readCollectionWithFirestoreRest('transactions'),
+                bounds && typeof queryCollectionWithFirestoreRest === 'function'
+                    ? queryCollectionWithFirestoreRest('businessDays', [
+                        { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: bounds.start },
+                        { field: 'date', op: 'LESS_THAN_OR_EQUAL', value: bounds.end }
+                    ], 80)
+                    : readCollectionWithFirestoreRest('businessDays')
             ]);
 
             state.inventory = vc5631MergeServer('inventory', inventory, state.inventory || [])
                 .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
-            state.transactions = vc5631MergeServer('transactions', transactions, state.transactions || [])
+            const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
+            const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
+            state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
+                .filter((item, idx, arr) => item && item.id && arr.findIndex(other => other && other.id === item.id) === idx)
                 .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-            state.businessDays = vc5631MergeServer('businessDays', businessDays, state.businessDays || []);
+            state.businessDays = [...vc5631MergeServer('businessDays', businessDays, state.businessDays || []), ...localOldBusinessDays]
+                .filter((item, idx, arr) => item && item.id && arr.findIndex(other => other && other.id === item.id) === idx);
 
             const openDay = (state.businessDays || [])
                 .filter(day => day && day.status === 'OPEN')
@@ -5375,7 +5504,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             const tools = document.createElement('div');
             tools.id = 'vc5629-ledger-tools';
             tools.className = 'vc5629-ledger-tools';
-            tools.innerHTML = '<label class="vc5629-search"><span class="material-symbols-outlined">search</span><input id="vc5629-ledger-search" type="search" placeholder="Search transaction, customer, notes..." autocomplete="off"></label><select id="vc5629-ledger-date"><option value="all">All dates</option><option value="today">Today only</option></select>';
+            tools.innerHTML = '<label class="vc5629-search"><span class="material-symbols-outlined">search</span><input id="vc5629-ledger-search" type="search" placeholder="Search transaction, customer, notes..." autocomplete="off"></label><select id="vc5629-ledger-date"><option value="today" selected>Today only</option><option value="all">All dates</option></select>';
             (tabs || summary).insertAdjacentElement('afterend', tools);
             tools.querySelectorAll('input, select').forEach(el => {
                 el.addEventListener('input', () => renderLedger());
@@ -5389,7 +5518,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     function vc5632Filtered(list) {
         const q = String(document.getElementById('vc5629-ledger-search')?.value || '').trim().toLowerCase();
-        const mode = document.getElementById('vc5629-ledger-date')?.value || 'all';
+        const mode = document.getElementById('vc5629-ledger-date')?.value || 'today';
         const todayKey = vc5632DateKey({ timestamp: new Date().toISOString() });
         let out = (Array.isArray(list) ? list : []).slice();
         if (mode === 'today') out = out.filter(t => vc5632DateKey(t) === todayKey);
@@ -5504,7 +5633,10 @@ document.addEventListener('DOMContentLoaded',()=>{
                 if (tab === 'cash') {
                     list = vc5632Filtered(tx.filter(t => t && (t.type === 'SA' || vc5632IsSettlement(t))));
                     const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
-                    const cash = list.reduce((sum, t) => sum + Number(t.cashReceived != null ? t.cashReceived : t.total || 0), 0);
+                    const cash = list.reduce((sum, t) => {
+                        if (!t) return sum;
+                        return sum + Number(t.total || 0);
+                    }, 0);
                     summary.innerHTML = vc5632SummaryCard('Total Cash Sales', vc5632Peso(total), 'Cash sales and payments', 'blue') + vc5632SummaryCard('Cash Received', vc5632Peso(cash), 'Collected amount', 'green') + vc5632SummaryCard('Transactions', String(list.length), 'Matching records', 'purple');
                     kind = 'cash';
                 } else if (tab === 'credit') {
@@ -5663,7 +5795,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32k: tablet/landscape payment modal reset polish.
+// v5.6.32p: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5726,7 +5858,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32k Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v5.6.32p Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -5754,7 +5886,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32k Insights Business Day card flicker guard.
+// v5.6.32p Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -5800,4 +5932,185 @@ document.addEventListener('DOMContentLoaded',()=>{
             return result;
         };
     }
+})();
+
+
+// v5.6.32p: Today-first auto sync + on-demand Month/Range cloud loads.
+(function(){
+    if (window.__vc5632mOnDemandPeriodLoads) return;
+    window.__vc5632mOnDemandPeriodLoads = true;
+
+    const loadedRanges = {};
+    let loadingKey = '';
+
+    function mergeById(local, incoming) {
+        const map = new Map();
+        (Array.isArray(local) ? local : []).forEach(item => { if (item && item.id) map.set(item.id, item); });
+        (Array.isArray(incoming) ? incoming : []).forEach(item => {
+            if (!item || !item.id) return;
+            const pending = Array.isArray(offlineQueue) && offlineQueue.some(task => task && task.data && task.data.id === item.id);
+            if (!pending) map.set(item.id, item);
+        });
+        return Array.from(map.values());
+    }
+
+    function currentRangeForPeriod(period) {
+        if (period === 'month' && typeof vc5632lMonthBounds === 'function') return vc5632lMonthBounds();
+        if (period === 'range') {
+            const start = document.getElementById('insight-start-date')?.value;
+            const end = document.getElementById('insight-end-date')?.value;
+            if (start && end) return { start, end };
+        }
+        return null;
+    }
+
+    async function loadPeriodFromCloud(period, reason) {
+        if (!navigator.onLine || typeof queryCollectionWithFirestoreRest !== 'function') return false;
+        const bounds = currentRangeForPeriod(period);
+        if (!bounds) return false;
+        const key = period + ':' + bounds.start + ':' + bounds.end;
+        const now = Date.now();
+        if (loadingKey === key) return false;
+        if (loadedRanges[key] && now - loadedRanges[key] < 5 * 60 * 1000) return false;
+        loadingKey = key;
+        try {
+            const [transactions, businessDays] = await Promise.all([
+                queryCollectionWithFirestoreRest('transactions', [
+                    { field: 'businessDate', op: 'GREATER_THAN_OR_EQUAL', value: bounds.start },
+                    { field: 'businessDate', op: 'LESS_THAN_OR_EQUAL', value: bounds.end }
+                ], 1500),
+                queryCollectionWithFirestoreRest('businessDays', [
+                    { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: bounds.start },
+                    { field: 'date', op: 'LESS_THAN_OR_EQUAL', value: bounds.end }
+                ], 120)
+            ]);
+            state.transactions = mergeById(state.transactions || [], transactions)
+                .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            state.businessDays = mergeById(state.businessDays || [], businessDays);
+            loadedRanges[key] = Date.now();
+            if (typeof sync === 'function') sync();
+            if (typeof renderLedger === 'function') renderLedger();
+            if (typeof renderInsights === 'function') renderInsights();
+            if (typeof updateSyncUI === 'function') updateSyncUI();
+            return true;
+        } catch (error) {
+            console.warn('Insights period cloud load failed', reason, error);
+            syncErrorMsg = error.message || String(error);
+            if (typeof updateSyncUI === 'function') updateSyncUI();
+            return false;
+        } finally {
+            loadingKey = '';
+        }
+    }
+
+    const oldSwitchInsightPeriod = typeof switchInsightPeriod === 'function' ? switchInsightPeriod : null;
+    if (oldSwitchInsightPeriod) {
+        switchInsightPeriod = function(period) {
+            const result = oldSwitchInsightPeriod.apply(this, arguments);
+            if (period === 'month' || period === 'range') {
+                setTimeout(() => loadPeriodFromCloud(period, 'switchInsightPeriod'), 50);
+            }
+            return result;
+        };
+    }
+
+    ['insight-start-date', 'insight-end-date'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', () => {
+            if (typeof insightPeriod !== 'undefined' && insightPeriod === 'range') {
+                loadPeriodFromCloud('range', 'range-date-change');
+            }
+        });
+    });
+
+    window.vc5632mLoadInsightPeriodFromCloud = loadPeriodFromCloud;
+})();
+
+
+// v5.6.32p: Correct Cash Received and default Ledger to Today.
+(function(){
+    if (window.__vc5632nCashReceivedAndLedgerDefault) return;
+    window.__vc5632nCashReceivedAndLedgerDefault = true;
+
+    function isSettlement(tx) {
+        if (!tx) return false;
+        const notes = String(tx.notes || '').toUpperCase();
+        const id = String(tx.id || '').toUpperCase();
+        return !!(
+            tx.settlementFor ||
+            tx.creditRef ||
+            tx.relatedCreditId ||
+            notes.includes('CR-') ||
+            notes.includes('PARTIAL:') ||
+            notes.includes('SETTLEMENT') ||
+            notes.includes('PAID CREDIT') ||
+            (id.startsWith('SA-') && notes.includes('CR-'))
+        );
+    }
+
+    function periodTransactions() {
+        if (typeof vc531PeriodTransactions === 'function') {
+            try { return vc531PeriodTransactions(); } catch (_) {}
+        }
+        if (typeof getPeriodTransactions === 'function') {
+            try { return getPeriodTransactions(); } catch (_) {}
+        }
+        return Array.isArray(state.transactions) ? state.transactions : [];
+    }
+
+    function cashReceivedForPeriod() {
+        const tx = (periodTransactions() || []).filter(t => t && t.id);
+        const cashSales = tx
+            .filter(t => t.type === 'SA' && !isSettlement(t) && t.paid !== false)
+            .reduce((sum, t) => sum + Number(t.total || 0), 0);
+        const collections = tx
+            .filter(isSettlement)
+            .reduce((sum, t) => sum + Number(t.total || t.cashReceived || 0), 0);
+        return cashSales + collections;
+    }
+
+    function peso(value) {
+        return '₱' + (Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function correctCashReceivedCard() {
+        const el = document.getElementById('biz-cash-in');
+        if (!el) return;
+        const value = peso(cashReceivedForPeriod());
+        if (el.innerText !== value) el.innerText = value;
+    }
+
+    function defaultLedgerDateToToday() {
+        const select = document.getElementById('vc5629-ledger-date');
+        if (!select) return;
+        if (!select.dataset.vcDefaultedToday) {
+            select.value = 'today';
+            select.dataset.vcDefaultedToday = '1';
+        }
+    }
+
+    const oldRenderInsights = typeof renderInsights === 'function' ? renderInsights : null;
+    if (oldRenderInsights) {
+        renderInsights = function() {
+            const result = oldRenderInsights.apply(this, arguments);
+            correctCashReceivedCard();
+            return result;
+        };
+    }
+
+    const oldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
+    if (oldRenderLedger) {
+        renderLedger = function() {
+            defaultLedgerDateToToday();
+            const result = oldRenderLedger.apply(this, arguments);
+            defaultLedgerDateToToday();
+            return result;
+        };
+    }
+
+    setTimeout(function(){
+        defaultLedgerDateToToday();
+        correctCashReceivedCard();
+    }, 300);
 })();
