@@ -389,7 +389,7 @@
     }
 
 
-    // v5.6.32t: Auto-sync read scope.
+    // v5.6.32u: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -4981,9 +4981,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v5.6.32t cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v5.6.32u cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v5.6.32t renderer below.
+    // active renderer is the single v5.6.32u renderer below.
 })();
 
 
@@ -5502,6 +5502,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
+        // v5.6.32u: Credit must never use date grouping. This keeps phone,
+        // tablet, and any legacy caller on the customer-group Credit renderer.
+        if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
+            return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
+        }
         if (!list.length) {
             return '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No records</strong><p>Try another tab, date, or search.</p></div>';
         }
@@ -5741,7 +5746,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32t: tablet/landscape payment modal reset polish.
+// v5.6.32u: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5804,7 +5809,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32t Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v5.6.32u Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -5832,7 +5837,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32t Insights Business Day card flicker guard.
+// v5.6.32u Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -5881,7 +5886,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32t: Today-first auto sync + on-demand Month/Range cloud loads.
+// v5.6.32u: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -5974,7 +5979,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32t: Correct Cash Received and default Ledger to Today.
+// v5.6.32u: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6052,7 +6057,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32t: Inventory cloud reconcile.
+// v5.6.32u: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6125,4 +6130,4 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v5.6.32t: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v5.6.32u: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
