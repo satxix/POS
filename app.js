@@ -389,7 +389,7 @@
     }
 
 
-    // v5.6.32p: Auto-sync read scope.
+    // v5.6.32q: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -5795,7 +5795,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32p: tablet/landscape payment modal reset polish.
+// v5.6.32q: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5858,7 +5858,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32p Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v5.6.32q Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -5886,7 +5886,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32p Insights Business Day card flicker guard.
+// v5.6.32q Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -5935,7 +5935,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32p: Today-first auto sync + on-demand Month/Range cloud loads.
+// v5.6.32q: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6028,7 +6028,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32p: Correct Cash Received and default Ledger to Today.
+// v5.6.32q: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6113,4 +6113,76 @@ document.addEventListener('DOMContentLoaded',()=>{
         defaultLedgerDateToToday();
         correctCashReceivedCard();
     }, 300);
+})();
+
+
+// v5.6.32q: Inventory cloud reconcile.
+// Inventory is small, so do an independent inventory refresh that cannot be
+// blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
+(function(){
+    if (window.__vc5632qInventoryCloudReconcile) return;
+    window.__vc5632qInventoryCloudReconcile = true;
+
+    let lastInventoryReconcileAt = 0;
+    let inventoryReconciling = false;
+
+    function pendingInventoryIds() {
+        return new Set((Array.isArray(offlineQueue) ? offlineQueue : [])
+            .filter(task => task && task.table === 'inventory' && task.data && task.data.id)
+            .map(task => task.data.id));
+    }
+
+    async function reconcileInventoryFromCloud(reason, options = {}) {
+        if (!navigator.onLine || inventoryReconciling) return false;
+        if (typeof readCollectionWithFirestoreRest !== 'function') return false;
+        const now = Date.now();
+        const force = !!options.force;
+        if (!force && now - lastInventoryReconcileAt < 5 * 60 * 1000) return false;
+
+        inventoryReconciling = true;
+        lastInventoryReconcileAt = now;
+        try {
+            const cloud = await readCollectionWithFirestoreRest('inventory');
+            const pending = pendingInventoryIds();
+            const merged = new Map();
+
+            // Firestore is the source for synced inventory.
+            (Array.isArray(cloud) ? cloud : [])
+                .filter(item => item && item.id && !pending.has(item.id))
+                .forEach(item => merged.set(item.id, item));
+
+            // Keep local pending edits/deletes from being overwritten before sync.
+            (Array.isArray(state.inventory) ? state.inventory : [])
+                .filter(item => item && item.id && (item._offline || pending.has(item.id)))
+                .forEach(item => merged.set(item.id, item));
+
+            state.inventory = Array.from(merged.values())
+                .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+
+            if (typeof sync === 'function') sync();
+            if (typeof renderInventory === 'function') renderInventory();
+            if (typeof renderFavorites === 'function') renderFavorites();
+            if (typeof renderPOS === 'function') renderPOS();
+            if (typeof updateSyncUI === 'function') updateSyncUI();
+            return true;
+        } catch (error) {
+            console.warn('Inventory cloud reconcile failed', reason, error);
+            syncErrorMsg = error.message || String(error);
+            if (typeof updateSyncUI === 'function') updateSyncUI();
+            return false;
+        } finally {
+            inventoryReconciling = false;
+        }
+    }
+
+    window.vc5632qReconcileInventoryFromCloud = reconcileInventoryFromCloud;
+
+    setTimeout(() => reconcileInventoryFromCloud('startup', { force: true }), 2500);
+    window.addEventListener('online', () => setTimeout(() => reconcileInventoryFromCloud('online', { force: true }), 1200));
+    window.addEventListener('focus', () => setTimeout(() => reconcileInventoryFromCloud('focus'), 1200));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'hidden') {
+            setTimeout(() => reconcileInventoryFromCloud('visible'), 1200);
+        }
+    });
 })();
