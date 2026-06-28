@@ -1,5 +1,5 @@
-const CACHE_NAME = 'villacart-pos-v5.6.32v';
-const APP_SHELL = ['./', './index.html', './styles.css?v=5.6.32v', './app.js?v=5.6.32v', './diagnostics.js?v=5.6.32v'];
+const CACHE_NAME = 'villacart-pos-v5.6.32w';
+const APP_SHELL = ['./', './index.html', './styles.css?v=5.6.32w', './app.js?v=5.6.32w', './diagnostics.js?v=5.6.32w'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));

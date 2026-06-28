@@ -3587,3 +3587,115 @@
         min-height: 0;
     }
 }
+
+
+/* v5.6.32w: compact Complete Sale modal so confirm stays visible on tablet */
+#review-modal {
+    align-items: center !important;
+    padding: 10px !important;
+}
+
+#review-modal > div {
+    max-height: calc(100dvh - 20px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+#review-modal > div > .p-5 {
+    padding: .85rem 1.25rem !important;
+    flex: 0 0 auto !important;
+}
+
+#review-modal > div > .p-6 {
+    padding: 1rem 1.25rem !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+}
+
+#review-modal #cash-payment-area {
+    gap: .65rem !important;
+}
+
+#review-modal #cash-quick-amounts {
+    gap: .6rem !important;
+}
+
+#review-modal .cash-quick-btn {
+    min-height: 48px !important;
+    border-radius: 15px !important;
+    font-size: 14px !important;
+}
+
+#review-modal #cash-input {
+    min-height: 54px !important;
+    font-size: 1.45rem !important;
+}
+
+#review-modal #cash-input.cash-input-highlight {
+    font-size: 1.7rem !important;
+}
+
+#review-modal .change-hero-card {
+    padding: .8rem 1rem !important;
+    border-radius: 18px !important;
+}
+
+#review-modal .change-hero-label {
+    font-size: .68rem !important;
+}
+
+#review-modal .change-hero-amount {
+    font-size: 2rem !important;
+    line-height: 1 !important;
+}
+
+#review-modal #confirm-checkout {
+    position: sticky !important;
+    bottom: 0 !important;
+    width: min(100%, 360px) !important;
+    margin: .9rem auto 0 !important;
+    height: 52px !important;
+    flex: 0 0 auto !important;
+    z-index: 2 !important;
+}
+
+@media (min-width: 640px) {
+    #review-modal > div {
+        max-width: 420px !important;
+    }
+    #review-modal #cash-quick-amounts {
+        gap: .65rem !important;
+    }
+    #review-modal .cash-quick-btn {
+        min-height: 50px !important;
+        font-size: 15px !important;
+    }
+    #review-modal #cash-input {
+        min-height: 56px !important;
+    }
+}
+
+@media (max-height: 720px) {
+    #review-modal > div > .p-5 {
+        padding: .7rem 1rem !important;
+    }
+    #review-modal > div > .p-6 {
+        padding: .75rem 1rem !important;
+    }
+    #review-modal .cash-quick-btn {
+        min-height: 42px !important;
+    }
+    #review-modal #cash-input {
+        min-height: 48px !important;
+    }
+    #review-modal .change-hero-card {
+        padding: .65rem .85rem !important;
+    }
+    #review-modal .change-hero-amount {
+        font-size: 1.65rem !important;
+    }
+    #review-modal #confirm-checkout {
+        height: 48px !important;
+        margin-top: .65rem !important;
+    }
+}
