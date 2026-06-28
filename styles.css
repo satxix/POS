@@ -3535,7 +3535,7 @@
 }
 
 
-/* v5.6.32s: phone-visible credit Pay Full button */
+/* v5.6.32t: phone-visible credit Pay Full button */
 .vc5632-credit-head-actions {
     display: flex;
     align-items: center;
@@ -3574,7 +3574,7 @@
 }
 
 
-/* v5.6.32s: Credit ledger customer groups on phone/tablet */
+/* v5.6.32t: Credit ledger customer groups on phone/tablet */
 .vc5632-credit-customer-list {
     display: grid;
     gap: 1rem;
