@@ -3589,7 +3589,7 @@
 }
 
 
-/* v5.6.32w: compact Complete Sale modal so confirm stays visible on tablet */
+/* v7.0.0: compact Complete Sale modal so confirm stays visible on tablet */
 #review-modal {
     align-items: center !important;
     padding: 10px !important;

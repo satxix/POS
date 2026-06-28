@@ -190,29 +190,12 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v5.6.1: Offline Verified Snapshots
-        // includeMetadataChanges: true allows us to see data from local cache immediately
-        inventoryUnsubscribe = db.collection('inventory').onSnapshot({ includeMetadataChanges: true }, (snapshot) => {
-            const cloudInv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Optimized Filtering - keep local/offline versions prioritised
-            const offlineIds = new Set(offlineQueue.filter(q => q.table === 'inventory').map(q => q.data.id));
-            
-            const filteredCloudInv = cloudInv.filter(p => !offlineIds.has(p.id));
-            const activeOfflineInv = state.inventory.filter(p => p._offline && offlineIds.has(p.id));
-            
-            state.inventory = [...activeOfflineInv, ...filteredCloudInv];
-            
-            updateLastSyncedTime();
-            sync();
-            renderInventory();
-            renderFavorites();
-            if (offlineQueue.length === 0) syncErrorMsg = null;
-            updateSyncUI();
-        }, (error) => {
-            syncErrorMsg = error.message;
-            updateSyncUI();
-        });
+        // v7.0.0: Inventory is local-first/manual-refresh.
+        // Do not keep a full inventory realtime listener open; it reads the
+        // whole inventory collection on startup and reconnection. Product
+        // add/edit/delete/restock writes still sync automatically through
+        // queueAction/syncNow. Pull cloud changes with Refresh Stock.
+        inventoryUnsubscribe = null;
 
         const vc5632lBounds = typeof vc5632mTodayBounds === 'function' ? vc5632mTodayBounds() : (typeof vc5632lMonthBounds === 'function' ? vc5632lMonthBounds() : null);
         let vc5632lTxQuery = db.collection('transactions');
@@ -303,8 +286,7 @@
     async function hydrateInitialStateFromRest() {
         try {
             const bounds = typeof vc5632mTodayBounds === 'function' ? vc5632mTodayBounds() : (typeof vc5632lMonthBounds === 'function' ? vc5632lMonthBounds() : null);
-            const [inventory, transactions, businessDays] = await Promise.all([
-                readCollectionWithFirestoreRest('inventory'),
+            const [transactions, businessDays] = await Promise.all([
                 bounds && typeof queryCollectionWithFirestoreRest === 'function'
                     ? queryCollectionWithFirestoreRest('transactions', [
                         { field: 'businessDate', op: 'GREATER_THAN_OR_EQUAL', value: bounds.start },
@@ -327,7 +309,7 @@
                 return Array.from(merged.values());
             };
 
-            state.inventory = merge(inventory, state.inventory || [], 'inventory');
+            // Inventory stays local-first until Refresh Stock is tapped.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...merge(transactions, state.transactions || [], 'transactions'), ...localOldTransactions]
@@ -389,7 +371,7 @@
     }
 
 
-    // v5.6.32w: Auto-sync read scope.
+    // v7.0.0: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -4981,9 +4963,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v5.6.32w cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v7.0.0 cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v5.6.32w renderer below.
+    // active renderer is the single v7.0.0 renderer below.
 })();
 
 
@@ -5212,8 +5194,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         vc5631LastAt = now;
         try {
             const bounds = typeof vc5632mTodayBounds === 'function' ? vc5632mTodayBounds() : (typeof vc5632lMonthBounds === 'function' ? vc5632lMonthBounds() : null);
-            const [inventory, transactions, businessDays] = await Promise.all([
-                readCollectionWithFirestoreRest('inventory'),
+            const [transactions, businessDays] = await Promise.all([
                 bounds && typeof queryCollectionWithFirestoreRest === 'function'
                     ? queryCollectionWithFirestoreRest('transactions', [
                         { field: 'businessDate', op: 'GREATER_THAN_OR_EQUAL', value: bounds.start },
@@ -5228,8 +5209,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            state.inventory = vc5631MergeServer('inventory', inventory, state.inventory || [])
-                .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+            // v7.0.0: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5511,7 +5491,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v5.6.32w: Credit must never use date grouping. This keeps phone,
+        // v7.0.0: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -5755,7 +5735,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v5.6.32w: tablet/landscape payment modal reset polish.
+// v7.0.0: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5818,7 +5798,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32w Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.0.0 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -5846,7 +5826,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32w Insights Business Day card flicker guard.
+// v7.0.0 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -5895,7 +5875,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32w: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.0.0: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -5988,7 +5968,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32w: Correct Cash Received and default Ledger to Today.
+// v7.0.0: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6066,7 +6046,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v5.6.32w: Inventory cloud reconcile.
+// v7.0.0: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6127,16 +6107,28 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     window.vc5632qReconcileInventoryFromCloud = reconcileInventoryFromCloud;
 
-    setTimeout(() => reconcileInventoryFromCloud('startup', { force: true }), 2500);
-    window.addEventListener('online', () => setTimeout(() => reconcileInventoryFromCloud('online', { force: true }), 1200));
-    window.addEventListener('focus', () => setTimeout(() => reconcileInventoryFromCloud('focus'), 1200));
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState !== 'hidden') {
-            setTimeout(() => reconcileInventoryFromCloud('visible'), 1200);
+    window.refreshStockFromCloud = async function() {
+        const btn = document.getElementById('refresh-stock-btn');
+        const oldText = btn ? btn.innerHTML : '';
+        try {
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-60');
+                btn.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-spin">refresh</span><span>Refreshing</span>';
+            }
+            const ok = await reconcileInventoryFromCloud('manual-refresh-stock', { force: true });
+            if (typeof showToast === 'function') showToast(ok ? 'Stock refreshed from cloud' : 'Stock refresh skipped', ok ? 'success' : 'info');
+            return ok;
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60');
+                btn.innerHTML = oldText || '<span class="material-symbols-outlined text-[20px]">sync</span><span>Refresh Stock</span>';
+            }
         }
-    });
+    };
 })();
 
 
 
-// v5.6.32w: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.0.0: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
