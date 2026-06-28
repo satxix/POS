@@ -6,7 +6,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v7.0.0</title>
+<title>Villacart POS v7.1.1</title>
 
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg==" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg=="/>
@@ -38,7 +38,7 @@
             document.head.appendChild(link);
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js?v=7.0.0').catch(err => console.log('SW registration failed:', err));
+                navigator.serviceWorker.register('sw.js?v=7.1.1').catch(err => console.log('SW registration failed:', err));
             }
         })();
     </script>
@@ -103,7 +103,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=7.0.0"/>
+<link rel="stylesheet" href="styles.css?v=7.1.1"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -116,7 +116,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v7.0.0</span>
+                    <span class="vc551-version">v7.1.1</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -228,6 +228,11 @@
 <span>Subtotal</span>
 <span id="cart-subtotal">₱0.00</span>
 </div>
+<div class="hidden flex justify-between text-xs font-bold text-error" id="cart-discount-row">
+<span>Discount</span>
+<span id="cart-discount">-₱0.00</span>
+</div>
+<button class="w-full h-10 rounded-xl border border-dashed border-primary/30 text-primary text-xs font-black uppercase tracking-wider active-scale" id="cart-discount-btn" onclick="setCartDiscount()">Add Discount</button>
 <div class="flex justify-between items-baseline pt-3 border-t border-border-subtle mt-2">
 <span class="font-bold text-sm uppercase text-primary">Total Amount</span>
 <span class="text-3xl font-black text-primary tracking-tighter" id="cart-total">₱0.00</span>
@@ -437,7 +442,14 @@
 <h2 class="text-2xl font-black text-primary uppercase">Business Calendar</h2>
 <p class="text-on-surface-variant text-sm font-medium">Monthly performance from closed business days</p>
 </div>
-<div class="flex items-center gap-2">
+<div class="flex flex-wrap items-center justify-end gap-2">
+<button id="vc710-backup-old-btn" class="bg-primary/10 text-primary h-10 px-3 rounded-2xl font-bold text-[10px] uppercase flex items-center gap-1 border border-primary/10 active-scale" onclick="backupOldCalendarData()" title="Backup old calendar-month data">
+<span class="material-symbols-outlined text-[18px]">archive</span> Backup Old Data
+</button>
+<button class="bg-primary/10 text-primary h-10 px-3 rounded-2xl font-bold text-[10px] uppercase flex items-center gap-1 border border-primary/10 active-scale" onclick="loadBackupArchive()" title="Load backup locally only">
+<span class="material-symbols-outlined text-[18px]">upload_file</span> Load Backup
+</button>
+<input id="vc710-load-backup-input" type="file" accept="application/json,.json" class="hidden" onchange="vc710HandleBackupFile(this)">
 <button class="business-month-btn" onclick="changeBusinessMonth(-1)">
 <span class="material-symbols-outlined text-[18px]">chevron_left</span>
 </button>
@@ -981,7 +993,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=7.0.0"></script>
+<script src="app.js?v=7.1.1"></script>
 
 
 
@@ -1018,7 +1030,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=7.0.0"></script>
+<script src="diagnostics.js?v=7.1.1"></script>
 
 
 

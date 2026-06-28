@@ -46,6 +46,7 @@
     const DB_KEY = 'saph_pos_v5_villacart' + STORAGE_SUFFIX;
     const QUEUE_KEY = 'saph_pos_v5_villacart_queue' + STORAGE_SUFFIX;
     const FAV_KEY = 'villacart_favorites' + STORAGE_SUFFIX;
+    const ARCHIVE_KEY = 'villacart_local_archive_v710' + STORAGE_SUFFIX;
     
     let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
         inventory: [],
@@ -59,10 +60,17 @@
     if (!state.favorites || !Array.isArray(state.favorites)) {
         state.favorites = new Array(8).fill(null);
     }
+    const localArchive = (() => {
+        try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '{}') || {}; }
+        catch(e) { return {}; }
+    })();
+    state.archiveTransactions = Array.isArray(localArchive.transactions) ? localArchive.transactions : (Array.isArray(state.archiveTransactions) ? state.archiveTransactions : []);
+    state.archiveBusinessDays = Array.isArray(localArchive.businessDays) ? localArchive.businessDays : (Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays : []);
     const localFavs = JSON.parse(localStorage.getItem(FAV_KEY));
     if (localFavs && Array.isArray(localFavs)) {
         state.favorites = localFavs;
     }
+    state.cartDiscount = Math.max(0, Number(state.cartDiscount) || 0);
 
     let offlineQueue = JSON.parse(localStorage.getItem(QUEUE_KEY)) || [];
     // Firestore is authoritative for transaction existence. Older versions
@@ -190,7 +198,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v7.0.0: Inventory is local-first/manual-refresh.
+        // v7.1.1: Inventory is local-first/manual-refresh.
         // Do not keep a full inventory realtime listener open; it reads the
         // whole inventory collection on startup and reconnection. Product
         // add/edit/delete/restock writes still sync automatically through
@@ -371,7 +379,7 @@
     }
 
 
-    // v7.0.0: Auto-sync read scope.
+    // v7.1.1: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -413,10 +421,21 @@
         return !!d && d >= bounds.start && d <= bounds.end;
     }
 
+    function saveLocalArchive() {
+        try {
+            localStorage.setItem(ARCHIVE_KEY, JSON.stringify({
+                transactions: Array.isArray(state.archiveTransactions) ? state.archiveTransactions : [],
+                businessDays: Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays : [],
+                savedAt: new Date().toISOString()
+            }));
+        } catch(e) {}
+    }
+
     function sync() { 
         localStorage.setItem(DB_KEY, JSON.stringify(state)); 
         localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
         localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites));
+        saveLocalArchive();
         updateQueueBadge();
     }
 
@@ -995,18 +1014,75 @@ function switchScreen(id) {
         return null;
     }
 
+    function getCartSubtotal() {
+        return (state.cart || []).reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.qty) || 0)), 0);
+    }
+
+    function getCartDiscount() {
+        const subtotal = getCartSubtotal();
+        const discount = Math.max(0, Number(state.cartDiscount) || 0);
+        return Math.min(discount, subtotal);
+    }
+
+    function getCartTotal() {
+        return Math.max(0, getCartSubtotal() - getCartDiscount());
+    }
+
+    function setCartDiscount() {
+        if (!state.cart || state.cart.length === 0) {
+            showToast('Add an item before discounting', 'error');
+            return;
+        }
+        const subtotal = getCartSubtotal();
+        const current = getCartDiscount();
+        const raw = prompt('Enter discount amount in pesos. Leave blank or enter 0 to remove discount.', current ? String(current) : '');
+        if (raw === null) return;
+        const amount = raw.trim() === '' ? 0 : Number(raw);
+        if (!Number.isFinite(amount) || amount < 0) {
+            showToast('Invalid discount amount', 'error');
+            return;
+        }
+        state.cartDiscount = Math.min(amount, subtotal);
+        sync();
+        updateCartUI();
+        showToast(state.cartDiscount > 0 ? 'Discount applied' : 'Discount removed', 'success');
+    }
+
+    function resetCartDiscount() {
+        state.cartDiscount = 0;
+    }
+
     function updateCartUI() {
         const container = document.getElementById('cart-items');
         if (!container) return;
-        if (state.cart.length === 0) { container.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-20 py-20"><span class="material-symbols-outlined text-[64px]">shopping_basket</span><p class="text-xs font-black uppercase mt-2 tracking-widest">Order is empty</p></div>`; document.getElementById('cart-subtotal').innerText = '₱0.00'; document.getElementById('cart-total').innerText = '₱0.00'; return; }
-        let total = 0;
+        const subtotalEl = document.getElementById('cart-subtotal');
+        const totalEl = document.getElementById('cart-total');
+        const discountRow = document.getElementById('cart-discount-row');
+        const discountEl = document.getElementById('cart-discount');
+        const discountBtn = document.getElementById('cart-discount-btn');
+        if (state.cart.length === 0) {
+            resetCartDiscount();
+            container.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-20 py-20"><span class="material-symbols-outlined text-[64px]">shopping_basket</span><p class="text-xs font-black uppercase mt-2 tracking-widest">Order is empty</p></div>`;
+            if (subtotalEl) subtotalEl.innerText = '₱0.00';
+            if (totalEl) totalEl.innerText = '₱0.00';
+            if (discountRow) discountRow.classList.add('hidden');
+            if (discountEl) discountEl.innerText = '-₱0.00';
+            if (discountBtn) discountBtn.innerText = 'Add Discount';
+            return;
+        }
         container.innerHTML = state.cart.map((item, idx) => {
             const lineTotal = item.price * item.qty;
-            total += lineTotal;
             return `<div class="bg-surface-container/50 border border-border-subtle p-4 rounded-2xl flex justify-between items-center shadow-sm"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 mb-1.5"><span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">${escapeHTML(item.type)}</span><h4 class="font-bold text-sm truncate">${escapeHTML(item.name)}</h4></div><p class="text-xs font-bold opacity-50">${formatCurrency(item.price)} each</p></div><div class="flex items-center gap-3"><span class="font-black text-base whitespace-nowrap">${formatCurrency(lineTotal)}</span><div class="flex items-center bg-white border border-border-subtle rounded-xl shadow-sm"><button onclick="updateQty(${idx}, -1)" class="w-9 h-9 flex items-center justify-center text-error active-scale"><span class="material-symbols-outlined text-[20px]">remove_circle</span></button><input type="number" inputmode="numeric" min="1" value="${item.qty}" onchange="setQty(${idx}, this.value)" class="w-10 text-center text-xs font-black border-0 bg-transparent focus:outline-none p-0" style="min-height:unset"/><button onclick="updateQty(${idx}, 1)" class="w-9 h-9 flex items-center justify-center text-secondary active-scale"><span class="material-symbols-outlined text-[20px]">add_circle</span></button></div></div></div>`;
         }).join('');
-        document.getElementById('cart-subtotal').innerText = formatCurrency(total);
-        document.getElementById('cart-total').innerText = formatCurrency(total);
+        const subtotal = getCartSubtotal();
+        const discount = getCartDiscount();
+        const total = getCartTotal();
+        if (state.cartDiscount !== discount) state.cartDiscount = discount;
+        if (subtotalEl) subtotalEl.innerText = formatCurrency(subtotal);
+        if (totalEl) totalEl.innerText = formatCurrency(total);
+        if (discountRow) discountRow.classList.toggle('hidden', discount <= 0);
+        if (discountEl) discountEl.innerText = '-' + formatCurrency(discount);
+        if (discountBtn) discountBtn.innerText = discount > 0 ? 'Edit Discount' : 'Add Discount';
     }
 
     function updateQty(idx, delta) {
@@ -1035,7 +1111,9 @@ function switchScreen(id) {
         if (event) { event.preventDefault(); event.stopPropagation(); }
         if (state.cart.length === 0) return;
         if (!confirm('Clear all items from the cart?')) return;
-        state.cart = []; 
+        state.cart = [];
+        resetCartDiscount();
+        sync();
         updateCartUI(); 
     }
 
@@ -1054,8 +1132,8 @@ function switchScreen(id) {
         if (state.cart.length === 0) return; 
         const stockIssue = getCartStockIssue();
         if (stockIssue) { showToast(stockIssue, 'error'); return; }
-        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); 
-        document.getElementById('rev-total').innerText = `₱${total.toLocaleString()}`; 
+        const total = getCartTotal(); 
+        document.getElementById('rev-total').innerText = formatCurrency(total); 
         document.getElementById('cash-input').value = ''; 
         document.getElementById('credit-customer').value = ''; 
         switchPayMode('cash'); 
@@ -1064,9 +1142,9 @@ function switchScreen(id) {
     }
 
     function setCash(v) { document.getElementById('cash-input').value = v; calculateChange(); }
-    function setExact() { const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0); document.getElementById('cash-input').value = total; calculateChange(); }
+    function setExact() { const total = getCartTotal(); document.getElementById('cash-input').value = total; calculateChange(); }
     function calculateChange() {
-        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+        const total = getCartTotal();
         const cash = parseFloat(document.getElementById('cash-input').value) || 0;
         const changeDisplay = document.getElementById('change-display');
         if (cash >= total) { document.getElementById('change-amount').innerText = `₱${(cash - total).toLocaleString()}`; changeDisplay.classList.remove('hidden'); }
@@ -1075,7 +1153,9 @@ function switchScreen(id) {
 
     function confirmSale() {
         if (document.activeElement) document.activeElement.blur();
-        const total = state.cart.reduce((a, b) => a + (b.price * b.qty), 0);
+        const subtotal = getCartSubtotal();
+        const discount = getCartDiscount();
+        const total = getCartTotal();
         const cashVal = parseFloat(document.getElementById('cash-input').value) || 0;
         const type = currentPayMode === 'cash' ? 'SA' : 'CR';
         const id = nextTransactionId(type);
@@ -1089,6 +1169,9 @@ function switchScreen(id) {
             id, 
             type, 
             total, 
+            subtotal,
+            discount,
+            discountType: discount > 0 ? 'amount' : null,
             timestamp: new Date().toISOString(), 
             items: JSON.parse(JSON.stringify(state.cart)), 
             customer: customer ? customer.trim() : null, 
@@ -1104,7 +1187,7 @@ function switchScreen(id) {
         }
 
         queueTransaction(transaction);
-        lastTransactionId = id; state.cart = []; updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
+        lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
 
     function openProductModal(id = null) {
@@ -1287,11 +1370,20 @@ function switchScreen(id) {
 
     function switchInsightPeriod(period) { insightPeriod = period; document.querySelectorAll('[id^="insight-tab-"]').forEach(btn => { const isActive = btn.id === 'insight-tab-' + period; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); document.getElementById('date-range-controls').classList.toggle('hidden', period !== 'range'); renderInsights(); }
 
+    function vc710AllTransactionsForLocalViews() {
+        const live = Array.isArray(state.transactions) ? state.transactions : [];
+        const archive = (Array.isArray(state.archiveTransactions) ? state.archiveTransactions : []).map(t => ({ ...t, _archiveOnly: true }));
+        const map = new Map();
+        archive.forEach(t => { if (t && t.id) map.set(t.id, t); });
+        live.forEach(t => { if (t && t.id) map.set(t.id, t); });
+        return Array.from(map.values()).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    }
+
     function getPeriodTransactions() {
-        const now = new Date(); let periodTransactions = state.transactions;
-        if (insightPeriod === 'day') { const todayStr = now.toISOString().split('T')[0]; periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(todayStr)); }
-        else if (insightPeriod === 'month') { const monthStr = now.toISOString().slice(0, 7); periodTransactions = periodTransactions.filter(t => t.timestamp.startsWith(monthStr)); }
-        else if (insightPeriod === 'range') { const start = document.getElementById('insight-start-date').value; const end = document.getElementById('insight-end-date').value; if (start && end) periodTransactions = periodTransactions.filter(t => { const ts = t.timestamp.split('T')[0]; return ts >= start && ts <= end; }); }
+        const now = new Date(); let periodTransactions = vc710AllTransactionsForLocalViews();
+        if (insightPeriod === 'day') { const todayStr = now.toISOString().split('T')[0]; periodTransactions = periodTransactions.filter(t => String(t.timestamp || '').startsWith(todayStr)); }
+        else if (insightPeriod === 'month') { const monthStr = now.toISOString().slice(0, 7); periodTransactions = periodTransactions.filter(t => String(t.businessDate || t.timestamp || '').startsWith(monthStr)); }
+        else if (insightPeriod === 'range') { const start = document.getElementById('insight-start-date').value; const end = document.getElementById('insight-end-date').value; if (start && end) periodTransactions = periodTransactions.filter(t => { const ts = String(t.businessDate || t.timestamp || '').slice(0,10); return ts >= start && ts <= end; }); }
         return periodTransactions;
     }
 
@@ -1412,11 +1504,13 @@ function switchScreen(id) {
 
     function exportSalesCSV() {
         const trans = getPeriodTransactions(); if (trans.length === 0) return;
-        const csvContent = ["Date,ID,Type,Customer,Total,Notes", ...trans.map(t => [
+        const csvContent = ["Date,ID,Type,Customer,Subtotal,Discount,Total,Notes", ...trans.map(t => [
             new Date(t.timestamp).toLocaleDateString(),
             t.id,
             t.type,
             t.customer || 'N/A',
+            t.subtotal || t.total || 0,
+            t.discount || 0,
             t.total,
             t.notes || ''
         ].map(csvEscape).join(","))].join("\n");
@@ -1424,7 +1518,8 @@ function switchScreen(id) {
     }
 
     function viewTxDetails(id) {
-        const tx = state.transactions.find(t => t.id === id); if (!tx) return; lastTransactionId = id;
+        const tx = (state.transactions || []).find(t => t.id === id) || (state.archiveTransactions || []).find(t => t.id === id);
+        if (!tx) return; lastTransactionId = id;
         document.getElementById('txmtitle').innerText = tx.id;
         let html = `<div class="p-4 bg-primary/5 rounded-2xl border border-primary/10 mb-5"><div class="flex justify-between text-xs mb-1.5"><span class="font-bold opacity-60">Date</span><span class="font-black">${escapeHTML(new Date(tx.timestamp).toLocaleString())}</span></div><div class="flex justify-between text-xs mb-1.5"><span class="font-bold opacity-60">Type</span><span class="font-black uppercase">${escapeHTML((tx.notes && tx.notes.includes('CR-')) ? 'Settlement' : tx.type)}</span></div>${tx.customer ? `<div class="flex justify-between text-xs"><span class="font-bold opacity-60">Customer</span><span class="font-black">${escapeHTML(tx.customer)}</span></div>` : ''}</div>`;
         if (tx.items && tx.items.length > 0) html += `<div class="space-y-2 mb-5">${tx.items.map(item => `<div class="flex justify-between text-xs border-b border-border-subtle pb-2"><span>${escapeHTML(item.name)} x${escapeHTML(item.qty)}</span><span class="font-black">${formatCurrency(item.price * item.qty)}</span></div>`).join('')}</div>`;
@@ -1459,7 +1554,11 @@ function switchScreen(id) {
         document.getElementById('receipt-items-header').classList.remove('hidden'); document.getElementById('receipt-settlement-header').classList.add('hidden');
         document.getElementById('rec-id').innerText = tx.id; document.getElementById('rec-date').innerText = new Date(tx.timestamp).toLocaleDateString();
         document.getElementById('rec-total').innerText = formatCurrency(tx.total);
-        document.getElementById('rec-items-list').innerHTML = tx.items && tx.items.length > 0 ? tx.items.map(i => `<div class="flex justify-between"><span class="w-1/2">${escapeHTML(i.name)}</span><span class="w-1/4 text-center">${escapeHTML(i.qty)}</span><span class="w-1/4 text-right">${formatCurrency(i.price * i.qty)}</span></div>`).join('') : `<div>${escapeHTML(tx.desc || tx.notes || '')}</div>`;
+        let receiptItemsHtml = tx.items && tx.items.length > 0 ? tx.items.map(i => `<div class="flex justify-between"><span class="w-1/2">${escapeHTML(i.name)}</span><span class="w-1/4 text-center">${escapeHTML(i.qty)}</span><span class="w-1/4 text-right">${formatCurrency(i.price * i.qty)}</span></div>`).join('') : `<div>${escapeHTML(tx.desc || tx.notes || '')}</div>`;
+        if ((Number(tx.discount) || 0) > 0) {
+            receiptItemsHtml += `<div class="mt-2 pt-2 border-t border-black/40 space-y-1"><div class="flex justify-between"><span class="font-bold">Subtotal</span><span>${formatCurrency(tx.subtotal || (tx.total + tx.discount))}</span></div><div class="flex justify-between"><span class="font-bold">Discount</span><span>-${formatCurrency(tx.discount)}</span></div></div>`;
+        }
+        document.getElementById('rec-items-list').innerHTML = receiptItemsHtml;
         document.getElementById('rec-cash-row').classList.toggle('hidden', tx.type !== 'SA'); document.getElementById('rec-change-row').classList.toggle('hidden', tx.type !== 'SA');
         if (tx.type === 'SA') { document.getElementById('rec-cash').innerText = formatCurrency(tx.cashReceived || 0); document.getElementById('rec-change').innerText = formatCurrency(tx.change || 0); }
         document.getElementById('rec-customer-row').classList.toggle('hidden', !tx.customer); if (tx.customer) document.getElementById('rec-customer').innerText = tx.customer;
@@ -4963,9 +5062,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v7.0.0 cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v7.1.1 cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v7.0.0 renderer below.
+    // active renderer is the single v7.1.1 renderer below.
 })();
 
 
@@ -5209,7 +5308,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            // v7.0.0: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
+            // v7.1.1: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5491,7 +5590,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v7.0.0: Credit must never use date grouping. This keeps phone,
+        // v7.1.1: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -5567,7 +5666,10 @@ document.addEventListener('DOMContentLoaded',()=>{
                 const content = document.getElementById('ledger-content');
                 const dateSelect = document.getElementById('vc5629-ledger-date');
                 if (dateSelect && !dateSelect.dataset.vcUserPickedDate) dateSelect.value = 'today';
-                const tx = Array.isArray(state.transactions) ? state.transactions : [];
+                const dateModeForArchive = document.getElementById('vc5629-ledger-date')?.value || 'today';
+                const tx = dateModeForArchive === 'all' && typeof vc710AllTransactionsForLocalViews === 'function'
+                    ? vc710AllTransactionsForLocalViews()
+                    : (Array.isArray(state.transactions) ? state.transactions : []);
                 const tab = activeLedgerTab || 'cash';
                 let list = [];
                 let kind = 'cash';
@@ -5735,7 +5837,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.0.0: tablet/landscape payment modal reset polish.
+// v7.1.1: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -5798,7 +5900,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.0.0 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.1.1 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -5826,7 +5928,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.0.0 Insights Business Day card flicker guard.
+// v7.1.1 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -5875,7 +5977,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.0.0: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.1.1: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -5968,7 +6070,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.0.0: Correct Cash Received and default Ledger to Today.
+// v7.1.1: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6046,7 +6148,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.0.0: Inventory cloud reconcile.
+// v7.1.1: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6131,4 +6233,162 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v7.0.0: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.1.1: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+
+
+// v7.1.1: Calendar-month backup/archive. Inventory is never archived/deleted.
+(function(){
+    if (window.__vc710CalendarArchive) return;
+    window.__vc710CalendarArchive = true;
+
+    function dateCode(value = new Date()) {
+        const d = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function currentMonthStart() {
+        const now = new Date();
+        return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01';
+    }
+
+    function txDate(tx) {
+        return String((tx && (tx.businessDate || tx.date || tx.timestamp)) || '').slice(0, 10);
+    }
+
+    function mergeById(existing, incoming) {
+        const map = new Map();
+        (Array.isArray(existing) ? existing : []).forEach(item => { if (item && item.id) map.set(item.id, item); });
+        (Array.isArray(incoming) ? incoming : []).forEach(item => { if (item && item.id) map.set(item.id, { ...item, _archiveOnly: true }); });
+        return Array.from(map.values()).sort((a, b) => String(b.timestamp || b.date || '').localeCompare(String(a.timestamp || a.date || '')));
+    }
+
+    function downloadJson(filename, data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+            URL.revokeObjectURL(link.href);
+            link.remove();
+        }, 500);
+    }
+
+    async function queryOld(collection, field, cutoff, limit) {
+        if (typeof queryCollectionWithFirestoreRest !== 'function') return [];
+        return queryCollectionWithFirestoreRest(collection, [
+            { field, op: 'LESS_THAN', value: cutoff }
+        ], limit || 3000);
+    }
+
+    async function deleteCloudDocs(table, docs) {
+        if (typeof syncTaskWithFirestoreRest !== 'function') throw new Error('Delete helper unavailable.');
+        for (const doc of docs || []) {
+            if (!doc || !doc.id) continue;
+            await syncTaskWithFirestoreRest({ type: 'delete', table, data: { id: doc.id } });
+        }
+    }
+
+    async function backupOldCalendarData() {
+        if (!navigator.onLine) {
+            if (typeof showToast === 'function') showToast('Go online before backup', 'error');
+            return;
+        }
+        const cutoff = currentMonthStart();
+        const btn = document.getElementById('vc710-backup-old-btn');
+        const oldHtml = btn ? btn.innerHTML : '';
+        try {
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-60');
+                btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Preparing';
+            }
+            const [transactionsRaw, businessDaysRaw] = await Promise.all([
+                queryOld('transactions', 'businessDate', cutoff, 5000),
+                queryOld('businessDays', 'date', cutoff, 1000)
+            ]);
+            const transactions = (transactionsRaw || []).filter(t => txDate(t) && txDate(t) < cutoff);
+            const businessDays = (businessDaysRaw || []).filter(d => String(d.date || '').slice(0, 10) < cutoff);
+            if (!transactions.length && !businessDays.length) {
+                if (typeof showToast === 'function') showToast('No old records before this month', 'info');
+                return;
+            }
+            const payload = {
+                app: 'Villacart POS',
+                backupVersion: 'v7.1.1',
+                environment: window.VILLACART_ENV || 'live',
+                firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
+                archiveBefore: cutoff,
+                createdAt: new Date().toISOString(),
+                note: 'Inventory is intentionally not included. Loaded backups are local archive-only and must not sync to Firestore.',
+                transactions,
+                businessDays
+            };
+            const fileMonth = cutoff.slice(0, 7);
+            downloadJson('Villacart_Archive_before_' + fileMonth + '.json', payload);
+            const ok = confirm('Backup file downloaded for records before ' + cutoff + '.\n\nDelete these old transactions/business days from Firestore now?\n\nChoose Cancel if you want to verify the file first.');
+            if (!ok) {
+                if (typeof showToast === 'function') showToast('Backup downloaded; cloud delete skipped', 'info');
+                return;
+            }
+            await deleteCloudDocs('transactions', transactions);
+            await deleteCloudDocs('businessDays', businessDays);
+            state.transactions = (state.transactions || []).filter(t => !(txDate(t) && txDate(t) < cutoff));
+            state.businessDays = (state.businessDays || []).filter(d => !(String(d.date || '').slice(0, 10) < cutoff));
+            if (typeof sync === 'function') sync();
+            if (typeof renderLedger === 'function') renderLedger();
+            if (typeof renderInsights === 'function') renderInsights();
+            if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
+            if (typeof showToast === 'function') showToast('Old cloud records archived/deleted', 'success');
+        } catch (error) {
+            console.error('Backup/archive failed', error);
+            if (typeof showToast === 'function') showToast('Backup failed: ' + (error.message || error), 'error');
+            else alert('Backup failed: ' + (error.message || error));
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60');
+                btn.innerHTML = oldHtml;
+            }
+        }
+    }
+
+    function loadBackupFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function() {
+            try {
+                const data = JSON.parse(String(reader.result || '{}'));
+                const tx = Array.isArray(data.transactions) ? data.transactions : [];
+                const bd = Array.isArray(data.businessDays) ? data.businessDays : [];
+                if (!tx.length && !bd.length) throw new Error('No transactions/businessDays found in backup.');
+                state.archiveTransactions = mergeById(state.archiveTransactions || [], tx);
+                state.archiveBusinessDays = mergeById(state.archiveBusinessDays || [], bd);
+                if (typeof saveLocalArchive === 'function') saveLocalArchive();
+                if (typeof sync === 'function') sync();
+                if (typeof renderLedger === 'function') renderLedger();
+                if (typeof renderInsights === 'function') renderInsights();
+                if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
+                if (typeof showToast === 'function') showToast('Backup loaded locally only', 'success');
+            } catch (error) {
+                console.error('Load backup failed', error);
+                if (typeof showToast === 'function') showToast('Load failed: ' + (error.message || error), 'error');
+                else alert('Load failed: ' + (error.message || error));
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    window.backupOldCalendarData = backupOldCalendarData;
+    window.loadBackupArchive = function() {
+        const input = document.getElementById('vc710-load-backup-input');
+        if (input) input.click();
+    };
+    window.vc710HandleBackupFile = function(input) {
+        const file = input && input.files && input.files[0];
+        loadBackupFile(file);
+        if (input) input.value = '';
+    };
+})();
