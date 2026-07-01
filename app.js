@@ -198,7 +198,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v7.1.8: Inventory is local-first/manual-refresh.
+        // v7.1.9: Inventory is local-first/manual-refresh.
         // Do not keep a full inventory realtime listener open; it reads the
         // whole inventory collection on startup and reconnection. Product
         // add/edit/delete/restock writes still sync automatically through
@@ -379,7 +379,7 @@
     }
 
 
-    // v7.1.8: Auto-sync read scope.
+    // v7.1.9: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -781,10 +781,10 @@
             if (!product) return `<div class="relative h-16 md:h-32"><button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50"><span class="material-symbols-outlined">error</span></button>${removeBtnHtml}</div>`;
             const stockCount = Math.max(0, Number(product.stock) || 0);
             const stockClass = stockCount <= 0 ? 'text-error bg-error/10' : (stockCount <= (Number(product.lowStock) || 5) ? 'text-amber-700 bg-amber-50' : 'text-primary/60 bg-primary/5');
-            return `<div class="relative h-16 md:h-32"><button onclick="handleFavoriteClick(${index})" class="relative w-full h-full bg-surface border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-2 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all">
+            return `<div class="relative h-16 md:h-32"><button onclick="handleFavoriteClick(${index})" class="relative w-full h-full bg-surface border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-2 pt-2 pb-4 md:pt-3 md:pb-7 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all">
                 <span class="text-[10px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
                 <span class="text-[12px] md:text-[16px] font-black text-secondary mt-1">${formatCurrency(product.price)}</span>
-                <span class="mt-0.5 md:mt-1 px-1.5 py-0.5 rounded-full text-[7px] md:text-[9px] font-black uppercase tracking-wide ${stockClass}">Stock: ${stockCount}</span>
+                <span class="absolute bottom-1 md:bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 md:px-2 py-0.5 rounded-full text-[6.5px] md:text-[8px] font-black uppercase tracking-wide ${stockClass}">Stock: ${stockCount}</span>
                 ${favoritesEditMode ? `<div class="absolute inset-0 bg-primary/80 flex items-center justify-center text-white"><span class="material-symbols-outlined">edit</span></div>` : ''}
             </button>${removeBtnHtml}</div>`;
         }).join('');
@@ -5313,9 +5313,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v7.1.8 cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v7.1.9 cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v7.1.8 renderer below.
+    // active renderer is the single v7.1.9 renderer below.
 })();
 
 
@@ -5559,7 +5559,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            // v7.1.8: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
+            // v7.1.9: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5841,7 +5841,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v7.1.8: Credit must never use date grouping. This keeps phone,
+        // v7.1.9: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -6088,7 +6088,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.1.8: tablet/landscape payment modal reset polish.
+// v7.1.9: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -6151,7 +6151,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.8 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.1.9 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -6179,7 +6179,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.8 Insights Business Day card flicker guard.
+// v7.1.9 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -6228,7 +6228,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.8: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.1.9: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6321,7 +6321,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.8: Correct Cash Received and default Ledger to Today.
+// v7.1.9: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6399,7 +6399,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.8: Inventory cloud reconcile.
+// v7.1.9: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6484,10 +6484,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v7.1.8: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.1.9: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
 
 
-// v7.1.8: Calendar-month backup/archive. Inventory is never archived/deleted.
+// v7.1.9: Calendar-month backup/archive. Inventory is never archived/deleted.
 (function(){
     if (window.__vc710CalendarArchive) return;
     window.__vc710CalendarArchive = true;
@@ -6568,7 +6568,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v7.1.8',
+                backupVersion: 'v7.1.9',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
@@ -6645,7 +6645,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.8: Business month arrows + favorite stock display.
+// v7.1.9: Business month arrows + favorite stock display.
 // Keep this small and late so it controls the currently active Business renderer
 // without touching checkout, sync, or Firestore code.
 (function(){
