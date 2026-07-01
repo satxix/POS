@@ -198,7 +198,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v7.1.7: Inventory is local-first/manual-refresh.
+        // v7.1.8: Inventory is local-first/manual-refresh.
         // Do not keep a full inventory realtime listener open; it reads the
         // whole inventory collection on startup and reconnection. Product
         // add/edit/delete/restock writes still sync automatically through
@@ -379,7 +379,7 @@
     }
 
 
-    // v7.1.7: Auto-sync read scope.
+    // v7.1.8: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -1535,41 +1535,38 @@ function switchScreen(id) {
         return clean.slice(0, width - 3) + '...';
     }
 
-    function thermalLine(width = 42) {
+    function thermalLine(width = 32) {
         return '-'.repeat(width);
     }
 
-    function thermalCenter(text, width = 42) {
+    function thermalCenter(text, width = 32) {
         const clean = thermalFit(text, width);
         const left = Math.max(0, Math.floor((width - clean.length) / 2));
         return ' '.repeat(left) + clean;
     }
 
-    function thermalRow(left, right, width = 42) {
+    function thermalRow(left, right, width = 32) {
         const r = thermalCleanText(right);
         const leftWidth = Math.max(1, width - r.length - 1);
         const l = thermalFit(left, leftWidth);
         return l + ' '.repeat(Math.max(1, width - l.length - r.length)) + r;
     }
 
-    function thermalItemRows(name, qty, amount, width = 42) {
-        const itemWidth = 24;
-        const qtyWidth = 5;
+    function thermalItemRows(name, qty, amount, width = 32) {
+        // XP210/Android print services often wrap 42-column browser text.
+        // Keep this intentionally narrow so item, qty, and price stay on one physical row.
+        const itemWidth = 16;
+        const qtyWidth = 4;
         const priceWidth = width - itemWidth - qtyWidth;
         const cleanName = thermalCleanText(name) || 'Item';
-        const itemChunks = [];
-        for (let i = 0; i < cleanName.length; i += itemWidth) {
-            itemChunks.push(cleanName.slice(i, i + itemWidth));
-        }
-        const first = thermalFit(itemChunks.shift() || cleanName, itemWidth).padEnd(itemWidth) +
+        const line = thermalFit(cleanName, itemWidth).padEnd(itemWidth) +
             thermalFit(qty, qtyWidth).padStart(qtyWidth) +
             thermalFit(amount, priceWidth).padStart(priceWidth);
-        const rest = itemChunks.map(chunk => thermalFit(chunk, itemWidth).padEnd(itemWidth));
-        return [first, ...rest];
+        return [line];
     }
 
     function buildThermalReceiptText(tx) {
-        const width = 42;
+        const width = 32;
         const lines = [];
         const isSettlement = tx && tx.notes && tx.notes.includes('CR-') && tx.type === 'SA';
         const title = isSettlement ? 'CREDIT PAYMENT' : (tx && tx.type === 'EX' ? 'EXPENSE RECORD' : 'OFFICIAL RECEIPT');
@@ -1597,7 +1594,7 @@ function switchScreen(id) {
             lines.push(thermalLine(width));
             lines.push(thermalRow('TOTAL PAID:', thermalMoney(tx.total), width));
         } else if (tx && tx.items && tx.items.length) {
-            lines.push('Item'.padEnd(24) + 'Qty'.padStart(5) + 'Price'.padStart(13));
+            lines.push('Item'.padEnd(16) + 'Qty'.padStart(4) + 'Price'.padStart(12));
             lines.push(thermalLine(width));
             tx.items.forEach(item => {
                 const qty = Number(item.qty) || 0;
@@ -1665,22 +1662,22 @@ body {
     print-color-adjust: exact;
 }
 #thermal-receipt {
-    width: 74mm;
-    max-width: 74mm;
+    width: 62mm;
+    max-width: 62mm;
     margin: 0;
-    padding: 2mm 3mm 5mm;
+    padding: 2mm 2mm 5mm;
     background: #fff;
     color: #000;
     font-family: "Courier New", Courier, monospace;
-    font-size: 12px;
-    line-height: 1.3;
-    font-weight: 500;
-    white-space: pre-wrap;
-    overflow-wrap: normal;
+    font-size: 15px;
+    line-height: 1.28;
+    font-weight: 700;
+    white-space: pre;
+    overflow: visible;
 }
 @media print {
     html, body { width: 80mm; margin: 0; padding: 0; overflow: visible; }
-    #thermal-receipt { width: 74mm; max-width: 74mm; margin: 0; }
+    #thermal-receipt { width: 62mm; max-width: 62mm; margin: 0; white-space: pre; }
 }
 </style>
 </head>
@@ -5316,9 +5313,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v7.1.7 cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v7.1.8 cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v7.1.7 renderer below.
+    // active renderer is the single v7.1.8 renderer below.
 })();
 
 
@@ -5562,7 +5559,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            // v7.1.7: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
+            // v7.1.8: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5844,7 +5841,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v7.1.7: Credit must never use date grouping. This keeps phone,
+        // v7.1.8: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -6091,7 +6088,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.1.7: tablet/landscape payment modal reset polish.
+// v7.1.8: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -6154,7 +6151,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.7 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.1.8 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -6182,7 +6179,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.7 Insights Business Day card flicker guard.
+// v7.1.8 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -6231,7 +6228,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.7: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.1.8: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6324,7 +6321,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.7: Correct Cash Received and default Ledger to Today.
+// v7.1.8: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6402,7 +6399,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.7: Inventory cloud reconcile.
+// v7.1.8: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6487,10 +6484,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v7.1.7: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.1.8: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
 
 
-// v7.1.7: Calendar-month backup/archive. Inventory is never archived/deleted.
+// v7.1.8: Calendar-month backup/archive. Inventory is never archived/deleted.
 (function(){
     if (window.__vc710CalendarArchive) return;
     window.__vc710CalendarArchive = true;
@@ -6571,7 +6568,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v7.1.7',
+                backupVersion: 'v7.1.8',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
@@ -6648,7 +6645,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.7: Business month arrows + favorite stock display.
+// v7.1.8: Business month arrows + favorite stock display.
 // Keep this small and late so it controls the currently active Business renderer
 // without touching checkout, sync, or Firestore code.
 (function(){
