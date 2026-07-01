@@ -198,7 +198,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v7.1.6: Inventory is local-first/manual-refresh.
+        // v7.1.7: Inventory is local-first/manual-refresh.
         // Do not keep a full inventory realtime listener open; it reads the
         // whole inventory collection on startup and reconnection. Product
         // add/edit/delete/restock writes still sync automatically through
@@ -379,7 +379,7 @@
     }
 
 
-    // v7.1.6: Auto-sync read scope.
+    // v7.1.7: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -1514,13 +1514,131 @@ function switchScreen(id) {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
+    function thermalMoney(value) {
+        const n = Number(value) || 0;
+        const formatted = n.toLocaleString(undefined, {
+            minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+            maximumFractionDigits: 2
+        });
+        // Use plain P for print clarity. Some budget ESC/POS drivers render the peso sign unevenly.
+        return 'P' + formatted;
+    }
+
+    function thermalCleanText(text) {
+        return String(text || '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function thermalFit(text, width) {
+        const clean = thermalCleanText(text);
+        if (clean.length <= width) return clean;
+        if (width <= 3) return clean.slice(0, width);
+        return clean.slice(0, width - 3) + '...';
+    }
+
+    function thermalLine(width = 42) {
+        return '-'.repeat(width);
+    }
+
+    function thermalCenter(text, width = 42) {
+        const clean = thermalFit(text, width);
+        const left = Math.max(0, Math.floor((width - clean.length) / 2));
+        return ' '.repeat(left) + clean;
+    }
+
+    function thermalRow(left, right, width = 42) {
+        const r = thermalCleanText(right);
+        const leftWidth = Math.max(1, width - r.length - 1);
+        const l = thermalFit(left, leftWidth);
+        return l + ' '.repeat(Math.max(1, width - l.length - r.length)) + r;
+    }
+
+    function thermalItemRows(name, qty, amount, width = 42) {
+        const itemWidth = 24;
+        const qtyWidth = 5;
+        const priceWidth = width - itemWidth - qtyWidth;
+        const cleanName = thermalCleanText(name) || 'Item';
+        const itemChunks = [];
+        for (let i = 0; i < cleanName.length; i += itemWidth) {
+            itemChunks.push(cleanName.slice(i, i + itemWidth));
+        }
+        const first = thermalFit(itemChunks.shift() || cleanName, itemWidth).padEnd(itemWidth) +
+            thermalFit(qty, qtyWidth).padStart(qtyWidth) +
+            thermalFit(amount, priceWidth).padStart(priceWidth);
+        const rest = itemChunks.map(chunk => thermalFit(chunk, itemWidth).padEnd(itemWidth));
+        return [first, ...rest];
+    }
+
+    function buildThermalReceiptText(tx) {
+        const width = 42;
+        const lines = [];
+        const isSettlement = tx && tx.notes && tx.notes.includes('CR-') && tx.type === 'SA';
+        const title = isSettlement ? 'CREDIT PAYMENT' : (tx && tx.type === 'EX' ? 'EXPENSE RECORD' : 'OFFICIAL RECEIPT');
+        const txDate = tx && tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : new Date().toLocaleDateString();
+
+        lines.push(thermalCenter('VILLACART', width));
+        lines.push(thermalCenter('Balagtas BMA San Rafael, Bulacan', width));
+        lines.push(thermalLine(width));
+        lines.push(thermalCenter(title, width));
+        lines.push(thermalLine(width));
+        lines.push(thermalRow('Date:', txDate, width));
+        if (tx && tx.id) lines.push(thermalRow('Trans #:', tx.id, width));
+        if (tx && tx.customer) lines.push(thermalRow('Customer:', tx.customer, width));
+        lines.push(thermalLine(width));
+
+        if (isSettlement) {
+            lines.push('Settlement Breakdown');
+            if (tx.items && tx.items.length) {
+                tx.items.forEach(item => {
+                    thermalItemRows(item.name, item.qty, thermalMoney(Number(item.price) * Number(item.qty)), width).forEach(line => lines.push(line));
+                });
+            } else if (tx.notes) {
+                lines.push(thermalFit('Settled: ' + tx.notes, width));
+            }
+            lines.push(thermalLine(width));
+            lines.push(thermalRow('TOTAL PAID:', thermalMoney(tx.total), width));
+        } else if (tx && tx.items && tx.items.length) {
+            lines.push('Item'.padEnd(24) + 'Qty'.padStart(5) + 'Price'.padStart(13));
+            lines.push(thermalLine(width));
+            tx.items.forEach(item => {
+                const qty = Number(item.qty) || 0;
+                const lineTotal = Number(item.price || 0) * qty;
+                thermalItemRows(item.name, qty, thermalMoney(lineTotal), width).forEach(line => lines.push(line));
+            });
+            lines.push(thermalLine(width));
+            const discount = Number(tx.discount) || 0;
+            if (discount > 0) {
+                const subtotal = Number(tx.subtotal) || (Number(tx.total) + discount);
+                lines.push(thermalRow('Subtotal:', thermalMoney(subtotal), width));
+                lines.push(thermalRow('Discount:', '-' + thermalMoney(discount), width));
+            }
+            lines.push(thermalRow('TOTAL:', thermalMoney(tx.total), width));
+            if (tx.type === 'SA') {
+                lines.push(thermalRow('Cash Received:', thermalMoney(tx.cashReceived || 0), width));
+                lines.push(thermalRow('Change:', thermalMoney(tx.change || 0), width));
+            } else if (tx.type === 'CR') {
+                lines.push(thermalRow('Payment:', 'CREDIT', width));
+            }
+        } else {
+            lines.push(thermalFit((tx && (tx.desc || tx.notes)) || 'Transaction', width));
+            lines.push(thermalLine(width));
+            lines.push(thermalRow('TOTAL:', thermalMoney(tx ? tx.total : 0), width));
+        }
+
+        lines.push(thermalLine(width));
+        lines.push(thermalCenter('THANK YOU!', width));
+        lines.push(thermalCenter('Please come again.', width));
+        lines.push('');
+        return lines.join('\n');
+    }
+
     function printThermalReceipt() {
+        const tx = (state.transactions || []).find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
         const receiptEl = document.getElementById('receipt-content');
-        if (!receiptEl) {
+        if (!tx && !receiptEl) {
             if (typeof showToast === 'function') showToast('Receipt not ready', 'error');
             return;
         }
-        const receiptHTML = receiptEl.outerHTML;
+        const receiptText = tx ? buildThermalReceiptText(tx) : receiptEl.innerText;
         const receiptTitle = lastTransactionId ? `Villacart Receipt ${lastTransactionId}` : 'Villacart Receipt';
         const printHTML = `<!doctype html>
 <html>
@@ -1543,56 +1661,30 @@ html, body {
 }
 body {
     display: block;
-    font-family: "Courier New", Courier, monospace;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
-#receipt-content {
-    display: block;
-    width: 78mm;
-    max-width: 78mm;
+#thermal-receipt {
+    width: 74mm;
+    max-width: 74mm;
     margin: 0;
-    padding: 2mm 2mm 3mm;
+    padding: 2mm 3mm 5mm;
     background: #fff;
     color: #000;
     font-family: "Courier New", Courier, monospace;
     font-size: 12px;
-    line-height: 1.22;
+    line-height: 1.3;
+    font-weight: 500;
+    white-space: pre-wrap;
+    overflow-wrap: normal;
 }
-#receipt-content > * {
-    max-width: 100%;
-}
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.font-bold, .font-black { font-weight: 700; }
-.uppercase { text-transform: uppercase; }
-.flex { display: flex; }
-.justify-between { justify-content: space-between; }
-.w-1\\/2 { width: 50%; }
-.w-1\\/4 { width: 25%; }
-.mb-1 { margin-bottom: 2px; }
-.mb-2 { margin-bottom: 3px; }
-.mb-3 { margin-bottom: 5px; }
-.mb-4 { margin-bottom: 6px; }
-.mt-2 { margin-top: 3px; }
-.pt-2 { padding-top: 3px; }
-.pb-1 { padding-bottom: 2px; }
-.py-1 { padding-top: 2px; padding-bottom: 2px; }
-.space-y-1 > * + * { margin-top: 2px; }
-.border-t { border-top: 1px solid #000; }
-.border-b { border-bottom: 1px solid #000; }
-.border-black { border-color: #000; }
-.border-dashed { border-style: dashed; }
-.hidden { display: none !important; }
-.text-lg { font-size: 16px; }
-.text-sm { font-size: 12px; }
 @media print {
     html, body { width: 80mm; margin: 0; padding: 0; overflow: visible; }
-    #receipt-content { width: 78mm; max-width: 78mm; margin: 0; transform: none; }
+    #thermal-receipt { width: 74mm; max-width: 74mm; margin: 0; }
 }
 </style>
 </head>
-<body>${receiptHTML}</body>
+<body><pre id="thermal-receipt">${escapeHTML(receiptText)}</pre></body>
 </html>`;
 
         const printWin = window.open('', '_blank', 'popup,width=420,height=640');
@@ -5224,9 +5316,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v7.1.6 cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v7.1.7 cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v7.1.6 renderer below.
+    // active renderer is the single v7.1.7 renderer below.
 })();
 
 
@@ -5470,7 +5562,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            // v7.1.6: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
+            // v7.1.7: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5752,7 +5844,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v7.1.6: Credit must never use date grouping. This keeps phone,
+        // v7.1.7: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -5999,7 +6091,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.1.6: tablet/landscape payment modal reset polish.
+// v7.1.7: tablet/landscape payment modal reset polish.
 // Clears visible quick-cash selection and button state in addition to the cash input.
 (function(){
     if (window.__vc5632bTabletPaymentReset) return;
@@ -6062,7 +6154,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.6 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.1.7 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -6090,7 +6182,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.6 Insights Business Day card flicker guard.
+// v7.1.7 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -6139,7 +6231,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.6: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.1.7: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6232,7 +6324,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.6: Correct Cash Received and default Ledger to Today.
+// v7.1.7: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6310,7 +6402,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.6: Inventory cloud reconcile.
+// v7.1.7: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6395,10 +6487,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v7.1.6: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.1.7: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
 
 
-// v7.1.6: Calendar-month backup/archive. Inventory is never archived/deleted.
+// v7.1.7: Calendar-month backup/archive. Inventory is never archived/deleted.
 (function(){
     if (window.__vc710CalendarArchive) return;
     window.__vc710CalendarArchive = true;
@@ -6479,7 +6571,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v7.1.6',
+                backupVersion: 'v7.1.7',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
@@ -6556,7 +6648,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.1.6: Business month arrows + favorite stock display.
+// v7.1.7: Business month arrows + favorite stock display.
 // Keep this small and late so it controls the currently active Business renderer
 // without touching checkout, sync, or Firestore code.
 (function(){
