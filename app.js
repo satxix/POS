@@ -198,7 +198,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v7.2.1: Inventory is local-first/manual-refresh.
+        // v7.2.2: Inventory is local-first/manual-refresh.
         // Do not keep a full inventory realtime listener open; it reads the
         // whole inventory collection on startup and reconnection. Product
         // add/edit/delete/restock writes still sync automatically through
@@ -379,7 +379,7 @@
     }
 
 
-    // v7.2.1: Auto-sync read scope.
+    // v7.2.2: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -1130,6 +1130,36 @@ function switchScreen(id) {
         else { btnCredit.className = "flex-1 py-3 border-2 border-orange-600 bg-orange-600 text-white rounded-xl font-bold text-xs"; btnCash.className = "flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs"; creditArea.classList.remove('hidden'); cashArea.classList.add('hidden'); }
     }
 
+    function resetReviewPaymentUi() {
+        const cash = document.getElementById('cash-input');
+        if (cash) {
+            cash.value = '';
+            cash.classList.remove('cash-input-highlight');
+        }
+        const customer = document.getElementById('credit-customer');
+        if (customer) customer.value = '';
+        document.querySelectorAll('.cash-quick-btn').forEach(btn => {
+            btn.classList.remove('cash-selected');
+            btn.setAttribute('aria-pressed', 'false');
+        });
+        const change = document.getElementById('change-display');
+        if (change) {
+            change.classList.add('hidden');
+            change.classList.remove('change-ok', 'change-short', 'change-pulse');
+        }
+        const status = document.getElementById('change-status-label');
+        if (status) status.innerText = 'Waiting for Payment';
+        const amount = document.getElementById('change-amount');
+        if (amount) amount.innerText = '₱0.00';
+        const confirmBtn = document.getElementById('confirm-checkout');
+        if (confirmBtn) {
+            confirmBtn.classList.remove('bg-secondary');
+            const label = confirmBtn.querySelector('span:last-child');
+            if (label) label.innerText = 'Confirm Transaction';
+        }
+        if (typeof switchPayMode === 'function') switchPayMode('cash');
+    }
+
     function openReview() { 
         if (document.activeElement) document.activeElement.blur();
         if (state.cart.length === 0) return; 
@@ -1137,9 +1167,7 @@ function switchScreen(id) {
         if (stockIssue) { showToast(stockIssue, 'error'); return; }
         const total = getCartTotal(); 
         document.getElementById('rev-total').innerText = formatCurrency(total); 
-        document.getElementById('cash-input').value = ''; 
-        document.getElementById('credit-customer').value = ''; 
-        switchPayMode('cash'); 
+        resetReviewPaymentUi();
         const modal = document.getElementById('review-modal'); 
         modal.classList.replace('hidden', 'flex'); 
     }
@@ -1839,7 +1867,12 @@ body {
     function printReceiptFromSuccess() { if (lastTransactionId) viewReceipt(lastTransactionId); closeModal('mod-success'); }
     function closeSuccessAndNewSale() { closeModal('mod-success'); }
     function togglePackFields() { const packFields = document.getElementById('pack-fields'); const hasPack = document.getElementById('p-has-pack'); if (packFields && hasPack) { if (hasPack.checked) { packFields.classList.remove('hidden'); packFields.classList.add('grid'); } else { packFields.classList.add('hidden'); packFields.classList.remove('grid'); } } }
-    function closeModal(id) { const modal = document.getElementById(id); if (modal) modal.classList.replace('flex', 'hidden'); if (id === 'product-modal') stopInvScanner(); }
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) modal.classList.replace('flex', 'hidden');
+        if (id === 'review-modal' && typeof resetReviewPaymentUi === 'function') resetReviewPaymentUi();
+        if (id === 'product-modal') stopInvScanner();
+    }
     function showToast(m, t = 'info') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`; toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${escapeHTML(m)}</span>`; c.appendChild(toast); requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0')); setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500); }
     
     function updateNotifBadge() {
@@ -5313,9 +5346,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v7.2.1 cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v7.2.2 cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v7.2.1 renderer below.
+    // active renderer is the single v7.2.2 renderer below.
 })();
 
 
@@ -5559,7 +5592,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            // v7.2.1: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
+            // v7.2.2: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5841,7 +5874,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v7.2.1: Credit must never use date grouping. This keeps phone,
+        // v7.2.2: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -6006,49 +6039,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (window.__vc5632aNoFocusRequestedFixes) return;
     window.__vc5632aNoFocusRequestedFixes = true;
 
-    function resetReviewPaymentModal() {
-        try {
-            const cash = document.getElementById('cash-input');
-            if (cash) {
-                cash.value = '';
-                cash.classList.remove('cash-input-highlight');
-                cash.blur();
-                cash.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            const customer = document.getElementById('credit-customer');
-            if (customer) {
-                customer.value = '';
-                customer.blur();
-            }
-            const change = document.getElementById('change-display');
-            if (change) change.classList.add('hidden');
-            const changeAmount = document.getElementById('change-amount');
-            if (changeAmount) changeAmount.innerText = '₱0.00';
-            if (typeof switchPayMode === 'function') switchPayMode('cash');
-        } catch(e) {}
-    }
-
-    if (typeof openReview === 'function' && !window.__vc5632aOpenReviewReset) {
-        window.__vc5632aOpenReviewReset = true;
-        const oldOpenReview = openReview;
-        openReview = function() {
-            // Reset only at the open boundary. A delayed reset can fire after
-            // the cashier has tapped the field and started typing.
-            resetReviewPaymentModal();
-            return oldOpenReview.apply(this, arguments);
-        };
-    }
-
-    if (typeof closeModal === 'function' && !window.__vc5632aCloseModalReset) {
-        window.__vc5632aCloseModalReset = true;
-        const oldCloseModal = closeModal;
-        closeModal = function(id) {
-            const result = oldCloseModal.apply(this, arguments);
-            if (id === 'review-modal') resetReviewPaymentModal();
-            return result;
-        };
-    }
-
     if (typeof renderSalesChart === 'function' && !window.__vc5632aStableChart) {
         window.__vc5632aStableChart = true;
         const oldRenderSalesChart = renderSalesChart;
@@ -6088,69 +6078,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.2.1: tablet/landscape payment modal reset polish.
-// Clears visible quick-cash selection and button state in addition to the cash input.
-(function(){
-    if (window.__vc5632bTabletPaymentReset) return;
-    window.__vc5632bTabletPaymentReset = true;
-
-    function hardResetPaymentUi() {
-        try {
-            document.querySelectorAll('.cash-quick-btn').forEach(btn => {
-                btn.classList.remove('cash-selected');
-                btn.setAttribute('aria-pressed', 'false');
-            });
-            const cash = document.getElementById('cash-input');
-            if (cash) {
-                cash.value = '';
-                cash.classList.remove('cash-input-highlight');
-                cash.blur();
-            }
-            const customer = document.getElementById('credit-customer');
-            if (customer) customer.value = '';
-            const change = document.getElementById('change-display');
-            if (change) {
-                change.classList.add('hidden');
-                change.classList.remove('change-ok', 'change-short', 'change-pulse');
-            }
-            const status = document.getElementById('change-status-label');
-            if (status) status.innerText = 'Waiting for Payment';
-            const amount = document.getElementById('change-amount');
-            if (amount) amount.innerText = '₱0.00';
-            const confirmBtn = document.getElementById('confirm-checkout');
-            if (confirmBtn) {
-                confirmBtn.classList.remove('bg-secondary');
-                const label = confirmBtn.querySelector('span:last-child');
-                if (label) label.innerText = 'Confirm Transaction';
-            }
-            if (typeof switchPayMode === 'function') switchPayMode('cash');
-        } catch(e) {}
-    }
-
-    if (typeof openReview === 'function' && !window.__vc5632bOpenReviewHardReset) {
-        window.__vc5632bOpenReviewHardReset = true;
-        const oldOpenReview = openReview;
-        openReview = function() {
-            // Keep this synchronous only. The 0ms/80ms delayed resets caused
-            // occasional cash-input clearing while the user was entering payment.
-            hardResetPaymentUi();
-            return oldOpenReview.apply(this, arguments);
-        };
-    }
-
-    if (typeof closeModal === 'function' && !window.__vc5632bCloseModalHardReset) {
-        window.__vc5632bCloseModalHardReset = true;
-        const oldCloseModal = closeModal;
-        closeModal = function(id) {
-            const result = oldCloseModal.apply(this, arguments);
-            if (id === 'review-modal') hardResetPaymentUi();
-            return result;
-        };
-    }
-})();
-
-
-// v7.2.1 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.2.2 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -6178,7 +6106,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.1 Insights Business Day card flicker guard.
+// v7.2.2 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -6227,7 +6155,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.1: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.2.2: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6320,7 +6248,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.1: Correct Cash Received and default Ledger to Today.
+// v7.2.2: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6398,7 +6326,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.1: Inventory cloud reconcile.
+// v7.2.2: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6483,10 +6411,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v7.2.1: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.2.2: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
 
 
-// v7.2.1: Calendar-month backup/archive. Inventory is never archived/deleted.
+// v7.2.2: Calendar-month backup/archive. Inventory is never archived/deleted.
 (function(){
     if (window.__vc710CalendarArchive) return;
     window.__vc710CalendarArchive = true;
@@ -6567,7 +6495,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v7.2.1',
+                backupVersion: 'v7.2.2',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
@@ -6644,7 +6572,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.1: Business month arrows + favorite stock display.
+// v7.2.2: Business month arrows + favorite stock display.
 // Keep this small and late so it controls the currently active Business renderer
 // without touching checkout, sync, or Firestore code.
 (function(){
