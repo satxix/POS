@@ -198,7 +198,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v7.2.2: Inventory is local-first/manual-refresh.
+        // v7.2.3: Inventory is local-first/manual-refresh.
         // Do not keep a full inventory realtime listener open; it reads the
         // whole inventory collection on startup and reconnection. Product
         // add/edit/delete/restock writes still sync automatically through
@@ -379,7 +379,7 @@
     }
 
 
-    // v7.2.2: Auto-sync read scope.
+    // v7.2.3: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -5346,9 +5346,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         `;
     }
 
-    // v7.2.2 cleanup: the v5.6.29 Ledger renderer is obsolete.
+    // v7.2.3 cleanup: the v5.6.29 Ledger renderer is obsolete.
     // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v7.2.2 renderer below.
+    // active renderer is the single v7.2.3 renderer below.
 })();
 
 
@@ -5592,7 +5592,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            // v7.2.2: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
+            // v7.2.3: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5874,7 +5874,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v7.2.2: Credit must never use date grouping. This keeps phone,
+        // v7.2.3: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -6078,7 +6078,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.2.2 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.2.3 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -6106,7 +6106,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.2 Insights Business Day card flicker guard.
+// v7.2.3 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -6155,7 +6155,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.2: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.2.3: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6248,7 +6248,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.2: Correct Cash Received and default Ledger to Today.
+// v7.2.3: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6326,7 +6326,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.2: Inventory cloud reconcile.
+// v7.2.3: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6411,10 +6411,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v7.2.2: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.2.3: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
 
 
-// v7.2.2: Calendar-month backup/archive. Inventory is never archived/deleted.
+// v7.2.3: Calendar-month backup/archive. Inventory is never archived/deleted.
 (function(){
     if (window.__vc710CalendarArchive) return;
     window.__vc710CalendarArchive = true;
@@ -6495,7 +6495,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v7.2.2',
+                backupVersion: 'v7.2.3',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
@@ -6572,7 +6572,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.2: Business month arrows + favorite stock display.
+// v7.2.3: Business month arrows + favorite stock display.
 // Keep this small and late so it controls the currently active Business renderer
 // without touching checkout, sync, or Firestore code.
 (function(){
