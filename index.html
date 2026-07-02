@@ -6,39 +6,20 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v7.2.4</title>
+<title>Villacart POS v7.2.6</title>
 
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg==" type="image/svg+xml"/>
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg=="/>
+<link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
+<link rel="manifest" href="manifest.webmanifest?v=7.2.6"/>
+<meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            const manifest = {
-                "name": "Villacart POS",
-                "short_name": "Villacart",
-                "start_url": ".",
-                "display": "standalone",
-                "background_color": "#f0f4f8",
-                "theme_color": "#1e3a5f",
-                "icons": [
-                    {
-                        "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiNmZmZmZmYiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjU2IDI1MCkgcm90YXRlKC00NSkgdHJhbnNsYXRlKC0yNTYgLTI1MCkiPgo8cmVjdCB4PSIxNDIiIHk9IjEwNCIgd2lkdGg9IjIyOCIgaGVpZ2h0PSIyMjgiIHJ4PSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMEQyQjU1IiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9nPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNGNUI2MjMiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNDUgMTc1aDQzYzIxIDAgMzEgMTMgMzYgMzRsMjYgMTA4YzQgMTggMTggMjkgMzcgMjloOTMiLz4KPHBhdGggZD0iTTIzOCAyMTVoMTY2bC0yMSA4OC0xMzIgMTIiLz4KPHBhdGggZD0iTTIyNiAzNjJoMTY1Ii8+CjwvZz4KPGNpcmNsZSBjeD0iMjY0IiBjeT0iNDA0IiByPSIxOSIgZmlsbD0iI0Y1QjYyMyIvPgo8Y2lyY2xlIGN4PSIzNjUiIGN5PSI0MDQiIHI9IjE5IiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg==",
-                        "sizes": "512x512",
-                        "type": "image/png",
-                        "purpose": "any maskable"
-                    }
-                ]
-            };
-            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(manifestBlob);
-            const link = document.createElement('link');
-            link.rel = 'manifest';
-            link.href = manifestURL;
-            document.head.appendChild(link);
-
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js?v=7.2.4').catch(err => console.log('SW registration failed:', err));
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('sw.js?v=7.2.6').catch(err => console.log('SW registration failed:', err));
+                });
             }
         })();
     </script>
@@ -103,7 +84,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=7.2.4"/>
+<link rel="stylesheet" href="styles.css?v=7.2.6"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -112,11 +93,11 @@
 <header class="vc551-header fixed top-0 left-0 right-0 z-50">
     <div class="vc551-inner">
         <div class="vc551-brand">
-            <img class="vc551-logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE4IiBmaWxsPSIjMEIxRjNBIi8+CjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0Y1QjYyMyIgc3Ryb2tlLXdpZHRoPSI1LjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Ik0xNSAxOWg3YzMuNiAwIDUuNiAyLjEgNi40IDUuNGwzLjYgMTUuNWMuOCAzLjEgMy4xIDQuOSA2LjMgNC45aDEwLjkiLz4KPHBhdGggZD0iTTMwIDI1LjVoMjJsLTMuMyAxMy4yLTE3LjQgMS45Ii8+CjxwYXRoIGQ9Ik0yOC40IDQ3LjVoMjIuOCIvPgo8L2c+CjxjaXJjbGUgY3g9IjM0LjIiIGN5PSI1MyIgcj0iMy4yIiBmaWxsPSIjRjVCNjIzIi8+CjxjaXJjbGUgY3g9IjQ4LjMiIGN5PSI1MyIgcj0iMy4yIiBmaWxsPSIjRjVCNjIzIi8+Cjwvc3ZnPg==" alt="Villacart POS"/>
+            <img class="vc551-logo" src="assets/icons/villacart-logo.svg" alt="Villacart POS"/>
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v7.2.4</span>
+                    <span class="vc551-version">v7.2.6</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -993,7 +974,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=7.2.4"></script>
+<script src="app.js?v=7.2.6"></script>
 
 
 
@@ -1030,7 +1011,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=7.2.4"></script>
+<script src="diagnostics.js?v=7.2.6"></script>
 
 
 

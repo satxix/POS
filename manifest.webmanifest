@@ -1,0 +1,73 @@
+{
+  "name": "Villacart POS",
+  "short_name": "Villacart",
+  "description": "A lightweight point-of-sale app for Villacart with inventory, ledger, insights, offline support, and Firestore sync.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f0f4f8",
+  "theme_color": "#1e3a5f",
+  "categories": [
+    "business",
+    "productivity",
+    "finance"
+  ],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/screenshots/phone.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Villacart POS mobile terminal"
+    },
+    {
+      "src": "assets/screenshots/tablet.png",
+      "sizes": "1024x768",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Villacart POS tablet terminal"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Terminal",
+      "short_name": "Terminal",
+      "url": "./?screen=pos",
+      "description": "Open the sales terminal"
+    },
+    {
+      "name": "Stock",
+      "short_name": "Stock",
+      "url": "./?screen=inventory",
+      "description": "Open inventory and stock tools"
+    },
+    {
+      "name": "Ledger",
+      "short_name": "Ledger",
+      "url": "./?screen=ledger",
+      "description": "Open transaction ledger"
+    }
+  ]
+}
