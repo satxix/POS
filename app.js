@@ -198,7 +198,7 @@
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
 
-        // v7.2.6: Inventory is local-first/manual-refresh.
+        // v7.2.7: Inventory is local-first/manual-refresh.
         // Do not keep a full inventory realtime listener open; it reads the
         // whole inventory collection on startup and reconnection. Product
         // add/edit/delete/restock writes still sync automatically through
@@ -379,7 +379,7 @@
     }
 
 
-    // v7.2.6: Auto-sync read scope.
+    // v7.2.7: Auto-sync read scope.
     // Keep automatic sync, but avoid re-reading old transaction history forever.
     function vc5632lDateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
@@ -5268,203 +5268,6 @@ document.addEventListener('DOMContentLoaded',()=>{
  }
 });
 
-
-// v5.6.29 Ledger polish: readable transaction cards, quick filters, safer status labels.
-(function(){
-    if (window.__vcLedgerPolish5629) return;
-    window.__vcLedgerPolish5629 = true;
-
-    function vc5629Peso(value) {
-        const n = Number(value || 0);
-        return '₱' + n.toLocaleString(undefined, { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
-    }
-
-    function vc5629Text(value) {
-        return String(value == null ? '' : value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    function vc5629Js(value) {
-        return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    }
-
-    function vc5629Date(t) {
-        const d = t && t.timestamp ? new Date(t.timestamp) : null;
-        return d && !isNaN(d) ? d : null;
-    }
-
-    function vc5629When(t) {
-        const d = vc5629Date(t);
-        if (!d) return 'No time';
-        return d.toLocaleDateString() + ' • ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function vc5629IsToday(t) {
-        const d = vc5629Date(t);
-        if (!d) return false;
-        const now = new Date();
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-    }
-
-    function vc5629IsSettlement(t) {
-        const notes = String(t && t.notes || '').toUpperCase();
-        const id = String(t && t.id || '').toUpperCase();
-        return notes.includes('CR-') || notes.includes('PARTIAL:') || notes.includes('PAYMENT') || (id.startsWith('SA-') && notes.includes('CR-'));
-    }
-
-    function vc5629StatusPills(t, kind) {
-        const pills = [];
-        if (typeof isPendingSync === 'function' && isPendingSync('transactions', t.id)) {
-            pills.push('<span class="vc5629-pill vc5629-pending">Pending</span>');
-        } else {
-            pills.push('<span class="vc5629-pill vc5629-synced">Synced</span>');
-        }
-        if (kind === 'credit') pills.push('<span class="vc5629-pill vc5629-credit">Credit</span>');
-        if (kind === 'expense') pills.push('<span class="vc5629-pill vc5629-expense">Expense</span>');
-        if (vc5629IsSettlement(t)) pills.push('<span class="vc5629-pill vc5629-paid">Paid</span>');
-        return pills.join('');
-    }
-
-    function vc5629EnsureLedgerShell() {
-        const screen = document.getElementById('screen-history');
-        const summary = document.getElementById('ledger-summary-container');
-        const content = document.getElementById('ledger-content');
-        if (!screen || !summary || !content) return false;
-
-        screen.classList.add('vc5629-ledger');
-        const title = screen.querySelector('h2');
-        if (title) title.textContent = 'Ledger';
-        const subtitle = title && title.parentElement ? title.parentElement.querySelector('p') : null;
-        if (subtitle) subtitle.textContent = 'Review sales, credits, expenses, and sync status';
-
-        const tabs = document.querySelector('[id="tab-cash"]')?.parentElement;
-        if (tabs) tabs.classList.add('vc5629-tabs');
-
-        if (!document.getElementById('vc5629-ledger-tools')) {
-            const tools = document.createElement('div');
-            tools.id = 'vc5629-ledger-tools';
-            tools.className = 'vc5629-ledger-tools';
-            tools.innerHTML = `
-                <label class="vc5629-search">
-                    <span class="material-symbols-outlined">search</span>
-                    <input id="vc5629-ledger-search" type="search" placeholder="Search transaction, customer, notes..." autocomplete="off">
-                </label>
-                <select id="vc5629-ledger-date">
-                    <option value="today" selected>Today only</option>
-                    <option value="all">All dates</option>
-                </select>
-            `;
-            const anchor = tabs || summary;
-            anchor.insertAdjacentElement('afterend', tools);
-            tools.querySelectorAll('input, select').forEach(el => el.addEventListener('input', () => renderLedger()));
-            tools.querySelectorAll('select').forEach(el => el.addEventListener('change', () => renderLedger()));
-        }
-
-        summary.className = 'vc5629-summary-grid';
-        content.className = 'vc5629-ledger-grid';
-        return true;
-    }
-
-    function vc5629Filters(list) {
-        const q = String(document.getElementById('vc5629-ledger-search')?.value || '').trim().toLowerCase();
-        const dateMode = document.getElementById('vc5629-ledger-date')?.value || 'today';
-        let filtered = Array.isArray(list) ? list.slice() : [];
-        if (dateMode === 'today') filtered = filtered.filter(vc5629IsToday);
-        if (q) {
-            filtered = filtered.filter(t => [
-                t.id, t.customer, t.notes, t.desc, t.category,
-                ...(Array.isArray(t.items) ? t.items.map(i => i && i.name) : [])
-            ].some(v => String(v || '').toLowerCase().includes(q)));
-        }
-        return filtered.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-    }
-
-    function vc5629SummaryCard(label, value, sub, tone) {
-        return `
-            <div class="vc5629-summary-card vc5629-${tone || 'blue'}">
-                <p>${vc5629Text(label)}</p>
-                <strong>${vc5629Text(value)}</strong>
-                <span>${vc5629Text(sub || '')}</span>
-            </div>
-        `;
-    }
-
-    function vc5629Empty(label) {
-        return `
-            <div class="vc5629-empty">
-                <span class="material-symbols-outlined">receipt_long</span>
-                <strong>${vc5629Text(label)}</strong>
-                <p>Try another tab, date, or search.</p>
-            </div>
-        `;
-    }
-
-    function vc5629SaleCard(t, kind) {
-        const isExpense = kind === 'expense';
-        const customer = t.customer ? `<p class="vc5629-meta">Customer: ${vc5629Text(t.customer)}</p>` : '';
-        const note = t.desc || t.notes || '';
-        return `
-            <article class="vc5629-tx-card vc5629-${kind}">
-                <div class="vc5629-tx-main">
-                    <div class="vc5629-tx-top">
-                        <h3>${vc5629Text(t.id || 'Transaction')}</h3>
-                        <div class="vc5629-pills">${vc5629StatusPills(t, kind)}</div>
-                    </div>
-                    <p class="vc5629-time">${vc5629Text(vc5629When(t))}</p>
-                    ${customer}
-                    ${note ? `<p class="vc5629-meta">${vc5629Text(note)}</p>` : ''}
-                </div>
-                <div class="vc5629-tx-side">
-                    <strong class="${isExpense ? 'vc5629-amount-red' : ''}">${vc5629Peso(t.total)}</strong>
-                    <button type="button" onclick="viewTxDetails('${vc5629Js(t.id)}')" aria-label="View transaction ${vc5629Text(t.id)}">
-                        <span class="material-symbols-outlined">visibility</span>
-                    </button>
-                </div>
-            </article>
-        `;
-    }
-
-    function vc5629CreditGroupCard(name, data) {
-        return `
-            <section class="vc5629-credit-group">
-                <div class="vc5629-credit-head">
-                    <div>
-                        <h3>${vc5629Text(name)}</h3>
-                        <p>${data.items.length} pending ticket(s)</p>
-                    </div>
-                    <div class="vc5632-credit-head-actions"><strong>${vc5629Peso(data.total)}</strong><button type="button" onclick="payFullBalance('${vc5629Js(name)}')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button></div>
-                </div>
-                <button type="button" onclick="payFullBalance('${vc5629Js(name)}')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>
-                <div class="vc5629-credit-list">
-                    ${data.items.map(t => `
-                        <div class="vc5629-credit-ticket">
-                            <div>
-                                <h4>${vc5629Text(t.id)}</h4>
-                                <p>${vc5629Text(vc5629When(t))}</p>
-                                <div class="vc5629-pills">${vc5629StatusPills(t, 'credit')}</div>
-                            </div>
-                            <div>
-                                <strong>${vc5629Peso(t.total)}</strong>
-                                <button type="button" onclick="payIndividualTicket('${vc5629Js(t.id)}')">Pay</button>
-                                <button type="button" onclick="viewTxDetails('${vc5629Js(t.id)}')" aria-label="View transaction"><span class="material-symbols-outlined">visibility</span></button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </section>
-        `;
-    }
-
-    // v7.2.6 cleanup: the v5.6.29 Ledger renderer is obsolete.
-    // Its helper functions and CSS names remain for compatibility, but the
-    // active renderer is the single v7.2.6 renderer below.
-})();
-
-
 // v5.6.30 Sync safety: auto retry pending work and stop UI repair write loops.
 (function(){
     if (window.__vcSyncSafety5630) return;
@@ -5705,7 +5508,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                     : readCollectionWithFirestoreRest('businessDays')
             ]);
 
-            // v7.2.6: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
+            // v7.2.7: Do not auto-pull inventory here. Refresh Stock owns inventory reads.
             const localOldTransactions = (state.transactions || []).filter(t => t && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, bounds));
             const localOldBusinessDays = (state.businessDays || []).filter(day => day && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(day, bounds));
             state.transactions = [...vc5631MergeServer('transactions', transactions, state.transactions || []), ...localOldTransactions]
@@ -5987,7 +5790,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632RenderGroups(list, kind) {
-        // v7.2.6: Credit must never use date grouping. This keeps phone,
+        // v7.2.7: Credit must never use date grouping. This keeps phone,
         // tablet, and any legacy caller on the customer-group Credit renderer.
         if (kind === 'credit' && typeof vc5632RenderCreditCustomers === 'function') {
             return vc5632RenderCreditCustomers(Array.isArray(list) ? list : []);
@@ -6191,7 +5994,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.2.6 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.2.7 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
@@ -6219,7 +6022,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.6 Insights Business Day card flicker guard.
+// v7.2.7 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
@@ -6268,7 +6071,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.6: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.2.7: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6361,7 +6164,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.6: Correct Cash Received and default Ledger to Today.
+// v7.2.7: Correct Cash Received and default Ledger to Today.
 (function(){
     if (window.__vc5632nCashReceivedAndLedgerDefault) return;
     window.__vc5632nCashReceivedAndLedgerDefault = true;
@@ -6439,7 +6242,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.6: Inventory cloud reconcile.
+// v7.2.7: Inventory cloud reconcile.
 // Inventory is small, so do an independent inventory refresh that cannot be
 // blocked by transaction/businessDay scoped queries. Applies to tablet + phone.
 (function(){
@@ -6524,10 +6327,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 
-// v7.2.6: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
+// v7.2.7: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
 
 
-// v7.2.6: Calendar-month backup/archive. Inventory is never archived/deleted.
+// v7.2.7: Calendar-month backup/archive. Inventory is never archived/deleted.
 (function(){
     if (window.__vc710CalendarArchive) return;
     window.__vc710CalendarArchive = true;
@@ -6608,7 +6411,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v7.2.6',
+                backupVersion: 'v7.2.7',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
@@ -6685,7 +6488,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.6: Business month arrows + favorite stock display.
+// v7.2.7: Business month arrows + favorite stock display.
 // Keep this small and late so it controls the currently active Business renderer
 // without touching checkout, sync, or Firestore code.
 (function(){
