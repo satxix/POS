@@ -6,19 +6,19 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v7.2.11</title>
+<title>Villacart POS v7.2.12</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=7.2.11"/>
+<link rel="manifest" href="manifest.webmanifest?v=7.2.12"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js?v=7.2.11').catch(err => console.log('SW registration failed:', err));
+                    navigator.serviceWorker.register('sw.js?v=7.2.12').catch(err => console.log('SW registration failed:', err));
                 });
             }
         })();
@@ -84,7 +84,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=7.2.11"/>
+<link rel="stylesheet" href="styles.css?v=7.2.12"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -97,7 +97,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v7.2.11</span>
+                    <span class="vc551-version">v7.2.12</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -976,7 +976,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=7.2.11"></script>
+<script src="app.js?v=7.2.12"></script>
 
 
 
@@ -1013,7 +1013,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=7.2.11"></script>
+<script src="diagnostics.js?v=7.2.12"></script>
 
 
 
