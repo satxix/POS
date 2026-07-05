@@ -796,6 +796,105 @@
         if (results) results.classList.add('hidden');
     }
 
+    window.__villacartScannerDebug = window.__villacartScannerDebug || {
+        events: [],
+        lastInputValue: '',
+        lastBarcodeAttempt: '',
+        lastBarcodeResult: '',
+        lastHandledAt: null
+    };
+
+    function vc7228ScannerDebug(type, data) {
+        try {
+            const dbg = window.__villacartScannerDebug;
+            const entry = {
+                at: new Date().toISOString(),
+                type,
+                ...(data || {})
+            };
+            dbg.events.push(entry);
+            if (dbg.events.length > 25) dbg.events.shift();
+        } catch(e) {}
+    }
+
+    function vc7228RecentlyHandled(code) {
+        const dbg = window.__villacartScannerDebug;
+        const clean = vc7227NormalizeBarcode(code);
+        return !!(dbg && dbg.lastBarcodeAttempt === clean && dbg.lastHandledAt && Date.now() - dbg.lastHandledAt < 900);
+    }
+
+    function vc7228MarkHandled(code, result) {
+        try {
+            const dbg = window.__villacartScannerDebug;
+            dbg.lastBarcodeAttempt = vc7227NormalizeBarcode(code);
+            dbg.lastBarcodeResult = result || '';
+            dbg.lastHandledAt = Date.now();
+            vc7228ScannerDebug('handled', { code: dbg.lastBarcodeAttempt, result: dbg.lastBarcodeResult });
+        } catch(e) {}
+    }
+
+    let vc7228CaptureBuffer = "";
+    let vc7228CaptureTimeout = null;
+    document.addEventListener('keydown', (e) => {
+        const target = e.target;
+        const isInput = target && target.tagName === 'INPUT';
+        const targetId = target && target.id ? target.id : '';
+        const isScannerEndKey = e.key === 'Enter' || e.key === 'Tab' || e.key === 'NumpadEnter';
+
+        vc7228ScannerDebug('keydown-capture', {
+            key: e.key,
+            target: targetId || (target && target.tagName) || '',
+            value: isInput ? String(target.value || '').slice(0, 80) : '',
+            buffer: vc7228CaptureBuffer.slice(0, 80)
+        });
+
+        if (isInput) {
+            if (!isScannerEndKey) return;
+            const typedCode = vc7227NormalizeBarcode(target.value);
+            if (vc7226LooksLikeBarcode(typedCode) && !vc7228RecentlyHandled(typedCode)) {
+                e.preventDefault();
+                e.stopPropagation();
+                scannerBuffer = "";
+                vc7228CaptureBuffer = "";
+                handlePhysicalScan(typedCode);
+                if (target.id === 'pos-search') vc7227ClearPosSearch();
+            }
+            return;
+        }
+
+        clearTimeout(vc7228CaptureTimeout);
+        vc7228CaptureTimeout = setTimeout(() => { vc7228CaptureBuffer = ""; }, 1000);
+
+        if (isScannerEndKey) {
+            const code = vc7227NormalizeBarcode(vc7228CaptureBuffer);
+            if (vc7226LooksLikeBarcode(code) && !vc7228RecentlyHandled(code)) {
+                e.preventDefault();
+                e.stopPropagation();
+                scannerBuffer = "";
+                vc7228CaptureBuffer = "";
+                handlePhysicalScan(code);
+            }
+        } else if (e.key && e.key.length === 1) {
+            vc7228CaptureBuffer += e.key;
+        }
+    }, true);
+
+    document.addEventListener('input', (e) => {
+        const target = e.target;
+        if (!target || target.tagName !== 'INPUT') return;
+        const targetId = target.id || '';
+        const value = String(target.value || '');
+        if (window.__villacartScannerDebug) window.__villacartScannerDebug.lastInputValue = value.slice(0, 120);
+        if (targetId === 'pos-search' || targetId === 'p-barcode') {
+            vc7228ScannerDebug('input', { target: targetId, value: value.slice(0, 120) });
+        }
+    }, true);
+
+    document.addEventListener('paste', (e) => {
+        const text = e.clipboardData ? e.clipboardData.getData('text') : '';
+        vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
+    }, true);
+
     document.addEventListener('keydown', (e) => {
         const target = e.target;
         const isInput = target && target.tagName === 'INPUT';
@@ -843,6 +942,7 @@
         }
         const product = vc7227FindProductByBarcode(cleanBarcode);
         if (product) {
+            if (typeof vc7228MarkHandled === 'function') vc7228MarkHandled(cleanBarcode, 'matched:' + product.id);
             const hasPack = product.packPrice && product.packPrice > 0;
             if (hasPack) {
                 switchScreen('pos');
@@ -5664,7 +5764,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.27: Do not fingerprint hundreds of local docs before the POS
+    // v7.2.28: Do not fingerprint hundreds of local docs before the POS
     // screen can paint. This safety scan is still useful, but it can run after
     // the cashier already sees the terminal.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
