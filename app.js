@@ -769,13 +769,41 @@
     }
 
     // Bluetooth / Physical Scanner Logic
+    function vc7226LooksLikeBarcode(value) {
+        const text = String(value || '').trim();
+        return text.length >= 3 && /^[0-9A-Za-z._-]+$/.test(text);
+    }
+
     document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' && e.key !== 'Enter') return;
+        const target = e.target;
+        const isInput = target && target.tagName === 'INPUT';
+
+        // Many Bluetooth scanners type directly into the focused input, then
+        // send Enter. If we ignore input keystrokes, the buffer stays empty and
+        // the scan appears to do nothing.
+        if (isInput) {
+            if (e.key !== 'Enter') return;
+            const typedCode = String(target.value || '').trim();
+            if (vc7226LooksLikeBarcode(typedCode)) {
+                e.preventDefault();
+                scannerBuffer = "";
+                handlePhysicalScan(typedCode);
+                if (target.id === 'pos-search') {
+                    target.value = "";
+                    const results = document.getElementById('search-results-container');
+                    if (results) results.classList.add('hidden');
+                    target.blur();
+                }
+            }
+            return;
+        }
+
         clearTimeout(scannerTimeout);
-        scannerTimeout = setTimeout(() => { scannerBuffer = ""; }, 150);
+        scannerTimeout = setTimeout(() => { scannerBuffer = ""; }, 200);
         if (e.key === 'Enter') {
-            if (scannerBuffer.length > 2) {
-                handlePhysicalScan(scannerBuffer);
+            const code = String(scannerBuffer || '').trim();
+            if (vc7226LooksLikeBarcode(code)) {
+                handlePhysicalScan(code);
                 scannerBuffer = "";
             }
         } else if (e.key.length === 1) {
@@ -2128,9 +2156,15 @@ body {
         const camArea = document.getElementById('pos-cam-area');
         const label = document.getElementById('pos-scanner-active-label');
         if (!container || !camArea) return;
+        if (typeof Quagga === 'undefined') {
+            showToast('Scanner library is still loading. Try again in a moment.', 'error');
+            return;
+        }
         container.classList.remove('hidden');
         camArea.innerHTML = '';
         if (posScannerRunning) return;
+        try { Quagga.offDetected(); } catch(e) {}
+        try { Quagga.stop(); } catch(e) {}
         posScannerRunning = true;
         label && label.classList.remove('hidden');
 
@@ -2138,7 +2172,7 @@ body {
             inputStream: { type: 'LiveStream', target: camArea, constraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 480 } } },
             locator: { patchSize: 'medium', halfSample: true },
             numOfWorkers: navigator.hardwareConcurrency || 2,
-            decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','code_39_reader','upc_reader','upc_e_reader'] },
+            decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','code_39_reader','upc_reader','upc_e_reader','codabar_reader','i2of5_reader'] },
             locate: true
         }, function(err) {
             if (err) {
@@ -2154,7 +2188,8 @@ body {
 
         let lastCode = '', lastTime = 0;
         Quagga.onDetected(function(result) {
-            const code = result.codeResult.code;
+            const code = result && result.codeResult && result.codeResult.code ? String(result.codeResult.code).trim() : '';
+            if (!vc7226LooksLikeBarcode(code)) return;
             const now = Date.now();
             if (code === lastCode && now - lastTime < 2000) return;
             lastCode = code; lastTime = now;
@@ -5585,7 +5620,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.24: Do not fingerprint hundreds of local docs before the POS
+    // v7.2.26: Do not fingerprint hundreds of local docs before the POS
     // screen can paint. This safety scan is still useful, but it can run after
     // the cashier already sees the terminal.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
