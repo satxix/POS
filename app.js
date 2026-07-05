@@ -5254,11 +5254,30 @@ function getClosingCounts(transactions) {
 
     // Delayed Insights repaint disabled to prevent flicker.
 
-window.onload = () => {
-        setTimeout(v52RefreshBusinessDayUI, 1200);
-        setTimeout(forceUpdateInsightsNumbersFromTransactions, 800);
-        setTimeout(renderBusinessCalendar, 300);
-        applyUIPolish(); setupRealTimeSync(); switchScreen('pos'); };
+function vc7218StartApp() {
+        if (window.__vc7218Started) return;
+        window.__vc7218Started = true;
+        try {
+            setTimeout(v52RefreshBusinessDayUI, 1200);
+            setTimeout(forceUpdateInsightsNumbersFromTransactions, 800);
+            setTimeout(renderBusinessCalendar, 300);
+            applyUIPolish();
+            switchScreen('pos');
+            setTimeout(setupRealTimeSync, 50);
+        } catch (error) {
+            console.error('Villacart startup failed', error);
+            try { switchScreen('pos'); } catch(e) {}
+            try { updateSyncUI(); } catch(e) {}
+        }
+    }
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', vc7218StartApp, { once: true });
+} else {
+    vc7218StartApp();
+}
+window.addEventListener('load', vc7218StartApp, { once: true });
+setTimeout(vc7218StartApp, 1200);
 
 document.addEventListener('click', function(e){
   const t = e.target.closest('button,[onclick],.product-card,.inventory-item');
