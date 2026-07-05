@@ -476,11 +476,20 @@
     }
 
     async function readCollectionWithFirestoreRest(collection) {
-        const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(firebaseConfig.projectId)}/databases/(default)/documents/${encodeURIComponent(collection)}?pageSize=300&key=${encodeURIComponent(firebaseConfig.apiKey)}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Firestore REST ${response.status}: ${(await response.text()).slice(0, 240)}`);
-        const payload = await response.json();
-        return (payload.documents || []).map(document => ({
+        const baseUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(firebaseConfig.projectId)}/databases/(default)/documents/${encodeURIComponent(collection)}?pageSize=300&key=${encodeURIComponent(firebaseConfig.apiKey)}`;
+        const documents = [];
+        let pageToken = '';
+
+        do {
+            const url = pageToken ? `${baseUrl}&pageToken=${encodeURIComponent(pageToken)}` : baseUrl;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Firestore REST ${response.status}: ${(await response.text()).slice(0, 240)}`);
+            const payload = await response.json();
+            documents.push(...(payload.documents || []));
+            pageToken = payload.nextPageToken || '';
+        } while (pageToken);
+
+        return documents.map(document => ({
             id: document.name.split('/').pop(),
             ...Object.fromEntries(Object.entries(document.fields || {}).map(([key, value]) => [key, firestoreRestToValue(value)]))
         }));
@@ -5998,12 +6007,12 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.2.14 Final Insights flicker guard: one owner for Business Day + Recent Activities.
+// v7.2.15 Final Insights flicker guard: one owner for Business Day + Recent Activities.
 (function(){
     if (window.__vc5632gInsightsFlickerGuard) return;
     window.__vc5632gInsightsFlickerGuard = true;
 
-    function onInsights() {
+    function vc5632gIsInsightsVisible() {
         const screen = document.getElementById('screen-insights');
         return !!screen && !screen.classList.contains('hidden');
     }
@@ -6011,7 +6020,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (typeof vc542RenderRecentActivities === 'function') {
         const oldVc542Recent = vc542RenderRecentActivities;
         vc542RenderRecentActivities = function() {
-            if (onInsights() && typeof vc531RenderRecentActivities === 'function') return;
+            if (vc5632gIsInsightsVisible() && typeof vc531RenderRecentActivities === 'function') return;
             return oldVc542Recent.apply(this, arguments);
         };
     }
@@ -6019,20 +6028,20 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (typeof vc560RenderActivities === 'function') {
         const oldVc560Activities = vc560RenderActivities;
         vc560RenderActivities = function() {
-            if (onInsights() && typeof vc531RenderRecentActivities === 'function') return;
+            if (vc5632gIsInsightsVisible() && typeof vc531RenderRecentActivities === 'function') return;
             return oldVc560Activities.apply(this, arguments);
         };
     }
 })();
 
 
-// v7.2.14 Insights Business Day card flicker guard.
+// v7.2.15 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){
     if (window.__vc5632kBusinessDayFlickerGuard) return;
     window.__vc5632kBusinessDayFlickerGuard = true;
 
-    function onInsights() {
+    function vc5632kIsInsightsVisible() {
         const screen = document.getElementById('screen-insights');
         return !!screen && !screen.classList.contains('hidden');
     }
@@ -6044,7 +6053,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (typeof v52RefreshBusinessDayUI === 'function') {
         const oldV52RefreshBusinessDayUI = v52RefreshBusinessDayUI;
         v52RefreshBusinessDayUI = function() {
-            if (onInsights()) {
+            if (vc5632kIsInsightsVisible()) {
                 stableInsightsBusinessDay();
                 return;
             }
@@ -6055,7 +6064,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (typeof vc543RefreshBusinessDayUI === 'function') {
         const oldVc543RefreshBusinessDayUI = vc543RefreshBusinessDayUI;
         vc543RefreshBusinessDayUI = function() {
-            if (onInsights()) {
+            if (vc5632kIsInsightsVisible()) {
                 stableInsightsBusinessDay();
                 return;
             }
@@ -6075,7 +6084,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.14: Today-first auto sync + on-demand Month/Range cloud loads.
+// v7.2.15: Today-first auto sync + on-demand Month/Range cloud loads.
 (function(){
     if (window.__vc5632mOnDemandPeriodLoads) return;
     window.__vc5632mOnDemandPeriodLoads = true;
@@ -6083,7 +6092,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const loadedRanges = {};
     let loadingKey = '';
 
-    function mergeById(local, incoming) {
+    function vc5632mMergeById(local, incoming) {
         const map = new Map();
         (Array.isArray(local) ? local : []).forEach(item => { if (item && item.id) map.set(item.id, item); });
         (Array.isArray(incoming) ? incoming : []).forEach(item => {
@@ -6354,7 +6363,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         return String((tx && (tx.businessDate || tx.date || tx.timestamp)) || '').slice(0, 10);
     }
 
-    function mergeById(existing, incoming) {
+    function vc710MergeArchiveById(existing, incoming) {
         const map = new Map();
         (Array.isArray(existing) ? existing : []).forEach(item => { if (item && item.id) map.set(item.id, item); });
         (Array.isArray(incoming) ? incoming : []).forEach(item => { if (item && item.id) map.set(item.id, { ...item, _archiveOnly: true }); });
