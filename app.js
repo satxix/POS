@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.31';
+    window.VILLACART_APP_VERSION = 'v7.2.32';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1319,7 +1319,7 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v7.2.31: Android/PWA resume repaint guard.
+    // v7.2.32: Android/PWA resume repaint guard.
     // Some WebView/TWA sessions return from background as a black compositor
     // frame until the user taps/back-navigates. This local-only repaint nudges
     // the browser to redraw the visible screen without doing Firestore reads.
@@ -1440,6 +1440,10 @@ function switchScreen(id) {
         return (state.cart || []).reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.qty) || 0)), 0);
     }
 
+    function getCartCount() {
+        return (state.cart || []).reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+    }
+
     function getCartDiscount() {
         const subtotal = getCartSubtotal();
         const discount = Math.max(0, Number(state.cartDiscount) || 0);
@@ -1482,6 +1486,8 @@ function switchScreen(id) {
         const discountRow = document.getElementById('cart-discount-row');
         const discountEl = document.getElementById('cart-discount');
         const discountBtn = document.getElementById('cart-discount-btn');
+        const countPill = document.getElementById('cart-count-pill');
+        if (countPill) countPill.innerText = String(getCartCount());
         if (state.cart.length === 0) {
             resetCartDiscount();
             container.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-20 py-20"><span class="material-symbols-outlined text-[64px]">shopping_basket</span><p class="text-xs font-black uppercase mt-2 tracking-widest">Order is empty</p></div>`;
@@ -5869,7 +5875,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.31: Keep the post-startup signature safety scan, but do it in
+    // v7.2.32: Keep the post-startup signature safety scan, but do it in
     // tiny chunks. This prevents the first Ledger/Insights taps from feeling
     // ignored while hundreds of local docs are fingerprinted.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
