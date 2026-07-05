@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.32';
+    window.VILLACART_APP_VERSION = 'v7.2.34';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1319,7 +1319,7 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v7.2.32: Android/PWA resume repaint guard.
+    // v7.2.34: Android/PWA resume repaint guard.
     // Some WebView/TWA sessions return from background as a black compositor
     // frame until the user taps/back-navigates. This local-only repaint nudges
     // the browser to redraw the visible screen without doing Firestore reads.
@@ -5875,7 +5875,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.32: Keep the post-startup signature safety scan, but do it in
+    // v7.2.34: Keep the post-startup signature safety scan, but do it in
     // tiny chunks. This prevents the first Ledger/Insights taps from feeling
     // ignored while hundreds of local docs are fingerprinted.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
@@ -6566,9 +6566,9 @@ document.addEventListener('DOMContentLoaded',()=>{
                     { field: 'date', op: 'LESS_THAN_OR_EQUAL', value: bounds.end }
                 ], 120)
             ]);
-            state.transactions = mergeById(state.transactions || [], transactions)
+            state.transactions = vc5632mMergeById(state.transactions || [], transactions)
                 .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-            state.businessDays = mergeById(state.businessDays || [], businessDays);
+            state.businessDays = vc5632mMergeById(state.businessDays || [], businessDays);
             loadedRanges[key] = Date.now();
             if (typeof sync === 'function') sync();
             if (typeof renderLedger === 'function') renderLedger();
@@ -6956,8 +6956,8 @@ document.addEventListener('DOMContentLoaded',()=>{
                 const tx = Array.isArray(data.transactions) ? data.transactions : [];
                 const bd = Array.isArray(data.businessDays) ? data.businessDays : [];
                 if (!tx.length && !bd.length) throw new Error('No transactions/businessDays found in backup.');
-                state.archiveTransactions = mergeById(state.archiveTransactions || [], tx);
-                state.archiveBusinessDays = mergeById(state.archiveBusinessDays || [], bd);
+                state.archiveTransactions = vc710MergeArchiveById(state.archiveTransactions || [], tx);
+                state.archiveBusinessDays = vc710MergeArchiveById(state.archiveBusinessDays || [], bd);
                 updateArchiveMeta({
                     lastLoadAt: new Date().toISOString(),
                     lastLoadFile: file.name || 'archive.json',
