@@ -33,6 +33,16 @@
         queuedAt: q.ts ? new Date(q.ts).toISOString() : null
       })) : [],
       syncErrorMsg: typeof syncErrorMsg !== 'undefined' ? (syncErrorMsg || null) : null,
+      startup: window.__villacartStartup || null,
+      optionalLibraries: {
+        quaggaLoaded: typeof Quagga !== 'undefined',
+        chartLoaded: typeof Chart !== 'undefined',
+        html2canvasLoaded: typeof html2canvas !== 'undefined'
+      },
+      serviceWorker: navigator.serviceWorker ? {
+        controller: !!navigator.serviceWorker.controller,
+        controllerScript: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null
+      } : null,
       lastSnapshots: {
         transactions: window.__villacartLastTransactionsSnapshot || null,
         businessDays: window.__villacartLastBusinessDaysSnapshot || null
@@ -195,7 +205,17 @@
         queuedAt: q.ts ? new Date(q.ts).toISOString() : null
       })) : [],
       syncErrorMsg: typeof syncErrorMsg !== 'undefined' ? (syncErrorMsg || null) : null,
-      lastHydrate: window.__vc559LastHydrate || null
+      lastHydrate: window.__vc559LastHydrate || null,
+      startup: window.__villacartStartup || null,
+      optionalLibraries: {
+        quaggaLoaded: typeof Quagga !== 'undefined',
+        chartLoaded: typeof Chart !== 'undefined',
+        html2canvasLoaded: typeof html2canvas !== 'undefined'
+      },
+      serviceWorker: navigator.serviceWorker ? {
+        controller: !!navigator.serviceWorker.controller,
+        controllerScript: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null
+      } : null
     };
     window.__vc559LastReport = report;
     return report;
@@ -234,7 +254,9 @@
         vc559Card('Queue', r.offlineQueue === null ? 'N/A' : r.offlineQueue, 'offline queue', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
         vc559Card('Inventory FS', r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count, r.firestore.inventory.error || 'inventory collection', r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('Inventory Mem', r.memory.inventory === null ? 'N/A' : r.memory.inventory, 'state.inventory', r.memory.inventory > 0 ? 'vc558-ok' : 'vc558-warn'),
-        vc559Card('Business Days', r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count, r.firestore.businessDays.error || 'businessDays collection', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad')
+        vc559Card('Business Days', r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count, r.firestore.businessDays.error || 'businessDays collection', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Startup', r.startup && r.startup.marks && r.startup.marks.length ? (r.startup.marks[r.startup.marks.length - 1].msSinceScriptStart + 'ms') : 'N/A', r.startup ? ('last: ' + (r.startup.lastMark || 'unknown')) : 'not recorded', r.startup ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Optional Libs', (r.optionalLibraries && r.optionalLibraries.chartLoaded ? 'Chart ' : '') + (r.optionalLibraries && r.optionalLibraries.html2canvasLoaded ? 'Image ' : '') || 'Deferred', 'Quagga: ' + (r.optionalLibraries && r.optionalLibraries.quaggaLoaded ? 'loaded' : 'not loaded'), 'vc558-ok')
       ].join('');
     }
     if (log) log.textContent = JSON.stringify(r, null, 2);

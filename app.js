@@ -1,6 +1,27 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
+    window.__villacartStartup = window.__villacartStartup || {
+        scriptStartAt: Date.now(),
+        navigationStartAt: (performance && performance.timeOrigin) ? Math.round(performance.timeOrigin) : Date.now(),
+        marks: []
+    };
+    function vcStartupMark(name, extra) {
+        try {
+            const now = Date.now();
+            const start = window.__villacartStartup.scriptStartAt || now;
+            window.__villacartStartup.marks.push({
+                name,
+                at: new Date(now).toISOString(),
+                msSinceScriptStart: now - start,
+                ...(extra || {})
+            });
+            window.__villacartStartup.lastMark = name;
+            window.__villacartStartup.lastMarkAt = new Date(now).toISOString();
+        } catch(e) {}
+    }
+    vcStartupMark('script-start');
+
     const firebaseConfigs = {
         live: {
             apiKey: "AIzaSyBSRVxGcKllY04Ghoy9e_2ZKId3D1Mx7bM",
@@ -48,6 +69,7 @@
     const FAV_KEY = 'villacart_favorites' + STORAGE_SUFFIX;
     const ARCHIVE_KEY = 'villacart_local_archive_v710' + STORAGE_SUFFIX;
     
+    vcStartupMark('before-local-state-load');
     let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
         inventory: [],
         transactions: [],
@@ -195,6 +217,7 @@
     }
 
     function setupRealTimeSync() {
+        vcStartupMark('setup-realtime-sync-start');
         if (inventoryUnsubscribe) inventoryUnsubscribe();
         if (transactionsUnsubscribe) transactionsUnsubscribe();
         if (businessDaysUnsubscribe) businessDaysUnsubscribe();
@@ -290,9 +313,11 @@
         // any saved work immediately instead of waiting for another sale/edit.
         if (navigator.onLine && offlineQueue.length > 0) setTimeout(syncNow, 0);
         if (navigator.onLine) hydrateInitialStateFromRest();
+        vcStartupMark('setup-realtime-sync-complete');
     }
 
     async function hydrateInitialStateFromRest() {
+        vcStartupMark('hydrate-rest-start');
         try {
             const bounds = typeof vc5632mTodayBounds === 'function' ? vc5632mTodayBounds() : (typeof vc5632lMonthBounds === 'function' ? vc5632lMonthBounds() : null);
             const [transactions, businessDays] = await Promise.all([
@@ -337,10 +362,16 @@
             updateBusinessDayUI();
             syncErrorMsg = null;
             updateSyncUI();
+            vcStartupMark('hydrate-rest-complete', {
+                localInventory: Array.isArray(state.inventory) ? state.inventory.length : null,
+                localTransactions: Array.isArray(state.transactions) ? state.transactions.length : null,
+                localBusinessDays: Array.isArray(state.businessDays) ? state.businessDays.length : null
+            });
         } catch (error) {
             console.error('Initial Firestore REST load failed', error);
             syncErrorMsg = error.message || String(error);
             updateSyncUI();
+            vcStartupMark('hydrate-rest-failed', { error: syncErrorMsg });
         }
     }
 
@@ -5307,13 +5338,19 @@ function getClosingCounts(transactions) {
 function vc7218StartApp() {
         if (window.__vc7218Started) return;
         window.__vc7218Started = true;
+        vcStartupMark('app-start-called');
         try {
             setTimeout(v52RefreshBusinessDayUI, 1200);
             applyUIPolish();
             switchScreen('pos');
+            vcStartupMark('pos-screen-shown', {
+                localInventory: Array.isArray(state.inventory) ? state.inventory.length : null,
+                localTransactions: Array.isArray(state.transactions) ? state.transactions.length : null
+            });
             setTimeout(setupRealTimeSync, 50);
         } catch (error) {
             console.error('Villacart startup failed', error);
+            vcStartupMark('app-start-failed', { error: error && error.message ? error.message : String(error) });
             try { switchScreen('pos'); } catch(e) {}
             try { updateSyncUI(); } catch(e) {}
         }
