@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.30';
+    window.VILLACART_APP_VERSION = 'v7.2.31';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1319,7 +1319,7 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v7.2.30: Android/PWA resume repaint guard.
+    // v7.2.31: Android/PWA resume repaint guard.
     // Some WebView/TWA sessions return from background as a black compositor
     // frame until the user taps/back-navigates. This local-only repaint nudges
     // the browser to redraw the visible screen without doing Firestore reads.
@@ -5705,14 +5705,55 @@ document.addEventListener('DOMContentLoaded',()=>{
         vc5630SaveSigs(sigs);
     }
 
-    function vc5630RememberLoadedState() {
+    let vc5630BulkRememberRunning = false;
+
+    function vc5630RememberLoadedState(reason) {
+        if (vc5630BulkRememberRunning) return;
+        vc5630BulkRememberRunning = true;
+
+        let entries = [];
         try {
-            [['inventory', state.inventory], ['transactions', state.transactions], ['businessDays', state.businessDays]].forEach(([table, list]) => {
-                (Array.isArray(list) ? list : []).forEach(item => {
-                    if (item && item.id && !item._offline) vc5630Remember(table, item);
-                });
-            });
-        } catch(e) {}
+            entries = [['inventory', state.inventory], ['transactions', state.transactions], ['businessDays', state.businessDays]]
+                .flatMap(([table, list]) => (Array.isArray(list) ? list : [])
+                    .filter(item => item && item.id && !item._offline)
+                    .map(item => [table, item]));
+        } catch(e) {
+            vc5630BulkRememberRunning = false;
+            return;
+        }
+
+        const sigs = vc5630LoadSigs();
+        let index = 0;
+        const total = entries.length;
+
+        const pump = () => {
+            const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            try {
+                while (index < total) {
+                    const [table, item] = entries[index++];
+                    sigs[vc5630SigId(table, item.id)] = vc5630Signature(item);
+
+                    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                    if (now - start >= 8) break;
+                }
+
+                if (index < total) {
+                    setTimeout(pump, 16);
+                    return;
+                }
+
+                vc5630SaveSigs(sigs);
+                if (typeof vcStartupMark === 'function') {
+                    vcStartupMark('synced-signatures-ready', { reason, count: total, chunked: true });
+                }
+            } catch(e) {
+                console.warn('Loaded-state signature scan failed', reason, e);
+            } finally {
+                if (index >= total) vc5630BulkRememberRunning = false;
+            }
+        };
+
+        setTimeout(pump, 0);
     }
 
     function vc5630SameAsSynced(table, data) {
@@ -5828,17 +5869,13 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.30: Do not fingerprint hundreds of local docs before the POS
-    // screen can paint. This safety scan is still useful, but it can run after
-    // the cashier already sees the terminal.
+    // v7.2.31: Keep the post-startup signature safety scan, but do it in
+    // tiny chunks. This prevents the first Ledger/Insights taps from feeling
+    // ignored while hundreds of local docs are fingerprinted.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
         setTimeout(() => {
-            try {
-                vc5630RememberLoadedState();
-                if (typeof vcStartupMark === 'function') vcStartupMark('synced-signatures-ready', { reason });
-            } catch(e) {
-                console.warn('Loaded-state signature scan failed', reason, e);
-            }
+            try { vc5630RememberLoadedState(reason); }
+            catch(e) { console.warn('Loaded-state signature scan failed', reason, e); }
         }, delay);
     }
 
