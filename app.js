@@ -5355,18 +5355,33 @@ function vc7218StartApp() {
         window.__vc7218Started = true;
         vcStartupMark('app-start-called');
         try {
-            setTimeout(v52RefreshBusinessDayUI, 1200);
-            applyUIPolish();
+            vcStartupMark('pos-switch-start');
             switchScreen('pos');
             vcStartupMark('pos-screen-shown', {
                 localInventory: Array.isArray(state.inventory) ? state.inventory.length : null,
                 localTransactions: Array.isArray(state.transactions) ? state.transactions.length : null
             });
-            setTimeout(setupRealTimeSync, 50);
+
+            setTimeout(() => {
+                try {
+                    applyUIPolish();
+                    vcStartupMark('ui-polish-complete');
+                } catch (polishError) {
+                    console.warn('Villacart UI polish delayed task failed', polishError);
+                    vcStartupMark('ui-polish-failed', { error: polishError && polishError.message ? polishError.message : String(polishError) });
+                }
+            }, 80);
+
+            setTimeout(v52RefreshBusinessDayUI, 1200);
+            setTimeout(setupRealTimeSync, 1500);
+            vcStartupMark('realtime-sync-scheduled');
         } catch (error) {
             console.error('Villacart startup failed', error);
             vcStartupMark('app-start-failed', { error: error && error.message ? error.message : String(error) });
-            try { switchScreen('pos'); } catch(e) {}
+            try {
+                switchScreen('pos');
+                vcStartupMark('pos-screen-fallback-shown');
+            } catch(e) {}
             try { updateSyncUI(); } catch(e) {}
         }
     }
