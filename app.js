@@ -5585,9 +5585,22 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    vc5630RememberLoadedState();
-    setTimeout(vc5630RememberLoadedState, 2500);
-    setTimeout(() => vc5630AutoFlush('startup'), 4500);
+    // v7.2.24: Do not fingerprint hundreds of local docs before the POS
+    // screen can paint. This safety scan is still useful, but it can run after
+    // the cashier already sees the terminal.
+    function vc5630ScheduleRememberLoadedState(reason, delay) {
+        setTimeout(() => {
+            try {
+                vc5630RememberLoadedState();
+                if (typeof vcStartupMark === 'function') vcStartupMark('synced-signatures-ready', { reason });
+            } catch(e) {
+                console.warn('Loaded-state signature scan failed', reason, e);
+            }
+        }, delay);
+    }
+
+    vc5630ScheduleRememberLoadedState('post-startup', 6500);
+    setTimeout(() => vc5630AutoFlush('startup'), 7000);
     setInterval(() => {
         if (document.visibilityState !== 'hidden') vc5630AutoFlush('timer');
     }, 5 * 60 * 1000);

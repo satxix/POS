@@ -255,7 +255,8 @@
         vc559Card('Inventory FS', r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count, r.firestore.inventory.error || 'inventory collection', r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('Inventory Mem', r.memory.inventory === null ? 'N/A' : r.memory.inventory, 'state.inventory', r.memory.inventory > 0 ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Business Days', r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count, r.firestore.businessDays.error || 'businessDays collection', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad'),
-        vc559Card('Startup', r.startup && r.startup.marks && r.startup.marks.length ? (r.startup.marks[r.startup.marks.length - 1].msSinceScriptStart + 'ms') : 'N/A', r.startup ? ('last: ' + (r.startup.lastMark || 'unknown')) : 'not recorded', r.startup ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('POS Visible', (() => { const m = r.startup && Array.isArray(r.startup.marks) ? r.startup.marks.find(x => x && x.name === 'pos-screen-shown') : null; return m ? (m.msSinceScriptStart + 'ms') : 'N/A'; })(), r.startup ? 'pos-screen-shown timing' : 'not recorded', r.startup ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Startup Last', r.startup && r.startup.marks && r.startup.marks.length ? (r.startup.marks[r.startup.marks.length - 1].msSinceScriptStart + 'ms') : 'N/A', r.startup ? ('last: ' + (r.startup.lastMark || 'unknown')) : 'not recorded', r.startup ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Optional Libs', (r.optionalLibraries && r.optionalLibraries.chartLoaded ? 'Chart ' : '') + (r.optionalLibraries && r.optionalLibraries.html2canvasLoaded ? 'Image ' : '') || 'Deferred', 'Quagga: ' + (r.optionalLibraries && r.optionalLibraries.quaggaLoaded ? 'loaded' : 'not loaded'), 'vc558-ok')
       ].join('');
     }
