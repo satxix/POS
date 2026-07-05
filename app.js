@@ -475,6 +475,41 @@
         return null;
     }
 
+    const VC_OPTIONAL_SCRIPTS = {
+        html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+        Chart: 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'
+    };
+    const vcOptionalScriptPromises = {};
+
+    function loadOptionalScript(globalName, src) {
+        if (window[globalName]) return Promise.resolve(window[globalName]);
+        if (vcOptionalScriptPromises[globalName]) return vcOptionalScriptPromises[globalName];
+        vcOptionalScriptPromises[globalName] = new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[data-vc-optional="${globalName}"]`);
+            if (existing) {
+                existing.addEventListener('load', () => resolve(window[globalName]), { once: true });
+                existing.addEventListener('error', () => reject(new Error(globalName + ' failed to load')), { once: true });
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.dataset.vcOptional = globalName;
+            script.onload = () => resolve(window[globalName]);
+            script.onerror = () => reject(new Error(globalName + ' failed to load'));
+            document.head.appendChild(script);
+        });
+        return vcOptionalScriptPromises[globalName];
+    }
+
+    function ensureHtml2CanvasLoaded() {
+        return loadOptionalScript('html2canvas', VC_OPTIONAL_SCRIPTS.html2canvas);
+    }
+
+    function ensureChartLoaded() {
+        return loadOptionalScript('Chart', VC_OPTIONAL_SCRIPTS.Chart);
+    }
+
     async function readCollectionWithFirestoreRest(collection) {
         const baseUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(firebaseConfig.projectId)}/databases/(default)/documents/${encodeURIComponent(collection)}?pageSize=300&key=${encodeURIComponent(firebaseConfig.apiKey)}`;
         const documents = [];
@@ -1073,6 +1108,7 @@ function switchScreen(id) {
         if (id === 'inventory') renderInventory();
         if (id === 'history') switchLedgerTab(activeLedgerTab);
         if (id === 'insights') renderInsights();
+        if (id === 'business' && typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
         if (id === 'pos') renderFavorites();
     }
 
@@ -1585,6 +1621,13 @@ function switchScreen(id) {
     function renderSalesChart(transactions) {
         const canvas = document.getElementById('sales-chart');
         if (!canvas) return;
+        if (typeof Chart === 'undefined') {
+            if (canvas.parentElement) canvas.parentElement.classList.add('hidden');
+            ensureChartLoaded()
+                .then(() => renderSalesChart(transactions))
+                .catch(error => console.warn('Chart load failed', error));
+            return;
+        }
         // Group sales by date
         const salesByDate = {};
         transactions.filter(isRevenueSale).forEach(t => {
@@ -1869,6 +1912,7 @@ body {
             shareBtn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Processing...`;
         }
         try {
+            await ensureHtml2CanvasLoaded();
             if (typeof html2canvas !== 'function') throw new Error('Image tool not loaded.');
             const canvas = await html2canvas(receiptEl, {
                 scale: Math.min(2, window.devicePixelRatio || 2),
@@ -3676,7 +3720,13 @@ function getClosingCounts(transactions) {
 
     function vc531RenderSalesChart(tx) {
         const canvas = document.getElementById('sales-chart');
-        if (!canvas || typeof Chart === 'undefined') return;
+        if (!canvas) return;
+        if (typeof Chart === 'undefined') {
+            ensureChartLoaded()
+                .then(() => vc531RenderSalesChart(tx))
+                .catch(error => console.warn('Chart load failed', error));
+            return;
+        }
 
         const byDate = {};
         vc531CleanTransactions(tx).filter(vc531IsRevenueSale).forEach(t => {
@@ -5259,8 +5309,6 @@ function vc7218StartApp() {
         window.__vc7218Started = true;
         try {
             setTimeout(v52RefreshBusinessDayUI, 1200);
-            setTimeout(forceUpdateInsightsNumbersFromTransactions, 800);
-            setTimeout(renderBusinessCalendar, 300);
             applyUIPolish();
             switchScreen('pos');
             setTimeout(setupRealTimeSync, 50);
