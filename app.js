@@ -774,35 +774,54 @@
         return text.length >= 3 && /^[0-9A-Za-z._-]+$/.test(text);
     }
 
+    function vc7227NormalizeBarcode(value) {
+        return String(value == null ? '' : value).trim().replace(/\s+/g, '');
+    }
+
+    function vc7227FindProductByBarcode(barcode) {
+        const code = vc7227NormalizeBarcode(barcode);
+        if (!code) return null;
+        return (Array.isArray(state.inventory) ? state.inventory : []).find(p =>
+            vc7227NormalizeBarcode(p && p.barcode) === code
+        ) || null;
+    }
+
+    function vc7227ClearPosSearch() {
+        const searchInput = document.getElementById('pos-search');
+        if (searchInput) {
+            searchInput.value = "";
+            searchInput.blur();
+        }
+        const results = document.getElementById('search-results-container');
+        if (results) results.classList.add('hidden');
+    }
+
     document.addEventListener('keydown', (e) => {
         const target = e.target;
         const isInput = target && target.tagName === 'INPUT';
+        const isScannerEndKey = e.key === 'Enter' || e.key === 'Tab' || e.key === 'NumpadEnter';
 
         // Many Bluetooth scanners type directly into the focused input, then
-        // send Enter. If we ignore input keystrokes, the buffer stays empty and
-        // the scan appears to do nothing.
+        // send Enter or Tab. If we ignore input keystrokes, the buffer stays
+        // empty and the scan appears to do nothing.
         if (isInput) {
-            if (e.key !== 'Enter') return;
-            const typedCode = String(target.value || '').trim();
+            if (!isScannerEndKey) return;
+            const typedCode = vc7227NormalizeBarcode(target.value);
             if (vc7226LooksLikeBarcode(typedCode)) {
                 e.preventDefault();
                 scannerBuffer = "";
                 handlePhysicalScan(typedCode);
-                if (target.id === 'pos-search') {
-                    target.value = "";
-                    const results = document.getElementById('search-results-container');
-                    if (results) results.classList.add('hidden');
-                    target.blur();
-                }
+                if (target.id === 'pos-search') vc7227ClearPosSearch();
             }
             return;
         }
 
         clearTimeout(scannerTimeout);
-        scannerTimeout = setTimeout(() => { scannerBuffer = ""; }, 200);
-        if (e.key === 'Enter') {
-            const code = String(scannerBuffer || '').trim();
+        scannerTimeout = setTimeout(() => { scannerBuffer = ""; }, 350);
+        if (isScannerEndKey) {
+            const code = vc7227NormalizeBarcode(scannerBuffer);
             if (vc7226LooksLikeBarcode(code)) {
+                e.preventDefault();
                 handlePhysicalScan(code);
                 scannerBuffer = "";
             }
@@ -812,16 +831,17 @@
     });
 
     function handlePhysicalScan(barcode) {
+        const cleanBarcode = vc7227NormalizeBarcode(barcode);
         const productModal = document.getElementById('product-modal');
         if (productModal && !productModal.classList.contains('hidden')) {
             const barcodeField = document.getElementById('p-barcode');
             if (barcodeField) {
-                barcodeField.value = barcode;
+                barcodeField.value = cleanBarcode;
                 showToast("Barcode detected", "success");
             }
             return;
         }
-        const product = state.inventory.find(p => p.barcode === barcode);
+        const product = vc7227FindProductByBarcode(cleanBarcode);
         if (product) {
             const hasPack = product.packPrice && product.packPrice > 0;
             if (hasPack) {
@@ -5444,9 +5464,33 @@ document.addEventListener('click', function(e){
 document.addEventListener('DOMContentLoaded',()=>{
  const s=document.getElementById('pos-search');
  const b=document.getElementById('clear-search-btn');
+ let scanInputTimer = null;
  if(s&&b){
-  s.addEventListener('input',()=>b.classList.toggle('hidden',!s.value));
-  s.addEventListener('keydown',(e)=>{if(e.key==='Enter'){s.blur();}});
+  s.addEventListener('input',()=>{
+    b.classList.toggle('hidden',!s.value);
+    clearTimeout(scanInputTimer);
+    scanInputTimer = setTimeout(()=>{
+      try {
+        const code = typeof vc7227NormalizeBarcode === 'function' ? vc7227NormalizeBarcode(s.value) : String(s.value || '').trim();
+        if (typeof vc7226LooksLikeBarcode === 'function' && vc7226LooksLikeBarcode(code) && typeof vc7227FindProductByBarcode === 'function' && vc7227FindProductByBarcode(code)) {
+          handlePhysicalScan(code);
+          if (typeof vc7227ClearPosSearch === 'function') vc7227ClearPosSearch();
+        }
+      } catch(e) {}
+    }, 120);
+  });
+  s.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter' || e.key==='Tab' || e.key==='NumpadEnter'){
+      const code = typeof vc7227NormalizeBarcode === 'function' ? vc7227NormalizeBarcode(s.value) : String(s.value || '').trim();
+      if (typeof vc7226LooksLikeBarcode === 'function' && vc7226LooksLikeBarcode(code)) {
+        e.preventDefault();
+        handlePhysicalScan(code);
+        if (typeof vc7227ClearPosSearch === 'function') vc7227ClearPosSearch();
+      } else {
+        s.blur();
+      }
+    }
+  });
  }
 });
 
@@ -5620,7 +5664,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.26: Do not fingerprint hundreds of local docs before the POS
+    // v7.2.27: Do not fingerprint hundreds of local docs before the POS
     // screen can paint. This safety scan is still useful, but it can run after
     // the cashier already sees the terminal.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
