@@ -312,7 +312,22 @@
         // A reload while already online does not fire an `online` event. Drain
         // any saved work immediately instead of waiting for another sale/edit.
         if (navigator.onLine && offlineQueue.length > 0) setTimeout(syncNow, 0);
-        if (navigator.onLine) hydrateInitialStateFromRest();
+
+        // Realtime listeners already load today's transactions/business day.
+        // Avoid an extra REST hydrate on every startup; it can hang on weak
+        // networks and adds reads. Keep it only for a truly empty local state.
+        const needsStartupHydrate =
+            !(Array.isArray(state.transactions) && state.transactions.length) ||
+            !(Array.isArray(state.businessDays) && state.businessDays.length);
+        if (navigator.onLine && needsStartupHydrate) {
+            setTimeout(() => hydrateInitialStateFromRest(), 900);
+            vcStartupMark('hydrate-rest-scheduled-empty-local');
+        } else {
+            vcStartupMark('hydrate-rest-skipped-local-ready', {
+                localTransactions: Array.isArray(state.transactions) ? state.transactions.length : null,
+                localBusinessDays: Array.isArray(state.businessDays) ? state.businessDays.length : null
+            });
+        }
         vcStartupMark('setup-realtime-sync-complete');
     }
 
