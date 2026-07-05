@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.29';
+    window.VILLACART_APP_VERSION = 'v7.2.30';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1318,6 +1318,57 @@ function switchScreen(id) {
         if (id === 'business' && typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
         if (id === 'pos') renderFavorites();
     }
+
+    // v7.2.30: Android/PWA resume repaint guard.
+    // Some WebView/TWA sessions return from background as a black compositor
+    // frame until the user taps/back-navigates. This local-only repaint nudges
+    // the browser to redraw the visible screen without doing Firestore reads.
+    let vc7230LastResumeRepaintAt = 0;
+    function vc7230VisibleScreenId() {
+        const visible = Array.from(document.querySelectorAll('.screen-transition[id^="screen-"]'))
+            .find(el => !el.classList.contains('hidden'));
+        return visible && visible.id ? visible.id.replace('screen-', '') : 'pos';
+    }
+
+    function vc7230ResumeRepaint(reason) {
+        const now = Date.now();
+        if (now - vc7230LastResumeRepaintAt < 700) return;
+        vc7230LastResumeRepaintAt = now;
+        try {
+            const id = vc7230VisibleScreenId();
+            document.documentElement.classList.add('vc-pwa-resume-repaint');
+            document.body.classList.add('vc-pwa-resume-repaint');
+
+            requestAnimationFrame(() => {
+                try {
+                    const screen = document.getElementById('screen-' + id) || document.getElementById('screen-pos');
+                    if (screen) screen.classList.remove('hidden');
+                    refreshActiveNavigationFromDOM();
+                    updateTodayBadge();
+                    if (typeof updateSyncUI === 'function') updateSyncUI();
+                    if (id === 'pos') {
+                        if (typeof renderFavorites === 'function') renderFavorites();
+                        if (typeof updateCartUI === 'function') updateCartUI();
+                    }
+                    if (typeof vcStartupMark === 'function') vcStartupMark('pwa-resume-repaint', { reason, screen: id });
+                } catch(e) {
+                    console.warn('PWA resume repaint inner failed', reason, e);
+                }
+                setTimeout(() => {
+                    document.documentElement.classList.remove('vc-pwa-resume-repaint');
+                    document.body.classList.remove('vc-pwa-resume-repaint');
+                }, 180);
+            });
+        } catch(e) {
+            console.warn('PWA resume repaint failed', reason, e);
+        }
+    }
+
+    window.addEventListener('pageshow', () => vc7230ResumeRepaint('pageshow'));
+    window.addEventListener('focus', () => vc7230ResumeRepaint('focus'));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'hidden') vc7230ResumeRepaint('visible');
+    });
 
     function attemptInventoryAccess() { if (!document.getElementById('screen-inventory').classList.contains('hidden')) { switchScreen('inventory'); return; } openPinModal("inventory"); }
 
@@ -5777,7 +5828,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.29: Do not fingerprint hundreds of local docs before the POS
+    // v7.2.30: Do not fingerprint hundreds of local docs before the POS
     // screen can paint. This safety scan is still useful, but it can run after
     // the cashier already sees the terminal.
     function vc5630ScheduleRememberLoadedState(reason, delay) {

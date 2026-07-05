@@ -21,6 +21,18 @@
         .active-scale:active { transform: scale(0.97); transition: transform 0.1s ease; }
         .screen-transition { transition: opacity 0.15s ease-in-out; }
         .hidden { display: none !important; }
+        html.vc-pwa-resume-repaint,
+        body.vc-pwa-resume-repaint {
+            background-color: #f0f4f8 !important;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+        body.vc-pwa-resume-repaint #app,
+        body.vc-pwa-resume-repaint main,
+        body.vc-pwa-resume-repaint .screen-transition {
+            transform: translateZ(0);
+            will-change: transform;
+        }
         input, button, select { min-height: 44px; border-radius: 8px; }
         #inv-cam-area video { width: 100%; height: auto; border-radius: 12px; object-fit: cover; }
         #inv-cam-area canvas { position: absolute; top: 0; left: 0; display: none; }
