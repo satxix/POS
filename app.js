@@ -1,6 +1,16 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
+    window.VILLACART_APP_VERSION = 'v7.2.29';
+    window.__villacartScannerDebug = window.__villacartScannerDebug || {
+        events: [],
+        lastInputValue: '',
+        lastBarcodeAttempt: '',
+        lastBarcodeResult: '',
+        lastHandledAt: null,
+        initAt: new Date().toISOString(),
+        appVersion: window.VILLACART_APP_VERSION
+    };
     window.__villacartStartup = window.__villacartStartup || {
         scriptStartAt: Date.now(),
         navigationStartAt: (performance && performance.timeOrigin) ? Math.round(performance.timeOrigin) : Date.now(),
@@ -801,8 +811,11 @@
         lastInputValue: '',
         lastBarcodeAttempt: '',
         lastBarcodeResult: '',
-        lastHandledAt: null
+        lastHandledAt: null,
+        initAt: new Date().toISOString(),
+        appVersion: window.VILLACART_APP_VERSION || 'unknown'
     };
+    window.__villacartScannerDebug.appVersion = window.VILLACART_APP_VERSION || window.__villacartScannerDebug.appVersion || 'unknown';
 
     function vc7228ScannerDebug(type, data) {
         try {
@@ -5764,7 +5777,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.28: Do not fingerprint hundreds of local docs before the POS
+    // v7.2.29: Do not fingerprint hundreds of local docs before the POS
     // screen can paint. This safety scan is still useful, but it can run after
     // the cashier already sees the terminal.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
