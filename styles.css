@@ -3784,3 +3784,50 @@
         margin-top: .65rem !important;
     }
 }
+
+
+/* v7.2.36: Credit ledger Open/Settled local view switch */
+.vc5632-credit-view-switch {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.72);
+    border: 1px solid rgba(148, 163, 184, .22);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
+}
+.vc5632-credit-view-switch button {
+    flex: 1;
+    min-height: 42px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #64748b;
+    background: transparent;
+    transition: transform .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.vc5632-credit-view-switch button span {
+    display: inline-flex;
+    min-width: 22px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, .08);
+}
+.vc5632-credit-view-switch button.active {
+    color: #ffffff;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 12px 26px rgba(37, 99, 235, .24);
+}
+.vc5632-credit-view-switch button.active span {
+    background: rgba(255,255,255,.22);
+}
+.vc5632-settled-credit-card {
+    background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%) !important;
+    border-color: rgba(16, 185, 129, .22) !important;
+}

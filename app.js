@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.34';
+    window.VILLACART_APP_VERSION = 'v7.2.36';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1319,7 +1319,7 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v7.2.34: Android/PWA resume repaint guard.
+    // v7.2.36: Android/PWA resume repaint guard.
     // Some WebView/TWA sessions return from background as a black compositor
     // frame until the user taps/back-navigates. This local-only repaint nudges
     // the browser to redraw the visible screen without doing Firestore reads.
@@ -5875,7 +5875,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.34: Keep the post-startup signature safety scan, but do it in
+    // v7.2.36: Keep the post-startup signature safety scan, but do it in
     // tiny chunks. This prevents the first Ledger/Insights taps from feeling
     // ignored while hundreds of local docs are fingerprinted.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
@@ -6082,6 +6082,34 @@ document.addEventListener('DOMContentLoaded',()=>{
         return notes.includes('CR-') || notes.includes('PARTIAL:') || notes.includes('PAYMENT') || (id.startsWith('SA-') && notes.includes('CR-'));
     }
 
+    function vc5632SettlementCreditIds(t) {
+        const ids = new Set();
+        ['settlementFor', 'creditRef', 'relatedCreditId'].forEach(key => {
+            if (t && t[key]) ids.add(String(t[key]).toUpperCase());
+        });
+        const notes = String(t && t.notes || '').toUpperCase();
+        const matches = notes.match(/CR-[A-Z0-9-]+/g) || [];
+        matches.forEach(id => ids.add(id));
+        return ids;
+    }
+
+    function vc5632CreditIsSettled(creditTx, allTx) {
+        if (!creditTx) return false;
+        if (creditTx.paid === true || creditTx.settled === true) return true;
+        const status = String(creditTx.status || '').trim().toUpperCase();
+        if (status === 'PAID' || status === 'SETTLED') return true;
+        if (Number(creditTx.balance) === 0 || Number(creditTx.balanceDue) === 0 || Number(creditTx.remaining) === 0 || Number(creditTx.amountDue) === 0) return true;
+
+        const target = String(creditTx.id || '').toUpperCase();
+        if (!target) return false;
+        return (Array.isArray(allTx) ? allTx : []).some(t => {
+            if (!t || t.id === creditTx.id || !vc5632IsSettlement(t)) return false;
+            const notes = String(t.notes || '').toUpperCase();
+            if (notes.includes('PARTIAL:')) return false;
+            return vc5632SettlementCreditIds(t).has(target);
+        });
+    }
+
     function vc5632KnownTransactionIds() {
         const ids = new Set();
         (Array.isArray(state.transactions) ? state.transactions : []).forEach(t => { if (t && t.id) ids.add(t.id); });
@@ -6161,6 +6189,12 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (typeof renderLedger === 'function') renderLedger();
     };
 
+    let vc5632CreditLedgerView = 'open';
+    window.vc5632SetCreditLedgerView = function(view) {
+        vc5632CreditLedgerView = view === 'settled' ? 'settled' : 'open';
+        if (typeof renderLedger === 'function') renderLedger();
+    };
+
     function vc5632EnsureLedgerShell() {
         const screen = document.getElementById('screen-history');
         const summary = document.getElementById('ledger-summary-container');
@@ -6215,19 +6249,22 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     function vc5632Pills(t, kind) {
         const pills = [];
+        const isSettledCredit = kind === 'credit-settled' || !!(t && t._vcCreditSettled);
         if (typeof isPendingSync === 'function' && isPendingSync('transactions', t.id)) pills.push('<span class="vc5629-pill vc5629-pending">Pending</span>');
         else pills.push('<span class="vc5629-pill vc5629-synced">Synced</span>');
-        if (kind === 'credit') pills.push('<span class="vc5629-pill vc5629-credit">Credit</span>');
+        if (kind === 'credit' || kind === 'credit-settled') pills.push('<span class="vc5629-pill vc5629-credit">Credit</span>');
         if (kind === 'expense') pills.push('<span class="vc5629-pill vc5629-expense">Expense</span>');
-        if (vc5632IsSettlement(t)) pills.push('<span class="vc5629-pill vc5629-paid">Paid</span>');
+        if (vc5632IsSettlement(t) || isSettledCredit) pills.push('<span class="vc5629-pill vc5629-paid">' + (isSettledCredit ? 'Settled' : 'Paid') + '</span>');
         return pills.join('');
     }
 
     function vc5632TxCard(t, kind) {
         const note = t.desc || t.notes || '';
         const customer = t.customer ? '<p class="vc5629-meta">Customer: ' + vc5632Safe(t.customer) + '</p>' : '';
-        const payButton = kind === 'credit' ? '<button type="button" class="vc5632-mini-pay" onclick="payIndividualTicket(\'' + vc5632Js(t.id) + '\')">Pay</button>' : '';
-        return '<article class="vc5629-tx-card vc5629-' + kind + '">' +
+        const isSettledCredit = kind === 'credit-settled' || !!(t && t._vcCreditSettled);
+        const cardKind = kind === 'credit-settled' ? 'credit' : kind;
+        const payButton = kind === 'credit' && !isSettledCredit ? '<button type="button" class="vc5632-mini-pay" onclick="payIndividualTicket(\'' + vc5632Js(t.id) + '\')">Pay</button>' : '';
+        return '<article class="vc5629-tx-card vc5629-' + cardKind + (isSettledCredit ? ' vc5632-settled-credit-card' : '') + '">' +
             '<div class="vc5629-tx-main"><div class="vc5629-tx-top"><h3>' + vc5632Safe(t.id || 'Transaction') + '</h3><div class="vc5629-pills">' + vc5632Pills(t, kind) + '</div></div>' +
             '<p class="vc5629-time">' + vc5632Safe(vc5632Time(t)) + '</p>' + customer +
             (note ? '<p class="vc5629-meta">' + vc5632Safe(note) + '</p>' : '') + '</div>' +
@@ -6266,9 +6303,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
 
-    function vc5632RenderCreditCustomers(list) {
+    function vc5632RenderCreditToggle(view, openCount, settledCount) {
+        const mode = view === 'settled' ? 'settled' : 'open';
+        return '<div class="vc5632-credit-view-switch" role="group" aria-label="Credit view">' +
+            '<button type="button" class="' + (mode === 'open' ? 'active' : '') + '" onclick="vc5632SetCreditLedgerView(\'open\')">Open <span>' + openCount + '</span></button>' +
+            '<button type="button" class="' + (mode === 'settled' ? 'active' : '') + '" onclick="vc5632SetCreditLedgerView(\'settled\')">Settled <span>' + settledCount + '</span></button>' +
+        '</div>';
+    }
+
+    function vc5632RenderCreditCustomers(list, view) {
+        const isSettledView = view === 'settled';
         if (!list.length) {
-            return '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No open credits</strong><p>Credit sales will appear here.</p></div>';
+            return '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>' + (isSettledView ? 'No settled credits' : 'No open credits') + '</strong><p>' + (isSettledView ? 'Paid credit tickets will appear here.' : 'Credit sales will appear here.') + '</p></div>';
         }
         const groups = {};
         list.forEach(t => {
@@ -6290,13 +6336,13 @@ document.addEventListener('DOMContentLoaded',()=>{
             .map(group => {
                 return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
                     '<div class="vc5629-credit-head">' +
-                        '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + ' pending ticket(s)</p></div>' +
+                        '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + (isSettledView ? ' settled ticket(s)' : ' pending ticket(s)') + '</p></div>' +
                         '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong>' +
-                        '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button></div>' +
+                        (isSettledView ? '' : '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button>') + '</div>' +
                     '</div>' +
-                    '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>' +
+                    (isSettledView ? '' : '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>') +
                     '<div class="vc5629-credit-list">' +
-                        group.items.map(t => vc5632TxCard(t, 'credit')).join('') +
+                        group.items.map(t => vc5632TxCard(t, isSettledView ? 'credit-settled' : 'credit')).join('') +
                     '</div>' +
                 '</section>';
             }).join('');
@@ -6326,10 +6372,23 @@ document.addEventListener('DOMContentLoaded',()=>{
                     summary.innerHTML = vc5632SummaryCard('Total Cash Sales', vc5632Peso(total), 'Cash sales and payments', 'blue') + vc5632SummaryCard('Cash Received', vc5632Peso(cash), 'Collected amount', 'green') + vc5632SummaryCard('Transactions', String(list.length), 'Matching records', 'purple');
                     kind = 'cash';
                 } else if (tab === 'credit') {
-                    list = vc5632Filtered(tx.filter(t => t && t.type === 'CR' && !t.paid));
+                    const creditBase = tx.filter(t => t && t.type === 'CR');
+                    const openCredits = creditBase.filter(t => !vc5632CreditIsSettled(t, tx));
+                    const settledCredits = creditBase
+                        .filter(t => vc5632CreditIsSettled(t, tx))
+                        .map(t => ({ ...t, _vcCreditSettled: true }));
+                    const openList = vc5632Filtered(openCredits);
+                    const settledList = vc5632Filtered(settledCredits);
+                    const view = vc5632CreditLedgerView === 'settled' ? 'settled' : 'open';
+                    list = view === 'settled' ? settledList : openList;
                     const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
                     const customers = new Set(list.map(t => String(t.customer || 'Guest').trim().toLowerCase() || 'guest'));
-                    summary.innerHTML = vc5632SummaryCard('Outstanding Credit', vc5632Peso(total), 'Unpaid balance', 'orange') + vc5632SummaryCard('Customers', String(customers.size), 'With balance', 'purple') + vc5632SummaryCard('Credit Tickets', String(list.length), 'Pending tickets', 'blue');
+                    summary.innerHTML = vc5632RenderCreditToggle(view, openList.length, settledList.length) +
+                        (view === 'settled'
+                            ? vc5632SummaryCard('Settled Credit', vc5632Peso(total), 'Paid credit tickets', 'green')
+                            : vc5632SummaryCard('Outstanding Credit', vc5632Peso(total), 'Unpaid balance', 'orange')) +
+                        vc5632SummaryCard('Customers', String(customers.size), view === 'settled' ? 'Paid accounts' : 'With balance', 'purple') +
+                        vc5632SummaryCard('Credit Tickets', String(list.length), view === 'settled' ? 'Settled tickets' : 'Pending tickets', 'blue');
                     kind = 'credit';
                 } else {
                     list = vc5632Filtered(tx.filter(t => t && t.type === 'EX'));
@@ -6340,7 +6399,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                 }
                 content.classList.toggle('vc5632-credit-customer-list', kind === 'credit');
                 content.classList.toggle('vc5632-ledger-date-list', kind !== 'credit');
-                content.innerHTML = kind === 'credit' ? vc5632RenderCreditCustomers(list) : vc5632RenderGroups(list, kind);
+                content.innerHTML = kind === 'credit' ? vc5632RenderCreditCustomers(list, vc5632CreditLedgerView) : vc5632RenderGroups(list, kind);
             } catch (error) {
                 console.warn('Ledger render fallback', error);
                 return vc5632OldRenderLedger.apply(this, arguments);
@@ -7064,4 +7123,238 @@ document.addEventListener('DOMContentLoaded',()=>{
             return result;
         };
     }
+})();
+
+
+// v7.2.36: Canonical business-day guard + manual duplicate cleanup.
+// Business days should be one document per calendar date: BD-YYYYMMDD.
+// Cleanup only runs when the user presses the Business screen "Clean Days" button.
+(function(){
+    if (window.__vc7236CanonicalBusinessDays) return;
+    window.__vc7236CanonicalBusinessDays = true;
+
+    function vc7236DateFrom(value) {
+        if (!value) return '';
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return '';
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function vc7236DateFromBusinessDay(day) {
+        const explicit = vc7236DateFrom(day && day.date);
+        if (explicit) return explicit;
+        const id = String(day && (day.businessDayId || day.id) || '');
+        const match = id.match(/^BD-(\d{4})(\d{2})(\d{2})/);
+        if (match) return match[1] + '-' + match[2] + '-' + match[3];
+        return vc7236DateFrom(day && (day.openedAt || day.createdAt || day.closedAt));
+    }
+
+    function vc7236DateFromTransaction(tx) {
+        return vc7236DateFrom(tx && (tx.businessDate || tx.timestamp || tx.createdAt));
+    }
+
+    function vc7236CanonicalId(date) {
+        return date ? 'BD-' + String(date).replaceAll('-', '') : '';
+    }
+
+    function vc7236CanonicalizeBusinessDay(day) {
+        if (!day) return day;
+        const date = vc7236DateFromBusinessDay(day);
+        if (!date) return day;
+        const id = vc7236CanonicalId(date);
+        day.id = id;
+        day.businessDayId = id;
+        day.date = date;
+        return day;
+    }
+
+    function vc7236NormalizeLocalBusinessDays() {
+        if (!state || !Array.isArray(state.businessDays)) return [];
+        const groups = new Map();
+        state.businessDays.forEach(day => {
+            if (!day) return;
+            const date = vc7236DateFromBusinessDay(day);
+            if (!date) return;
+            if (!groups.has(date)) groups.set(date, []);
+            groups.get(date).push(day);
+        });
+
+        const normalized = [];
+        groups.forEach((days, date) => {
+            const canonical = vc7236CanonicalId(date);
+            const existingCanonical = days.find(d => d && d.id === canonical);
+            const open = days.find(d => d && String(d.status || '').toUpperCase() === 'OPEN');
+            const keeper = existingCanonical || open || days[0];
+            const merged = { ...keeper, id: canonical, businessDayId: canonical, date };
+            if (open) {
+                merged.status = 'OPEN';
+                merged.closedAt = null;
+            }
+            normalized.push(merged);
+        });
+
+        state.businessDays = normalized.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+        const open = state.businessDays.find(d => String(d.status || '').toUpperCase() === 'OPEN') || null;
+        state.currentBusinessDayId = open ? open.id : null;
+        try {
+            localStorage.setItem('villacart_business_days_v520', JSON.stringify(state.businessDays));
+            localStorage.setItem('villacart_business_days', JSON.stringify(state.businessDays));
+        } catch(e) {}
+        return state.businessDays;
+    }
+
+    const oldQueueAction = typeof queueAction === 'function' ? queueAction : null;
+    if (oldQueueAction && !window.__vc7236QueueBusinessDayGuard) {
+        window.__vc7236QueueBusinessDayGuard = true;
+        queueAction = function(type, table, data) {
+            if (table === 'businessDays' && data && type !== 'delete') {
+                data = vc7236CanonicalizeBusinessDay({ ...data });
+            }
+            if (table === 'transactions' && data && type !== 'delete') {
+                const date = vc7236DateFromTransaction(data);
+                if (date) {
+                    data.businessDate = date;
+                    data.businessDayId = vc7236CanonicalId(date);
+                }
+            }
+            return oldQueueAction.apply(this, [type, table, data]);
+        };
+    }
+
+    function vc7236EnsureBusinessDayForTransaction(transaction) {
+        if (!transaction) return transaction;
+        if (!state.businessDays || !Array.isArray(state.businessDays)) state.businessDays = [];
+        const date = vc7236DateFromTransaction(transaction) || vc7236DateFrom(new Date());
+        const id = vc7236CanonicalId(date);
+        let bd = state.businessDays.find(day => day && vc7236DateFromBusinessDay(day) === date);
+        if (!bd) {
+            bd = {
+                id,
+                businessDayId: id,
+                date,
+                status: 'OPEN',
+                openedAt: transaction.timestamp || new Date().toISOString(),
+                closedAt: null,
+                terminal: 'Counter 1',
+                autoStarted: true,
+                createdAt: new Date().toISOString(),
+                version: window.VILLACART_APP_VERSION || 'v7.2.36'
+            };
+            state.businessDays.push(bd);
+            bd._offline = true;
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
+        } else {
+            vc7236CanonicalizeBusinessDay(bd);
+            if (String(bd.status || '').toUpperCase() !== 'OPEN') {
+                bd.status = 'OPEN';
+                bd.closedAt = null;
+                bd.reopenedAt = new Date().toISOString();
+                bd._offline = true;
+                if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
+            }
+        }
+        transaction.businessDayId = id;
+        transaction.businessDate = date;
+        state.currentBusinessDayId = id;
+        vc7236NormalizeLocalBusinessDays();
+        return transaction;
+    }
+
+    ensureBusinessDayForTransaction = vc7236EnsureBusinessDayForTransaction;
+    if (typeof window !== 'undefined') window.ensureBusinessDayForTransaction = vc7236EnsureBusinessDayForTransaction;
+
+    getCurrentBusinessDay = function() {
+        vc7236NormalizeLocalBusinessDays();
+        if (!state.businessDays || !Array.isArray(state.businessDays)) return null;
+        const today = vc7236DateFrom(new Date());
+        return state.businessDays.find(day => day.date === today && String(day.status || '').toUpperCase() === 'OPEN')
+            || state.businessDays.find(day => String(day.status || '').toUpperCase() === 'OPEN')
+            || null;
+    };
+    if (typeof window !== 'undefined') window.getCurrentBusinessDay = getCurrentBusinessDay;
+
+    window.vc7236CleanupBusinessDays = async function() {
+        if (!state.businessDays || !Array.isArray(state.businessDays)) state.businessDays = [];
+        const groups = new Map();
+        state.businessDays.forEach(day => {
+            const date = vc7236DateFromBusinessDay(day);
+            if (!date) return;
+            if (!groups.has(date)) groups.set(date, []);
+            groups.get(date).push(day);
+        });
+
+        const duplicateDays = [];
+        groups.forEach((days, date) => {
+            if (days.length <= 1 && days[0] && days[0].id === vc7236CanonicalId(date)) return;
+            const canonical = vc7236CanonicalId(date);
+            const keep = days.find(d => d.id === canonical) || days.find(d => String(d.status || '').toUpperCase() === 'OPEN') || days[0];
+            days.forEach(day => {
+                if (!day || day === keep) return;
+                duplicateDays.push({ ...day, _canonicalDate: date, _canonicalId: canonical });
+            });
+            if (keep && keep.id !== canonical) duplicateDays.push({ ...keep, _canonicalDate: date, _canonicalId: canonical, _renamedKeeper: true });
+        });
+
+        if (!duplicateDays.length) {
+            vc7236NormalizeLocalBusinessDays();
+            if (typeof showToast === 'function') showToast('No duplicate business days found', 'success');
+            return;
+        }
+
+        const ok = confirm('Clean duplicate business days now?\n\nThis will keep one BD-YYYYMMDD per date, move transaction businessDayId values to that day, and delete duplicate businessDays documents from Firestore. Transactions and inventory will NOT be deleted.');
+        if (!ok) return;
+
+        let txUpdates = 0;
+        let dayDeletes = 0;
+        let dayUpdates = 0;
+        const duplicateIdToCanonical = new Map();
+        duplicateDays.forEach(day => {
+            if (day && day.id && day._canonicalId && day.id !== day._canonicalId) duplicateIdToCanonical.set(day.id, day._canonicalId);
+        });
+
+        (state.transactions || []).forEach(tx => {
+            if (!tx || !tx.id) return;
+            const txDate = vc7236DateFromTransaction(tx);
+            const canonical = txDate ? vc7236CanonicalId(txDate) : duplicateIdToCanonical.get(tx.businessDayId);
+            if (!canonical) return;
+            if (duplicateIdToCanonical.has(tx.businessDayId) || tx.businessDayId !== canonical || tx.businessDate !== txDate) {
+                tx.businessDayId = canonical;
+                if (txDate) tx.businessDate = txDate;
+                tx._offline = true;
+                txUpdates++;
+                if (typeof queueAction === 'function') queueAction('update', 'transactions', tx);
+            }
+        });
+
+        groups.forEach((days, date) => {
+            const canonical = vc7236CanonicalId(date);
+            const keep = days.find(d => d.id === canonical) || days.find(d => String(d.status || '').toUpperCase() === 'OPEN') || days[0];
+            if (!keep) return;
+            const canonicalDoc = { ...keep, id: canonical, businessDayId: canonical, date };
+            if (days.some(d => String(d.status || '').toUpperCase() === 'OPEN')) {
+                canonicalDoc.status = 'OPEN';
+                canonicalDoc.closedAt = null;
+            }
+            canonicalDoc._offline = true;
+            dayUpdates++;
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', canonicalDoc);
+            days.forEach(day => {
+                if (!day || !day.id || day.id === canonical) return;
+                dayDeletes++;
+                if (typeof queueAction === 'function') queueAction('delete', 'businessDays', { id: day.id });
+            });
+        });
+
+        vc7236NormalizeLocalBusinessDays();
+        if (typeof sync === 'function') sync();
+        if (typeof syncNow === 'function' && navigator.onLine) syncNow();
+        if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
+        if (typeof renderLedger === 'function') renderLedger();
+        if (typeof renderInsights === 'function') renderInsights();
+        if (typeof showToast === 'function') showToast('Business days cleaned: ' + dayDeletes + ' duplicate(s), ' + txUpdates + ' transaction link(s)', 'success');
+        console.log('Business day cleanup complete', { dayDeletes, dayUpdates, txUpdates });
+    };
+
+    setTimeout(vc7236NormalizeLocalBusinessDays, 800);
 })();
