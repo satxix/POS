@@ -3786,7 +3786,7 @@
 }
 
 
-/* v7.2.36: Credit ledger Open/Settled local view switch */
+/* v7.2.37: Credit ledger Open/Settled local view switch */
 .vc5632-credit-view-switch {
     grid-column: 1 / -1;
     display: flex;

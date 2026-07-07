@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.36';
+    window.VILLACART_APP_VERSION = 'v7.2.37';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1319,7 +1319,7 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v7.2.36: Android/PWA resume repaint guard.
+    // v7.2.37: Android/PWA resume repaint guard.
     // Some WebView/TWA sessions return from background as a black compositor
     // frame until the user taps/back-navigates. This local-only repaint nudges
     // the browser to redraw the visible screen without doing Firestore reads.
@@ -3798,29 +3798,44 @@ function getClosingCounts(transactions) {
 
     function vc531OutstandingCredit() {
         const tx = vc531CleanTransactions(state.transactions || []);
-        const credits = tx.filter(t => t.type === 'CR' && !vc531IsSettlement(t));
+        const settlements = tx.filter(t => vc531IsSettlement(t));
+        const credits = tx.filter(t => t && t.type === 'CR' && !vc531IsSettlement(t));
         let total = 0;
 
+        function refsCredit(settlement, creditId) {
+            const target = String(creditId || '').toUpperCase();
+            if (!target) return false;
+            const fields = [
+                settlement && settlement.settlementFor,
+                settlement && settlement.creditRef,
+                settlement && settlement.relatedCreditId,
+                settlement && settlement.notes
+            ].map(v => String(v || '').toUpperCase());
+            return fields.some(v => v.includes(target));
+        }
+
         credits.forEach(cr => {
+            if (!cr || !cr.id) return;
             if (cr.paid === true || cr.settled === true) return;
-            const status = String(cr.status || '').toUpperCase();
+            const status = String(cr.status || '').trim().toUpperCase();
             if (status === 'PAID' || status === 'SETTLED') return;
+
+            const fullSettlement = settlements.some(t => refsCredit(t, cr.id) && !String(t.notes || '').toUpperCase().includes('PARTIAL:'));
+            if (fullSettlement) return;
 
             const explicit = [cr.balance, cr.balanceDue, cr.remaining, cr.outstanding, cr.amountDue]
                 .map(v => Number(v))
                 .find(v => !Number.isNaN(v) && v >= 0);
 
-            if (explicit !== undefined) total += explicit;
-            else {
-                const paidBySettlement = tx
-                    .filter(t => vc531IsSettlement(t))
-                    .filter(t => {
-                        const ref = String(t.settlementFor || t.creditRef || t.relatedCreditId || t.notes || '').toUpperCase();
-                        return ref.includes(String(cr.id || '').toUpperCase());
-                    })
-                    .reduce((sum, t) => sum + (Number(t.total) || 0), 0);
-                total += Math.max(0, (Number(cr.total) || 0) - paidBySettlement);
+            if (explicit !== undefined) {
+                total += explicit;
+                return;
             }
+
+            // In this app, partial payments reduce the CR ticket total itself.
+            // So the safest default outstanding amount is the current CR total,
+            // not original credit total minus every partial settlement again.
+            total += Math.max(0, Number(cr.total) || 0);
         });
 
         return Math.max(0, total);
@@ -5875,7 +5890,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try { syncNow(); } catch(e) { console.warn('Auto sync retry failed', reason, e); }
     }
 
-    // v7.2.36: Keep the post-startup signature safety scan, but do it in
+    // v7.2.37: Keep the post-startup signature safety scan, but do it in
     // tiny chunks. This prevents the first Ledger/Insights taps from feeling
     // ignored while hundreds of local docs are fingerprinted.
     function vc5630ScheduleRememberLoadedState(reason, delay) {
@@ -7126,7 +7141,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.36: Canonical business-day guard + manual duplicate cleanup.
+// v7.2.37: Canonical business-day guard + manual duplicate cleanup.
 // Business days should be one document per calendar date: BD-YYYYMMDD.
 // Cleanup only runs when the user presses the Business screen "Clean Days" button.
 (function(){
@@ -7239,7 +7254,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                 terminal: 'Counter 1',
                 autoStarted: true,
                 createdAt: new Date().toISOString(),
-                version: window.VILLACART_APP_VERSION || 'v7.2.36'
+                version: window.VILLACART_APP_VERSION || 'v7.2.37'
             };
             state.businessDays.push(bd);
             bd._offline = true;
@@ -7357,4 +7372,51 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
 
     setTimeout(vc7236NormalizeLocalBusinessDays, 800);
+})();
+
+
+// v7.2.37: Keep visible Outstanding Credit aligned with open CR tickets only.
+(function(){
+    if (window.__vc7237OutstandingCreditPolish) return;
+    window.__vc7237OutstandingCreditPolish = true;
+
+    function vc7237Peso(value) {
+        try {
+            if (typeof vc531Peso === 'function') return vc531Peso(value);
+        } catch(e) {}
+        return '₱' + Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function vc7237RefreshOutstandingCredit() {
+        try {
+            if (typeof vc531OutstandingCredit !== 'function') return;
+            const el = document.getElementById('biz-outstanding-credit');
+            if (el) el.innerText = vc7237Peso(vc531OutstandingCredit());
+            if (typeof vc526PolishCreditDashboardLabels === 'function') vc526PolishCreditDashboardLabels();
+        } catch(e) {
+            console.warn('Outstanding credit refresh failed', e);
+        }
+    }
+
+    const oldRenderInsights = typeof renderInsights === 'function' ? renderInsights : null;
+    if (oldRenderInsights && !window.__vc7237RenderInsightsPatch) {
+        window.__vc7237RenderInsightsPatch = true;
+        renderInsights = function() {
+            const result = oldRenderInsights.apply(this, arguments);
+            setTimeout(vc7237RefreshOutstandingCredit, 0);
+            return result;
+        };
+    }
+
+    const oldSwitchScreen = typeof switchScreen === 'function' ? switchScreen : null;
+    if (oldSwitchScreen && !window.__vc7237SwitchPatch) {
+        window.__vc7237SwitchPatch = true;
+        switchScreen = function(screen) {
+            const result = oldSwitchScreen.apply(this, arguments);
+            if (screen === 'insights' || screen === 'business') setTimeout(vc7237RefreshOutstandingCredit, 80);
+            return result;
+        };
+    }
+
+    setTimeout(vc7237RefreshOutstandingCredit, 1000);
 })();
