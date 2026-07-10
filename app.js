@@ -5114,7 +5114,7 @@ function getClosingCounts(transactions) {
             activeBD._offline = true;
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
-            // v7.2.41: If older layers created duplicate OPEN business-day records
+            // v7.2.42: If older layers created duplicate OPEN business-day records
             // for the same calendar date, close them together so the header pill
             // cannot remain OPEN after a manual End Day.
             const closeDate = activeBD.date || (activeBD.openedAt ? String(activeBD.openedAt).slice(0, 10) : new Date().toISOString().slice(0, 10));
@@ -7449,7 +7449,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.41: Local-only missed business-day auto-close.
+// v7.2.42: Local-only missed business-day auto-close.
 (function(){
     if (window.__vc7240AutoClosePreviousBusinessDays) return;
     window.__vc7240AutoClosePreviousBusinessDays = true;
@@ -7503,7 +7503,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function autoClosePreviousBusinessDays(reason) {
-        if (!window.state || !Array.isArray(state.businessDays)) return 0;
+        if (typeof state === 'undefined' || !Array.isArray(state.businessDays)) return 0;
         const today = localDateCode(new Date());
         const runKey = today + ':' + String(reason || 'check');
         if (lastRunKey === runKey) return 0;
