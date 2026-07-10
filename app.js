@@ -5114,7 +5114,7 @@ function getClosingCounts(transactions) {
             activeBD._offline = true;
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
-            // v7.2.42: If older layers created duplicate OPEN business-day records
+            // v7.2.43: If older layers created duplicate OPEN business-day records
             // for the same calendar date, close them together so the header pill
             // cannot remain OPEN after a manual End Day.
             const closeDate = activeBD.date || (activeBD.openedAt ? String(activeBD.openedAt).slice(0, 10) : new Date().toISOString().slice(0, 10));
@@ -6152,6 +6152,59 @@ document.addEventListener('DOMContentLoaded',()=>{
         });
     }
 
+    function vc5632FindSettlementForCredit(creditTx, allTx) {
+        const target = String(creditTx && creditTx.id || '').toUpperCase();
+        if (!target) return null;
+        return (Array.isArray(allTx) ? allTx : [])
+            .filter(t => t && t.id !== creditTx.id && vc5632IsSettlement(t))
+            .filter(t => {
+                const notes = String(t.notes || '').toUpperCase();
+                if (notes.includes('PARTIAL:')) return false;
+                return vc5632SettlementCreditIds(t).has(target);
+            })
+            .sort((a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0))[0] || null;
+    }
+
+    function vc5632SettlementDateKeyForCredit(creditTx, allTx) {
+        const settlement = creditTx && creditTx._vcSettlement ? creditTx._vcSettlement : vc5632FindSettlementForCredit(creditTx, allTx);
+        return settlement
+            ? (settlement.businessDate || vc5632DateKey(settlement))
+            : (creditTx && (creditTx.settledAt ? vc5632DateKey({ timestamp: creditTx.settledAt }) : vc5632DateKey(creditTx)));
+    }
+
+    function vc5632SettlementTimestampForCredit(creditTx, allTx) {
+        const settlement = creditTx && creditTx._vcSettlement ? creditTx._vcSettlement : vc5632FindSettlementForCredit(creditTx, allTx);
+        return settlement ? (settlement.timestamp || settlement.createdAt || '') : (creditTx && (creditTx.settledAt || creditTx.timestamp || creditTx.createdAt || ''));
+    }
+
+    function vc5632FilteredSettledCredits(list, allTx) {
+        const q = String(document.getElementById('vc5629-ledger-search')?.value || '').trim().toLowerCase();
+        const mode = document.getElementById('vc5629-ledger-date')?.value || 'today';
+        const todayKey = vc5632DateKey({ timestamp: new Date().toISOString() });
+        let out = (Array.isArray(list) ? list : []).map(t => {
+            const settlement = vc5632FindSettlementForCredit(t, allTx);
+            return {
+                ...t,
+                _vcCreditSettled: true,
+                _vcSettlement: settlement,
+                _vcSettlementDateKey: settlement ? (settlement.businessDate || vc5632DateKey(settlement)) : vc5632SettlementDateKeyForCredit(t, allTx),
+                _vcSettlementTimestamp: settlement ? (settlement.timestamp || settlement.createdAt || '') : vc5632SettlementTimestampForCredit(t, allTx)
+            };
+        });
+        if (mode === 'today') out = out.filter(t => t._vcSettlementDateKey === todayKey);
+        if (q) {
+            out = out.filter(t => {
+                const s = t._vcSettlement || {};
+                return [
+                    t.id, t.customer, t.notes,
+                    s.id, s.customer, s.notes,
+                    ...(Array.isArray(t.items) ? t.items.map(i => i && i.name) : [])
+                ].some(v => String(v || '').toLowerCase().includes(q));
+            });
+        }
+        return out.sort((a, b) => new Date(b._vcSettlementTimestamp || b.timestamp || 0) - new Date(a._vcSettlementTimestamp || a.timestamp || 0));
+    }
+
     function vc5632KnownTransactionIds() {
         const ids = new Set();
         (Array.isArray(state.transactions) ? state.transactions : []).forEach(t => { if (t && t.id) ids.add(t.id); });
@@ -6353,8 +6406,62 @@ document.addEventListener('DOMContentLoaded',()=>{
         '</div>';
     }
 
+    function vc5632RenderSettledCreditByDateCustomer(list) {
+        if (!list.length) {
+            return '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No settled credits</strong><p>Paid credit tickets will appear here.</p></div>';
+        }
+        const collapsed = vc5632LoadCollapsed();
+        const dateGroups = new Map();
+        list.forEach(t => {
+            const key = t._vcSettlementDateKey || vc5632DateKey(t);
+            if (!dateGroups.has(key)) dateGroups.set(key, []);
+            dateGroups.get(key).push(t);
+        });
+        return Array.from(dateGroups.entries())
+            .sort((a, b) => String(b[0]).localeCompare(String(a[0])))
+            .map(([dateKey, items]) => {
+                const total = items.reduce((sum, t) => sum + Number(t.total || 0), 0);
+                const collapseKey = 'credit-settled:' + dateKey;
+                const isCollapsed = !!collapsed[collapseKey];
+                const customers = {};
+                items.forEach(t => {
+                    const raw = String(t.customer || 'Guest').trim() || 'Guest';
+                    const key = raw.toLowerCase();
+                    if (!customers[key]) {
+                        customers[key] = {
+                            rawName: raw,
+                            displayName: typeof titleCase === 'function' ? titleCase(raw) : raw,
+                            items: [],
+                            total: 0
+                        };
+                    }
+                    customers[key].items.push(t);
+                    customers[key].total += Number(t.total || 0);
+                });
+                const body = Object.values(customers)
+                    .sort((a, b) => b.total - a.total || a.displayName.localeCompare(b.displayName))
+                    .map(group => {
+                        return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
+                            '<div class="vc5629-credit-head">' +
+                                '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + ' settled ticket(s)</p></div>' +
+                                '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong></div>' +
+                            '</div>' +
+                            '<div class="vc5629-credit-list">' + group.items.map(t => vc5632TxCard(t, 'credit-settled')).join('') + '</div>' +
+                        '</section>';
+                    }).join('');
+                return '<section class="vc5632-date-group vc5632-settled-credit-date-group ' + (isCollapsed ? 'collapsed' : '') + '">' +
+                    '<button type="button" class="vc5632-date-header" onclick="vc5632ToggleLedgerDate(\'' + vc5632Js(collapseKey) + '\')">' +
+                        '<div><span class="material-symbols-outlined">expand_more</span><strong>' + vc5632Safe(vc5632DateLabel(dateKey)) + '</strong><small>' + items.length + ' settled ticket(s)</small></div>' +
+                        '<em>' + vc5632Peso(total) + '</em>' +
+                    '</button>' +
+                    '<div class="vc5632-date-body">' + body + '</div>' +
+                '</section>';
+            }).join('');
+    }
+
     function vc5632RenderCreditCustomers(list, view) {
         const isSettledView = view === 'settled';
+        if (isSettledView) return vc5632RenderSettledCreditByDateCustomer(Array.isArray(list) ? list : []);
         if (!list.length) {
             return '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>' + (isSettledView ? 'No settled credits' : 'No open credits') + '</strong><p>' + (isSettledView ? 'Paid credit tickets will appear here.' : 'Credit sales will appear here.') + '</p></div>';
         }
@@ -6420,7 +6527,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                         .filter(t => vc5632CreditIsSettled(t, tx))
                         .map(t => ({ ...t, _vcCreditSettled: true }));
                     const openList = vc5632Filtered(openCredits);
-                    const settledList = vc5632Filtered(settledCredits);
+                    const settledList = vc5632FilteredSettledCredits(settledCredits, tx);
                     const view = vc5632CreditLedgerView === 'settled' ? 'settled' : 'open';
                     list = view === 'settled' ? settledList : openList;
                     const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
@@ -7449,7 +7556,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.42: Local-only missed business-day auto-close.
+// v7.2.43: Local-only missed business-day auto-close.
 (function(){
     if (window.__vc7240AutoClosePreviousBusinessDays) return;
     window.__vc7240AutoClosePreviousBusinessDays = true;
