@@ -3831,3 +3831,195 @@
     background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%) !important;
     border-color: rgba(16, 185, 129, .22) !important;
 }
+
+
+/* v7.2.47: keep receipt actions reachable on long settlement receipts */
+#receipt-modal {
+    overflow: hidden !important;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
+}
+
+#receipt-modal > div {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: calc(100dvh - 24px) !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 18px;
+}
+
+#receipt-modal > div > button.no-print {
+    top: 10px !important;
+    right: 10px !important;
+    color: #0b1c30 !important;
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid rgba(148, 163, 184, .35);
+    border-radius: 999px;
+    padding: 8px 12px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .18);
+    z-index: 6;
+}
+
+#receipt-content {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 24px !important;
+}
+
+#receipt-content > .no-print {
+    position: sticky;
+    bottom: -1px;
+    z-index: 5;
+    margin-left: -24px;
+    margin-right: -24px;
+    margin-bottom: -24px;
+    padding: 14px 24px 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,.75), #ffffff 22%, #ffffff 100%);
+    border-top: 1px solid rgba(148, 163, 184, .24);
+}
+
+@media (max-width: 420px) {
+    #receipt-modal {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+    #receipt-content {
+        padding: 18px !important;
+    }
+    #receipt-content > .no-print {
+        margin-left: -18px;
+        margin-right: -18px;
+        margin-bottom: -18px;
+        padding: 12px 18px 18px;
+    }
+}
+
+
+/* v7.2.47: preserve receipt printing after long-receipt screen layout fix */
+@media print {
+    #receipt-modal,
+    #receipt-modal > div,
+    #receipt-content {
+        max-height: none !important;
+        overflow: visible !important;
+        border-radius: 0 !important;
+    }
+    #receipt-content > .no-print {
+        display: none !important;
+        visibility: hidden !important;
+        position: static !important;
+    }
+}
+
+
+/* v7.2.47: keep receipt controls fixed on-screen for very long receipts */
+#receipt-modal {
+    align-items: stretch !important;
+    justify-content: center !important;
+}
+
+#receipt-modal > div {
+    width: min(320px, calc(100vw - 18px)) !important;
+    max-height: calc(100dvh - 18px) !important;
+}
+
+#receipt-content {
+    max-height: calc(100dvh - 18px) !important;
+    padding-bottom: 128px !important;
+}
+
+#receipt-content > .no-print {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    transform: translateX(-50%) !important;
+    width: min(320px, calc(100vw - 18px)) !important;
+    margin: 0 !important;
+    padding: 10px 12px 12px !important;
+    border-radius: 18px 18px 0 0;
+    background: rgba(255,255,255,.97) !important;
+    box-shadow: 0 -12px 30px rgba(15, 23, 42, .18);
+    border: 1px solid rgba(148, 163, 184, .22);
+    z-index: 260 !important;
+}
+
+#receipt-modal > div > button.no-print {
+    position: fixed !important;
+    top: max(8px, env(safe-area-inset-top)) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    z-index: 261 !important;
+}
+
+@media print {
+    #receipt-content {
+        padding-bottom: 4mm !important;
+    }
+    #receipt-content > .no-print,
+    #receipt-modal > div > button.no-print {
+        display: none !important;
+        visibility: hidden !important;
+        position: static !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}
+
+
+/* v7.2.47: target actual receipt action footer, not receipt content children */
+#receipt-modal {
+    overflow: hidden !important;
+    padding: 8px !important;
+}
+
+#receipt-modal > div {
+    width: min(340px, calc(100vw - 16px)) !important;
+    max-height: calc(100dvh - 16px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+}
+
+#receipt-content {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 22px 22px 12px !important;
+}
+
+#receipt-actions {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    position: relative !important;
+    z-index: 20 !important;
+    margin: 0 !important;
+    padding: 12px 14px max(14px, env(safe-area-inset-bottom)) !important;
+    background: #ffffff !important;
+    border-top: 1px solid rgba(148, 163, 184, .26);
+    box-shadow: 0 -10px 24px rgba(15, 23, 42, .12);
+}
+
+#receipt-modal > div > button.no-print {
+    position: fixed !important;
+    top: max(8px, env(safe-area-inset-top)) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    z-index: 262 !important;
+}
+
+@media print {
+    #receipt-modal { padding: 0 !important; overflow: visible !important; }
+    #receipt-modal > div { display: block !important; overflow: visible !important; max-height: none !important; width: 80mm !important; }
+    #receipt-content { overflow: visible !important; padding: 3mm 2mm 4mm !important; }
+    #receipt-actions,
+    #receipt-modal > div > button.no-print {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}
