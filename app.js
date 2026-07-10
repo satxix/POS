@@ -5114,7 +5114,7 @@ function getClosingCounts(transactions) {
             activeBD._offline = true;
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
-            // v7.2.40: If older layers created duplicate OPEN business-day records
+            // v7.2.41: If older layers created duplicate OPEN business-day records
             // for the same calendar date, close them together so the header pill
             // cannot remain OPEN after a manual End Day.
             const closeDate = activeBD.date || (activeBD.openedAt ? String(activeBD.openedAt).slice(0, 10) : new Date().toISOString().slice(0, 10));
@@ -6002,6 +6002,9 @@ document.addEventListener('DOMContentLoaded',()=>{
             state.businessDays = [...vc5631MergeServer('businessDays', businessDays, state.businessDays || []), ...localOldBusinessDays]
                 .filter((item, idx, arr) => item && item.id && arr.findIndex(other => other && other.id === item.id) === idx);
 
+            if (typeof window.vc7240AutoClosePreviousBusinessDays === 'function') {
+                window.vc7240AutoClosePreviousBusinessDays('after-reconcile');
+            }
             const openDay = (state.businessDays || [])
                 .filter(day => day && day.status === 'OPEN')
                 .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0))[0];
@@ -7446,7 +7449,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.40: Local-only missed business-day auto-close.
+// v7.2.41: Local-only missed business-day auto-close.
 (function(){
     if (window.__vc7240AutoClosePreviousBusinessDays) return;
     window.__vc7240AutoClosePreviousBusinessDays = true;
