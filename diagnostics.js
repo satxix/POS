@@ -169,6 +169,7 @@
     }
 
     try { if (typeof sync === 'function') sync(); } catch(e) { console.warn(e); }
+    try { if (typeof window.vc7240AutoClosePreviousBusinessDays === 'function') window.vc7240AutoClosePreviousBusinessDays('diagnostics-hydrate'); } catch(e) { console.warn(e); }
 
     try { if (typeof renderLedger === 'function') renderLedger(); } catch(e) { console.warn(e); }
     try { if (typeof renderInventory === 'function') renderInventory(); } catch(e) { console.warn(e); }
