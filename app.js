@@ -5114,9 +5114,29 @@ function getClosingCounts(transactions) {
             activeBD._offline = true;
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
+            // v7.2.40: If older layers created duplicate OPEN business-day records
+            // for the same calendar date, close them together so the header pill
+            // cannot remain OPEN after a manual End Day.
+            const closeDate = activeBD.date || (activeBD.openedAt ? String(activeBD.openedAt).slice(0, 10) : new Date().toISOString().slice(0, 10));
+            (state.businessDays || []).forEach(day => {
+                if (!day || day.id === activeBD.id) return;
+                const dayDate = day.date || (day.openedAt ? String(day.openedAt).slice(0, 10) : '');
+                if (dayDate === closeDate && String(day.status || '').toUpperCase() === 'OPEN') {
+                    day.status = 'CLOSED';
+                    day.closedAt = activeBD.closedAt;
+                    day.closedBy = 'POS';
+                    day._offline = true;
+                    if (typeof queueAction === 'function') queueAction('update', 'businessDays', day);
+                }
+            });
+
             if (typeof sync === 'function') sync();
             if (typeof closeModal === 'function') closeModal('closing-summary-modal');
             if (typeof closeModal === 'function') closeModal('business-day-modal');
+            if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI();
+            if (typeof v52RefreshBusinessDayUI === 'function') v52RefreshBusinessDayUI();
+            if (typeof vc543RefreshBusinessDayUI === 'function') vc543RefreshBusinessDayUI();
+            if (typeof vc551RefreshHeader === 'function') vc551RefreshHeader();
             if (typeof renderInsights === 'function') renderInsights();
             if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
             if (typeof showToast === 'function') showToast(`Business Day ${activeBD.id} closed`, 'success');
@@ -7423,4 +7443,108 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     setTimeout(vc7237RefreshOutstandingCredit, 1000);
+})();
+
+
+// v7.2.40: Local-only missed business-day auto-close.
+(function(){
+    if (window.__vc7240AutoClosePreviousBusinessDays) return;
+    window.__vc7240AutoClosePreviousBusinessDays = true;
+    let lastRunKey = '';
+
+    function localDateCode(value) {
+        try {
+            if (typeof vc544DateCode === 'function') return vc544DateCode(value || new Date());
+        } catch(e) {}
+        const d = value ? new Date(value) : new Date();
+        if (isNaN(d.getTime())) return '';
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function dayDate(day) {
+        return day && (day.date || (day.openedAt ? localDateCode(day.openedAt) : ''));
+    }
+
+    function txDate(tx) {
+        return tx && (tx.businessDate || (tx.timestamp ? localDateCode(tx.timestamp) : ''));
+    }
+
+    function transactionsForDay(day) {
+        const id = day && day.id;
+        const date = dayDate(day);
+        const all = []
+            .concat(Array.isArray(state.transactions) ? state.transactions : [])
+            .concat(Array.isArray(state.archiveTransactions) ? state.archiveTransactions : []);
+        const seen = new Set();
+        return all.filter(tx => {
+            if (!tx || !tx.id || seen.has(tx.id)) return false;
+            const match = (id && tx.businessDayId === id) || (date && txDate(tx) === date);
+            if (match) seen.add(tx.id);
+            return match;
+        });
+    }
+
+    function metricsForDay(day) {
+        const tx = transactionsForDay(day);
+        if (typeof vc544Metrics === 'function') return vc544Metrics(tx);
+        if (typeof v52ComputeMetrics === 'function') return v52ComputeMetrics(tx);
+        return { transactionCount: tx.length };
+    }
+
+    function refreshBusinessHeaderOnly() {
+        try { if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI(); } catch(e) {}
+        try { if (typeof v52RefreshBusinessDayUI === 'function') v52RefreshBusinessDayUI(); } catch(e) {}
+        try { if (typeof vc543RefreshBusinessDayUI === 'function') vc543RefreshBusinessDayUI(); } catch(e) {}
+        try { if (typeof vc551RefreshHeader === 'function') vc551RefreshHeader(); } catch(e) {}
+        try { if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar(); } catch(e) {}
+    }
+
+    function autoClosePreviousBusinessDays(reason) {
+        if (!window.state || !Array.isArray(state.businessDays)) return 0;
+        const today = localDateCode(new Date());
+        const runKey = today + ':' + String(reason || 'check');
+        if (lastRunKey === runKey) return 0;
+        lastRunKey = runKey;
+
+        const now = new Date().toISOString();
+        let closed = 0;
+
+        state.businessDays.forEach(day => {
+            if (!day || String(day.status || '').toUpperCase() !== 'OPEN') return;
+            const date = dayDate(day);
+            if (!date || date >= today) return;
+
+            day.status = 'CLOSED';
+            day.closedAt = day.closedAt || now;
+            day.closedBy = day.closedBy || 'AUTO';
+            day.autoClosed = true;
+            day.autoClosedAt = now;
+            day.summary = day.summary || metricsForDay(day);
+            day._offline = true;
+            closed += 1;
+
+            if (typeof queueAction === 'function') queueAction('update', 'businessDays', day);
+        });
+
+        if (closed > 0) {
+            const current = state.businessDays
+                .filter(day => day && String(day.status || '').toUpperCase() === 'OPEN' && dayDate(day) === today)
+                .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0))[0] || null;
+            state.currentBusinessDayId = current ? current.id : null;
+            if (typeof sync === 'function') sync();
+            refreshBusinessHeaderOnly();
+            console.info('Auto-closed previous business day(s):', closed);
+        }
+        return closed;
+    }
+
+    window.vc7240AutoClosePreviousBusinessDays = autoClosePreviousBusinessDays;
+
+    setTimeout(() => autoClosePreviousBusinessDays('startup'), 900);
+    window.addEventListener('focus', () => setTimeout(() => autoClosePreviousBusinessDays('focus'), 250));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            setTimeout(() => autoClosePreviousBusinessDays('visible'), 250);
+        }
+    });
 })();
