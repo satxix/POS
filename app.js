@@ -774,6 +774,7 @@
                     queueAction('update', 'inventory', p);
                 }
             });
+            if (typeof renderFavorites === 'function') renderFavorites();
         }
         sync();
     }
@@ -1686,6 +1687,7 @@ function switchScreen(id) {
         queueAction('update', 'inventory', data);
         sync();
         renderInventory();
+        if (typeof renderFavorites === 'function') renderFavorites();
         closeModal('product-modal');
         showToast(navigator.onLine ? 'Product Saved' : 'Product saved locally; waiting to sync', 'success');
     }
@@ -1698,7 +1700,7 @@ function switchScreen(id) {
         if (confirm(`Delete "${p.name}"?${warning}`)) { 
             state.inventory = state.inventory.filter(i => i.id !== id); 
             queueAction('delete', 'inventory', { id }); 
-            sync(); renderInventory(); showToast('Product Deleted', 'info'); 
+            sync(); renderInventory(); if (typeof renderFavorites === 'function') renderFavorites(); showToast('Product Deleted', 'info'); 
         } 
     }
 
@@ -2467,6 +2469,7 @@ body {
         p._offline = true;
         queueAction('update', 'inventory', p);
         sync(); renderInventory();
+        if (typeof renderFavorites === 'function') renderFavorites();
         showToast(`Stock ${delta >= 0 ? 'added' : 'deducted'}: ${Math.abs(delta)} pcs`, 'success');
     }
 
@@ -4308,6 +4311,7 @@ function getClosingCounts(transactions) {
 
         if (typeof sync === 'function') sync();
         if (typeof renderInventory === 'function') renderInventory();
+        if (typeof renderFavorites === 'function') renderFavorites();
         if (typeof renderLedger === 'function') renderLedger();
         if (typeof renderInsights === 'function') renderInsights();
         if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
