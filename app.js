@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.37';
+    window.VILLACART_APP_VERSION = 'v7.2.49';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -943,6 +943,24 @@
         }
     });
 
+    function vc7248IsInventoryScreenActive() {
+        const inventoryScreen = document.getElementById('screen-inventory');
+        return !!(inventoryScreen && !inventoryScreen.classList.contains('hidden'));
+    }
+
+    function vc7248ShowStockBarcodeSearch(cleanBarcode) {
+        const code = vc7227NormalizeBarcode(cleanBarcode);
+        if (!code) return false;
+        const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
+        if (stockSearch) stockSearch.value = code;
+        if (typeof renderInventory === 'function') renderInventory(code);
+        const product = vc7227FindProductByBarcode(code);
+        if (typeof vc7228MarkHandled === 'function') vc7228MarkHandled(code, product ? 'stock-search:' + product.id : 'stock-search:not-found');
+        if (product) showToast('Found in stock: ' + product.name, 'success');
+        else showToast('No stock item found: ' + code, 'error');
+        return true;
+    }
+
     function handlePhysicalScan(barcode) {
         const cleanBarcode = vc7227NormalizeBarcode(barcode);
         const productModal = document.getElementById('product-modal');
@@ -952,6 +970,10 @@
                 barcodeField.value = cleanBarcode;
                 showToast("Barcode detected", "success");
             }
+            return;
+        }
+        if (vc7248IsInventoryScreenActive()) {
+            vc7248ShowStockBarcodeSearch(cleanBarcode);
             return;
         }
         const product = vc7227FindProductByBarcode(cleanBarcode);
@@ -1661,6 +1683,17 @@ function switchScreen(id) {
 
     function saveProduct() {
         const name = document.getElementById('p-name').value; if (!name) { showToast('Product name is required', 'error'); return; }
+        const barcodeValue = vc7227NormalizeBarcode(document.getElementById('p-barcode').value || '');
+        if (barcodeValue) {
+            const duplicate = state.inventory.find(p => p && p.id !== window._editId && vc7227NormalizeBarcode(p.barcode || '') === barcodeValue);
+            if (duplicate) {
+                const message = 'Barcode ' + barcodeValue + ' is already used by "' + (duplicate.name || 'another product') + '". Save anyway?';
+                if (!window.confirm(message)) {
+                    showToast('Product not saved: duplicate barcode', 'error');
+                    return;
+                }
+            }
+        }
         const hasPack = document.getElementById('p-has-pack').checked;
         const cost = parseFloat(document.getElementById('p-cost').value) || 0;
         const price = parseFloat(document.getElementById('p-price').value) || 0;
@@ -1672,7 +1705,7 @@ function switchScreen(id) {
             showToast('Check product prices, stock, and pack values', 'error');
             return;
         }
-        const data = { id: window._editId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, barcode: document.getElementById('p-barcode').value.trim(), name: name.trim(), category: document.getElementById('p-category').value.trim(), cost, price, stock, lowStock, packPrice, packSize, _offline: true };
+        const data = { id: window._editId || `1783710745804-ut9bqv`, barcode: barcodeValue, name: name.trim(), category: document.getElementById('p-category').value.trim(), cost, price, stock, lowStock, packPrice, packSize, _offline: true };
 
         // Save locally first and let the persistent queue deliver it.  Waiting
         // for a direct Firestore request here made the button look broken when
@@ -5114,7 +5147,7 @@ function getClosingCounts(transactions) {
             activeBD._offline = true;
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
-            // v7.2.47: If older layers created duplicate OPEN business-day records
+            // v7.2.49: If older layers created duplicate OPEN business-day records
             // for the same calendar date, close them together so the header pill
             // cannot remain OPEN after a manual End Day.
             const closeDate = activeBD.date || (activeBD.openedAt ? String(activeBD.openedAt).slice(0, 10) : new Date().toISOString().slice(0, 10));
@@ -7556,7 +7589,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.47: Local-only missed business-day auto-close.
+// v7.2.49: Local-only missed business-day auto-close.
 (function(){
     if (window.__vc7240AutoClosePreviousBusinessDays) return;
     window.__vc7240AutoClosePreviousBusinessDays = true;

@@ -183,6 +183,34 @@
     return window.__vc559LastHydrate;
   }
 
+  function vc559ExtractVersion(value){
+    const text = String(value || '');
+    const match = text.match(/v=?([0-9]+\.[0-9]+\.[0-9]+)/i);
+    return match ? ('v' + match[1]) : null;
+  }
+
+  function vc559VersionInfo(){
+    const appScript = document.querySelector('script[src*="app.js"]');
+    const styleLink = document.querySelector('link[href*="styles.css"]');
+    const diagScript = document.querySelector('script[src*="diagnostics.js"]');
+    const controllerScript = navigator.serviceWorker && navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null;
+    const expected = window.VILLACART_EXPECTED_VERSION || vc559ExtractVersion(appScript && appScript.src) || null;
+    const info = {
+      expectedVersion: expected,
+      appVersion: window.VILLACART_APP_VERSION || null,
+      appScriptVersion: vc559ExtractVersion(appScript && appScript.src),
+      stylesVersion: vc559ExtractVersion(styleLink && styleLink.href),
+      diagnosticsVersion: vc559ExtractVersion(diagScript && diagScript.src),
+      serviceWorkerVersion: vc559ExtractVersion(controllerScript),
+      serviceWorkerControllerScript: controllerScript,
+      updateAvailable: !!window.__villacartUpdateAvailable
+    };
+    info.matches = [info.appVersion, info.appScriptVersion, info.stylesVersion, info.diagnosticsVersion, info.serviceWorkerVersion]
+      .filter(Boolean)
+      .every(v => !expected || v === expected);
+    return info;
+  }
+
   async function vc559Collect(){
     const transactions = await vc559ReadCollection('transactions');
     const inventory = await vc559ReadCollection('inventory');
@@ -217,8 +245,10 @@
       },
       serviceWorker: navigator.serviceWorker ? {
         controller: !!navigator.serviceWorker.controller,
-        controllerScript: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null
-      } : null
+        controllerScript: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null,
+        updateAvailable: !!window.__villacartUpdateAvailable
+      } : null,
+      versionInfo: vc559VersionInfo()
     };
     window.__vc559LastReport = report;
     return report;
@@ -261,7 +291,9 @@
         vc559Card('POS Visible', (() => { const m = r.startup && Array.isArray(r.startup.marks) ? r.startup.marks.find(x => x && x.name === 'pos-screen-shown') : null; return m ? (m.msSinceScriptStart + 'ms') : 'N/A'; })(), r.startup ? 'pos-screen-shown timing' : 'not recorded', r.startup ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Background Ready', r.startup && r.startup.marks && r.startup.marks.length ? (r.startup.marks[r.startup.marks.length - 1].msSinceScriptStart + 'ms') : 'N/A', r.startup ? ('last: ' + (r.startup.lastMark || 'unknown')) : 'not recorded', r.startup ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Optional Libs', (r.optionalLibraries && r.optionalLibraries.chartLoaded ? 'Chart ' : '') + (r.optionalLibraries && r.optionalLibraries.html2canvasLoaded ? 'Image ' : '') || 'Deferred', 'Quagga: ' + (r.optionalLibraries && r.optionalLibraries.quaggaLoaded ? 'loaded' : 'not loaded'), 'vc558-ok'),
-        vc559Card('App JS', r.appVersion || 'Old/cache?', r.appVersion ? 'app.js marker loaded' : 'app.js marker missing', r.appVersion ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('App JS', (r.versionInfo && r.versionInfo.appVersion) || 'Old/cache?', r.versionInfo ? ('script: ' + (r.versionInfo.appScriptVersion || 'unknown')) : 'app.js marker missing', r.versionInfo && r.versionInfo.appVersion ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Version Match', r.versionInfo && r.versionInfo.matches ? 'OK' : 'Check', r.versionInfo ? ('expected ' + (r.versionInfo.expectedVersion || 'unknown') + ' / SW ' + (r.versionInfo.serviceWorkerVersion || 'none')) : 'version info missing', r.versionInfo && r.versionInfo.matches ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Ready' : 'None', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Tap Reload App below' : 'no waiting service worker', r.serviceWorker && r.serviceWorker.updateAvailable ? 'vc558-warn' : 'vc558-ok'),
         vc559Card('Scanner', r.scannerDebug && r.scannerDebug.lastBarcodeAttempt ? r.scannerDebug.lastBarcodeAttempt : 'No scan', r.scannerDebug ? ((r.scannerDebug.lastBarcodeResult || 'waiting') + ' / input: ' + (r.scannerDebug.lastInputValue || '').slice(0, 24)) : 'debug not ready', r.scannerDebug && r.scannerDebug.lastBarcodeResult && r.scannerDebug.lastBarcodeResult.indexOf('matched:') === 0 ? 'vc558-ok' : 'vc558-warn')
       ].join('');
     }
@@ -306,6 +338,11 @@
       runBtn.replaceWith(runBtn.cloneNode(true));
       const newRun = document.getElementById('vc558-run');
       newRun.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); vc559Run(true); }, true);
+      if (!document.getElementById('vc559-reload')) {
+        newRun.insertAdjacentHTML('afterend', '<button id="vc559-reload" type="button" class="vc558-action bg-white border border-border-subtle text-primary">Reload App</button>');
+        const reloadBtn = document.getElementById('vc559-reload');
+        reloadBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if (typeof window.vcReloadApp === 'function') window.vcReloadApp(); else window.location.reload(); }, true);
+      }
     }
     if (copyBtn) {
       copyBtn.replaceWith(copyBtn.cloneNode(true));

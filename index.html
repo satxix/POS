@@ -6,19 +6,48 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v7.2.47</title>
+<title>Villacart POS v7.2.49</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=7.2.47"/>
+<link rel="manifest" href="manifest.webmanifest?v=7.2.49"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
+            window.VILLACART_EXPECTED_VERSION = 'v7.2.49';
+            window.__villacartUpdateAvailable = false;
+            window.__villacartSWRegistration = null;
+            window.vcReloadApp = function() {
+                try {
+                    var reg = window.__villacartSWRegistration;
+                    if (reg && reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                } catch (e) {}
+                setTimeout(function(){ window.location.reload(); }, 120);
+            };
             if ('serviceWorker' in navigator) {
+                var refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (refreshing) return;
+                    refreshing = true;
+                    window.location.reload();
+                });
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js?v=7.2.47').catch(err => console.log('SW registration failed:', err));
+                    navigator.serviceWorker.register('sw.js?v=7.2.49').then(function(reg) {
+                        window.__villacartSWRegistration = reg;
+                        if (reg.waiting) window.__villacartUpdateAvailable = true;
+                        reg.addEventListener('updatefound', function() {
+                            var worker = reg.installing;
+                            if (!worker) return;
+                            worker.addEventListener('statechange', function() {
+                                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    window.__villacartUpdateAvailable = true;
+                                    if (typeof showToast === 'function') showToast('App update ready. Open Diagnostics > Reload App.', 'info');
+                                }
+                            });
+                        });
+                    }).catch(err => console.log('SW registration failed:', err));
                 });
             }
         })();
@@ -82,7 +111,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=7.2.47"/>
+<link rel="stylesheet" href="styles.css?v=7.2.49"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -95,7 +124,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v7.2.47</span>
+                    <span class="vc551-version">v7.2.49</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -259,7 +288,7 @@
 </div>
 <div class="relative">
 <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[22px]">search</span>
-<input class="w-full pl-12 pr-4 py-3.5 bg-surface border border-border-subtle rounded-2xl focus:border-primary transition-all text-sm font-medium shadow-sm" oninput="renderInventory(this.value)" placeholder="Search inventory by name, barcode, or category..." type="text"/>
+<input id="stock-search" class="w-full pl-12 pr-4 py-3.5 bg-surface border border-border-subtle rounded-2xl focus:border-primary transition-all text-sm font-medium shadow-sm" oninput="renderInventory(this.value)" placeholder="Search inventory by name, barcode, or category..." type="text"/>
 </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="inventory-list"></div>
@@ -978,7 +1007,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=7.2.47"></script>
+<script src="app.js?v=7.2.49"></script>
 <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
 </button>
@@ -1007,7 +1036,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=7.2.47"></script>
+<script src="diagnostics.js?v=7.2.49"></script>
 
 
 

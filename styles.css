@@ -3833,7 +3833,7 @@
 }
 
 
-/* v7.2.47: keep receipt actions reachable on long settlement receipts */
+/* v7.2.49: keep receipt actions reachable on long settlement receipts */
 #receipt-modal {
     overflow: hidden !important;
     padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
@@ -3898,7 +3898,7 @@
 }
 
 
-/* v7.2.47: preserve receipt printing after long-receipt screen layout fix */
+/* v7.2.49: preserve receipt printing after long-receipt screen layout fix */
 @media print {
     #receipt-modal,
     #receipt-modal > div,
@@ -3915,7 +3915,7 @@
 }
 
 
-/* v7.2.47: keep receipt controls fixed on-screen for very long receipts */
+/* v7.2.49: keep receipt controls fixed on-screen for very long receipts */
 #receipt-modal {
     align-items: stretch !important;
     justify-content: center !important;
@@ -3969,7 +3969,7 @@
 }
 
 
-/* v7.2.47: target actual receipt action footer, not receipt content children */
+/* v7.2.49: target actual receipt action footer, not receipt content children */
 #receipt-modal {
     overflow: hidden !important;
     padding: 8px !important;

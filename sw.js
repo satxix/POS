@@ -1,11 +1,11 @@
-const CACHE_NAME = 'villacart-pos-v7.2.47';
+const CACHE_NAME = 'villacart-pos-v7.2.49';
 const APP_SHELL = [
   './',
   './index.html',
-  './manifest.webmanifest?v=7.2.47',
-  './styles.css?v=7.2.47',
-  './app.js?v=7.2.47',
-  './diagnostics.js?v=7.2.47',
+  './manifest.webmanifest?v=7.2.49',
+  './styles.css?v=7.2.49',
+  './app.js?v=7.2.49',
+  './diagnostics.js?v=7.2.49',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
@@ -48,4 +48,9 @@ self.addEventListener('fetch', event => {
       return response;
     });
   }));
+});
+
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
