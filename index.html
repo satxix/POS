@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v7.2.49</title>
+<title>Villacart POS v7.2.53</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=7.2.49"/>
+<link rel="manifest" href="manifest.webmanifest?v=7.2.53"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            window.VILLACART_EXPECTED_VERSION = 'v7.2.49';
+            window.VILLACART_EXPECTED_VERSION = 'v7.2.53';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.vcReloadApp = function() {
@@ -34,7 +34,7 @@
                     window.location.reload();
                 });
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js?v=7.2.49').then(function(reg) {
+                    navigator.serviceWorker.register('sw.js?v=7.2.53').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (reg.waiting) window.__villacartUpdateAvailable = true;
                         reg.addEventListener('updatefound', function() {
@@ -111,7 +111,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=7.2.49"/>
+<link rel="stylesheet" href="styles.css?v=7.2.53"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -124,7 +124,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v7.2.49</span>
+                    <span class="vc551-version">v7.2.53</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -451,24 +451,31 @@
 <h2 class="text-2xl font-black text-primary uppercase">Business Calendar</h2>
 <p class="text-on-surface-variant text-sm font-medium">Monthly performance from closed business days</p>
 </div>
-<div class="flex flex-wrap items-center justify-end gap-2">
-<button id="vc710-backup-old-btn" class="bg-primary/10 text-primary h-10 px-3 rounded-2xl font-bold text-[10px] uppercase flex items-center gap-1 border border-primary/10 active-scale" onclick="backupOldCalendarData()" title="Backup old calendar-month data">
+<div class="business-calendar-controls">
+<div class="business-calendar-action-row">
+<button id="vc710-backup-old-btn" class="business-calendar-action-btn bg-primary/10 text-primary border-primary/10" onclick="backupOldCalendarData()" title="Backup old calendar-month data">
 <span class="material-symbols-outlined text-[18px]">archive</span> Backup Old Data
 </button>
-<button class="bg-primary/10 text-primary h-10 px-3 rounded-2xl font-bold text-[10px] uppercase flex items-center gap-1 border border-primary/10 active-scale" onclick="loadBackupArchive()" title="Load backup locally only">
+<button id="vc710-load-backup-btn" class="business-calendar-action-btn bg-primary/10 text-primary border-primary/10" onclick="loadBackupArchive()" title="Load backup locally only">
 <span class="material-symbols-outlined text-[18px]">upload_file</span> Load Backup
 </button>
-<button id="vc7236-clean-businessdays-btn" class="bg-error/10 text-error h-10 px-3 rounded-2xl font-bold text-[10px] uppercase flex items-center gap-1 border border-error/10 active-scale" onclick="vc7236CleanupBusinessDays()" title="Move duplicate business days back to one calendar day">
+<button id="vc7250-refresh-businessdays-btn" class="business-calendar-action-btn bg-success/10 text-success border-success/10" onclick="refreshBusinessDaysOnly()" title="Refresh business days only">
+<span class="material-symbols-outlined text-[18px]">event_repeat</span> Refresh Days
+</button>
+<button id="vc7236-clean-businessdays-btn" class="business-calendar-action-btn bg-error/10 text-error border-error/10" onclick="vc7236CleanupBusinessDays()" title="Move duplicate business days back to one calendar day">
 <span class="material-symbols-outlined text-[18px]">cleaning_services</span> Clean Days
 </button>
+</div>
 <input id="vc710-load-backup-input" type="file" accept="application/json,.json" class="hidden" onchange="vc710HandleBackupFile(this)">
-<button class="business-month-btn" onclick="changeBusinessMonth(-1)">
+<div class="business-calendar-month-row">
+<button class="business-month-btn" onclick="changeBusinessMonth(-1)" aria-label="Previous month">
 <span class="material-symbols-outlined text-[18px]">chevron_left</span>
 </button>
 <div class="business-month-title" id="business-month-title">Month YYYY</div>
-<button class="business-month-btn" onclick="changeBusinessMonth(1)">
+<button class="business-month-btn" onclick="changeBusinessMonth(1)" aria-label="Next month">
 <span class="material-symbols-outlined text-[18px]">chevron_right</span>
 </button>
+</div>
 </div>
 </div>
 
@@ -697,6 +704,34 @@
 </div>
 </div>
 </div>
+<!-- CART DISCOUNT MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[101] hidden items-end md:items-center justify-center p-0 md:p-4" id="cart-discount-modal">
+<div class="bg-surface w-full max-w-sm rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden">
+<div class="p-5 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<h3 class="font-black text-sm uppercase">Cart Discount</h3>
+<button class="material-symbols-outlined" onclick="closeModal('cart-discount-modal')">close</button>
+</div>
+<div class="p-5 space-y-4">
+<div class="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex justify-between items-center">
+<span class="text-[10px] font-black uppercase text-on-surface-variant tracking-wider">Subtotal</span>
+<span class="font-black text-primary text-lg" id="discount-modal-subtotal">₱0.00</span>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1.5 block">Discount Amount</label>
+<input class="w-full px-4 py-4 bg-surface-container border border-border-subtle rounded-2xl font-black text-xl text-secondary text-center" id="discount-modal-input" oninput="updateCartDiscountPreview()" placeholder="0" type="number" inputmode="decimal" min="0" step="0.01"/>
+</div>
+<div class="bg-secondary/5 border border-secondary/10 rounded-2xl p-4 flex justify-between items-center">
+<span class="text-[10px] font-black uppercase text-on-surface-variant tracking-wider">New Total</span>
+<span class="font-black text-secondary text-2xl" id="discount-modal-total">₱0.00</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<button class="h-12 rounded-2xl bg-error/10 text-error font-black text-xs uppercase active-scale" onclick="removeCartDiscount()">Remove</button>
+<button class="h-12 rounded-2xl bg-secondary text-white font-black text-xs uppercase active-scale shadow-lg" onclick="applyCartDiscount()">Apply</button>
+</div>
+</div>
+</div>
+</div>
+
 <!-- REVIEW & CHECKOUT MODAL -->
 <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-end md:items-center justify-center p-0 md:p-4" id="review-modal">
 <div class="bg-surface w-full max-w-sm md:max-w-md rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
@@ -1007,7 +1042,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=7.2.49"></script>
+<script src="app.js?v=7.2.53"></script>
 <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
 </button>
@@ -1036,7 +1071,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=7.2.49"></script>
+<script src="diagnostics.js?v=7.2.53"></script>
 
 
 

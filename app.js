@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.49';
+    window.VILLACART_APP_VERSION = 'v7.2.53';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1441,6 +1441,7 @@ function switchScreen(id) {
         if (existing) { existing.qty++; } else { state.cart.push({ cartId, id: p.id, name: p.name, type, price: type === 'pack' ? p.packPrice : p.price, cost: p.cost, deduct, qty: 1 }); }
         const searchInput = document.getElementById('pos-search'); if (searchInput) searchInput.value = '';
         const results = document.getElementById('search-results-container'); if (results) results.classList.add('hidden');
+        sync();
         updateCartUI();
     }
 
@@ -1482,19 +1483,48 @@ function switchScreen(id) {
             showToast('Add an item before discounting', 'error');
             return;
         }
+        const modal = document.getElementById('cart-discount-modal');
+        const input = document.getElementById('discount-modal-input');
+        const subtotalEl = document.getElementById('discount-modal-subtotal');
+        if (subtotalEl) subtotalEl.innerText = formatCurrency(getCartSubtotal());
+        if (input) input.value = getCartDiscount() > 0 ? String(getCartDiscount()) : '';
+        updateCartDiscountPreview();
+        if (modal) modal.classList.replace('hidden', 'flex');
+    }
+
+    function updateCartDiscountPreview() {
+        const input = document.getElementById('discount-modal-input');
         const subtotal = getCartSubtotal();
-        const current = getCartDiscount();
-        const raw = prompt('Enter discount amount in pesos. Leave blank or enter 0 to remove discount.', current ? String(current) : '');
-        if (raw === null) return;
-        const amount = raw.trim() === '' ? 0 : Number(raw);
+        const raw = input ? String(input.value || '').trim() : '';
+        const amount = raw === '' ? 0 : Number(raw);
+        const discount = Number.isFinite(amount) && amount > 0 ? Math.min(amount, subtotal) : 0;
+        const totalEl = document.getElementById('discount-modal-total');
+        const subtotalEl = document.getElementById('discount-modal-subtotal');
+        if (subtotalEl) subtotalEl.innerText = formatCurrency(subtotal);
+        if (totalEl) totalEl.innerText = formatCurrency(Math.max(0, subtotal - discount));
+    }
+
+    function applyCartDiscount() {
+        const input = document.getElementById('discount-modal-input');
+        const raw = input ? String(input.value || '').trim() : '';
+        const amount = raw === '' ? 0 : Number(raw);
         if (!Number.isFinite(amount) || amount < 0) {
             showToast('Invalid discount amount', 'error');
             return;
         }
-        state.cartDiscount = Math.min(amount, subtotal);
+        state.cartDiscount = Math.min(amount, getCartSubtotal());
         sync();
         updateCartUI();
+        closeModal('cart-discount-modal');
         showToast(state.cartDiscount > 0 ? 'Discount applied' : 'Discount removed', 'success');
+    }
+
+    function removeCartDiscount() {
+        state.cartDiscount = 0;
+        sync();
+        updateCartUI();
+        closeModal('cart-discount-modal');
+        showToast('Discount removed', 'success');
     }
 
     function resetCartDiscount() {
@@ -1539,11 +1569,12 @@ function switchScreen(id) {
     function updateQty(idx, delta) {
         if (!state.cart[idx]) return;
         const nextQty = state.cart[idx].qty + delta;
-        if (nextQty <= 0) { state.cart.splice(idx, 1); updateCartUI(); return; }
+        if (nextQty <= 0) { state.cart.splice(idx, 1); sync(); updateCartUI(); return; }
         const product = state.inventory.find(p => p.id === state.cart[idx].id);
         const available = product ? Number(product.stock) || 0 : 0;
         if (nextQty * (state.cart[idx].deduct || 1) > available) { showToast(`Only ${available} pcs available`, 'error'); return; }
         state.cart[idx].qty = nextQty;
+        sync();
         updateCartUI();
     }
     function setQty(idx, val) {
@@ -1554,6 +1585,7 @@ function switchScreen(id) {
         const available = product ? Number(product.stock) || 0 : 0;
         if (n * (state.cart[idx].deduct || 1) > available) { showToast(`Only ${available} pcs available`, 'error'); updateCartUI(); return; }
         state.cart[idx].qty = n;
+        sync();
         updateCartUI();
     }
     
@@ -1669,6 +1701,17 @@ function switchScreen(id) {
         lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
 
+    function createProductId() {
+        // v7.2.53: Always create a fresh product id. A previous build accidentally
+        // froze this value, which could make new stock items overwrite each other.
+        let id = '';
+        do {
+            const random = Math.random().toString(36).slice(2, 8);
+            id = `${Date.now()}-${random}`;
+        } while ((state.inventory || []).some(item => item && item.id === id));
+        return id;
+    }
+
     function openProductModal(id = null) {
         window._editId = id; const p = id ? state.inventory.find(i => i.id === id) : null;
         document.getElementById('p-barcode').value = p ? p.barcode : ''; document.getElementById('p-name').value = p ? p.name : '';
@@ -1705,7 +1748,8 @@ function switchScreen(id) {
             showToast('Check product prices, stock, and pack values', 'error');
             return;
         }
-        const data = { id: window._editId || `1783710745804-ut9bqv`, barcode: barcodeValue, name: name.trim(), category: document.getElementById('p-category').value.trim(), cost, price, stock, lowStock, packPrice, packSize, _offline: true };
+        const productId = window._editId || createProductId();
+        const data = { id: productId, barcode: barcodeValue, name: name.trim(), category: document.getElementById('p-category').value.trim(), cost, price, stock, lowStock, packPrice, packSize, _offline: true };
 
         // Save locally first and let the persistent queue deliver it.  Waiting
         // for a direct Firestore request here made the button look broken when
@@ -5147,7 +5191,7 @@ function getClosingCounts(transactions) {
             activeBD._offline = true;
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
-            // v7.2.49: If older layers created duplicate OPEN business-day records
+            // v7.2.53: If older layers created duplicate OPEN business-day records
             // for the same calendar date, close them together so the header pill
             // cannot remain OPEN after a manual End Day.
             const closeDate = activeBD.date || (activeBD.openedAt ? String(activeBD.openedAt).slice(0, 10) : new Date().toISOString().slice(0, 10));
@@ -5692,14 +5736,22 @@ window.addEventListener('load', vc7218StartApp, { once: true });
 setTimeout(vc7218StartApp, 1200);
 
 document.addEventListener('click', function(e){
-  const t = e.target.closest('button,[onclick],.product-card,.inventory-item');
-  if(!t) return;
+  // v7.2.53: Keep this cleanup scoped to POS search-result selections only.
+  // The older global selector cleared Stock/Favorites search fields after
+  // unrelated button taps, which made stock searching feel jumpy.
+  const resultButton = e.target.closest('#search-results-container button');
+  if (!resultButton) return;
   setTimeout(() => {
-    document.querySelectorAll('input[type="search"], input[placeholder*="Search"], input[placeholder*="search"]').forEach(inp => {
-      inp.value='';
-      inp.blur();
-      inp.dispatchEvent(new Event('input',{bubbles:true}));
-    });
+    const posSearch = document.getElementById('pos-search');
+    const clearButton = document.getElementById('clear-search-btn');
+    const results = document.getElementById('search-results-container');
+    if (posSearch) {
+      posSearch.value = '';
+      posSearch.blur();
+      posSearch.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    if (clearButton) clearButton.classList.add('hidden');
+    if (results) results.classList.add('hidden');
   }, 100);
 });
 
@@ -7308,6 +7360,92 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
+// v7.2.53: Cheap manual refresh for Business Calendar metadata only.
+// Reads only the businessDays collection; it does not read transactions/inventory and does not write to Firestore.
+(function(){
+    if (window.__vc7250BusinessDaysRefreshOnly) return;
+    window.__vc7250BusinessDaysRefreshOnly = true;
+
+    function vc7250PendingBusinessDayIds() {
+        return new Set((Array.isArray(offlineQueue) ? offlineQueue : [])
+            .filter(task => task && task.table === 'businessDays' && task.data && task.data.id)
+            .map(task => task.data.id));
+    }
+
+    function vc7250RenderBusinessAfterRefresh() {
+        if (typeof sync === 'function') sync();
+        if (typeof updateBusinessDayUI === 'function') {
+            try { updateBusinessDayUI(); } catch (error) { console.warn(error); }
+        }
+        if (typeof renderBusinessCalendar === 'function') {
+            try { renderBusinessCalendar(); } catch (error) { console.warn(error); }
+        }
+        if (typeof vc728RenderArchiveSafety === 'function') {
+            try { vc728RenderArchiveSafety(); } catch (error) { console.warn(error); }
+        }
+        if (typeof vc541RefreshBusinessScreen === 'function') {
+            try { vc541RefreshBusinessScreen(); } catch (error) { console.warn(error); }
+        }
+        if (typeof updateSyncUI === 'function') updateSyncUI();
+    }
+
+    window.refreshBusinessDaysOnly = async function() {
+        const btn = document.getElementById('vc7250-refresh-businessdays-btn');
+        const oldHtml = btn ? btn.innerHTML : '';
+        try {
+            if (!navigator.onLine) {
+                if (typeof showToast === 'function') showToast('You are offline. Business days will stay local for now.', 'info');
+                return false;
+            }
+            if (typeof readCollectionWithFirestoreRest !== 'function') {
+                throw new Error('Business day refresh helper is not ready');
+            }
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-60');
+                btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Refreshing';
+            }
+
+            const cloudDays = await readCollectionWithFirestoreRest('businessDays');
+            const pendingIds = vc7250PendingBusinessDayIds();
+            const merged = new Map();
+
+            (Array.isArray(cloudDays) ? cloudDays : [])
+                .filter(day => day && day.id && !pendingIds.has(day.id))
+                .forEach(day => merged.set(day.id, day));
+
+            (Array.isArray(state.businessDays) ? state.businessDays : [])
+                .filter(day => day && day.id && (day._offline || pendingIds.has(day.id)))
+                .forEach(day => merged.set(day.id, day));
+
+            state.businessDays = Array.from(merged.values())
+                .filter(day => day && day.id)
+                .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+
+            const today = typeof getBusinessDateString === 'function' ? getBusinessDateString(new Date()) : new Date().toISOString().slice(0, 10);
+            const openToday = state.businessDays.find(day => day && day.date === today && String(day.status || '').toUpperCase() === 'OPEN');
+            if (openToday) state.currentBusinessDayId = openToday.id;
+
+            vc7250RenderBusinessAfterRefresh();
+            if (typeof showToast === 'function') showToast(`Business days refreshed (${state.businessDays.length})`, 'success');
+            return true;
+        } catch (error) {
+            console.warn('Business days refresh failed', error);
+            syncErrorMsg = error.message || String(error);
+            if (typeof showToast === 'function') showToast('Business days refresh failed', 'error');
+            if (typeof updateSyncUI === 'function') updateSyncUI();
+            return false;
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60');
+                btn.innerHTML = oldHtml || '<span class="material-symbols-outlined text-[18px]">event_repeat</span> Refresh Days';
+            }
+        }
+    };
+})();
+
+
 // v7.2.37: Canonical business-day guard + manual duplicate cleanup.
 // Business days should be one document per calendar date: BD-YYYYMMDD.
 // Cleanup only runs when the user presses the Business screen "Clean Days" button.
@@ -7589,7 +7727,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.49: Local-only missed business-day auto-close.
+// v7.2.53: Local-only missed business-day auto-close.
 (function(){
     if (window.__vc7240AutoClosePreviousBusinessDays) return;
     window.__vc7240AutoClosePreviousBusinessDays = true;
