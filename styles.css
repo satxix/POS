@@ -3902,7 +3902,7 @@
 }
 
 
-/* v7.2.53: keep receipt actions reachable on long settlement receipts */
+/* v7.2.55: keep receipt actions reachable on long settlement receipts */
 #receipt-modal {
     overflow: hidden !important;
     padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
@@ -3967,7 +3967,7 @@
 }
 
 
-/* v7.2.53: preserve receipt printing after long-receipt screen layout fix */
+/* v7.2.55: preserve receipt printing after long-receipt screen layout fix */
 @media print {
     #receipt-modal,
     #receipt-modal > div,
@@ -3984,7 +3984,7 @@
 }
 
 
-/* v7.2.53: keep receipt controls fixed on-screen for very long receipts */
+/* v7.2.55: keep receipt controls fixed on-screen for very long receipts */
 #receipt-modal {
     align-items: stretch !important;
     justify-content: center !important;
@@ -4038,7 +4038,7 @@
 }
 
 
-/* v7.2.53: target actual receipt action footer, not receipt content children */
+/* v7.2.55: target actual receipt action footer, not receipt content children */
 #receipt-modal {
     overflow: hidden !important;
     padding: 8px !important;
@@ -4091,4 +4091,39 @@
         display: none !important;
         visibility: hidden !important;
     }
+}
+
+
+/* v7.2.55: Favorite slot pastel color picker. Local-only colors; low-stock badges keep their warning colors. */
+.fav-color-chip {
+    min-height: 70px;
+    border-radius: 18px;
+    border: 2px solid rgba(148, 163, 184, .22);
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    font-weight: 900;
+    color: #1e3a5f;
+    transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.fav-color-chip:active { transform: scale(.97); }
+.fav-color-chip.selected {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+}
+.fav-color-chip span {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: var(--fav-chip-color);
+    border: 1px solid rgba(15, 23, 42, .12);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+}
+.fav-color-chip small {
+    font-size: .55rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
 }

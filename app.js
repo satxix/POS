@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.53';
+    window.VILLACART_APP_VERSION = 'v7.2.55';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -131,6 +131,41 @@
     let scannerTimeout = null;
     let favoritesEditMode = false;
     let currentFavSlotIndex = null;
+    const FAV_COLOR_KEY = 'villacart_favorite_colors_v1';
+    const favoriteColorPalette = [
+        { name: 'White', value: '' },
+        { name: 'Cream', value: '#FFF7D6' },
+        { name: 'Yellow', value: '#FFF3BF' },
+        { name: 'Blue', value: '#EAF3FF' },
+        { name: 'Sky', value: '#E0F2FE' },
+        { name: 'Mint', value: '#EAFBF1' },
+        { name: 'Green', value: '#DCFCE7' },
+        { name: 'Peach', value: '#FFF0E6' },
+        { name: 'Orange', value: '#FFEDD5' },
+        { name: 'Lavender', value: '#F1ECFF' },
+        { name: 'Purple', value: '#EDE9FE' },
+        { name: 'Rose', value: '#FFEFF4' },
+        { name: 'Pink', value: '#FCE7F3' },
+        { name: 'Gray', value: '#F4F7FB' },
+        { name: 'Warm', value: '#F5F1EA' },
+        { name: 'Teal', value: '#CCFBF1' },
+        { name: 'Sand', value: '#F1E3BF' },
+        { name: 'Wheat', value: '#EED9A6' },
+        { name: 'Sage', value: '#CFE3C2' },
+        { name: 'Green+', value: '#BFD8B8' },
+        { name: 'Dusty Blue', value: '#C9DDF0' },
+        { name: 'Steel', value: '#BFD3E6' },
+        { name: 'Lilac+', value: '#D8C7EC' },
+        { name: 'Mauve', value: '#E2C4D4' },
+        { name: 'Clay', value: '#E8C7B5' },
+        { name: 'Tan', value: '#E6D1B3' }
+    ];
+    let favoriteSlotColors = (() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem(FAV_COLOR_KEY) || '{}');
+            return saved && typeof saved === 'object' ? saved : {};
+        } catch(e) { return {}; }
+    })();
     let inventoryState = {
         collapsedCategories: {}
     };
@@ -1056,6 +1091,25 @@
         return `<div class="favorite-slot relative h-[90px] md:h-32 ${touchClass} select-none"${dragAttrs}>${innerHtml}</div>`;
     }
 
+    function saveFavoriteColors() {
+        try { localStorage.setItem(FAV_COLOR_KEY, JSON.stringify(favoriteSlotColors || {})); } catch(e) {}
+    }
+
+    function favoriteColorValue(index) {
+        const value = favoriteSlotColors && favoriteSlotColors[String(index)] ? String(favoriteSlotColors[String(index)]) : '';
+        return favoriteColorPalette.some(color => color.value === value) ? value : '';
+    }
+
+    function favoriteColorStyle(index) {
+        const value = favoriteColorValue(index);
+        return value ? ` style="background-color: ${value};"` : '';
+    }
+
+    function favoriteColorButton(index) {
+        if (!favoritesEditMode) return '';
+        return `<button data-fav-color="true" onclick="openFavoriteColorPicker(${index}, event)" class="absolute top-1 left-1 bg-white/90 text-primary w-6 h-6 rounded-full flex items-center justify-center shadow-md active:scale-90 z-20 border border-primary/10" title="Change color"><span class="material-symbols-outlined text-[14px]">palette</span></button>`;
+    }
+
     function favoriteEditOverlay() {
         if (!favoritesEditMode) return '';
         return `<div class="absolute inset-0 bg-primary/75 flex flex-col items-center justify-center text-white gap-1 pointer-events-none">
@@ -1079,28 +1133,28 @@
     }
 
     function renderFavoriteEmptySlot(index) {
-        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors">
+        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors"${favoriteColorStyle(index)}>
             <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary/30 group-hover:text-primary transition-colors">add</span>
             <span class="text-[7px] md:text-[10px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
-        </button>${favoriteEditOverlay()}${favoriteRemoveButton(index)}`);
+        </button>${favoriteEditOverlay()}${favoriteColorButton(index)}${favoriteRemoveButton(index)}`);
     }
 
     function renderFavoriteMissingSlot(index) {
-        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50">
+        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50"${favoriteColorStyle(index)}>
             <span class="material-symbols-outlined">error</span>
-        </button>${favoriteEditOverlay()}${favoriteRemoveButton(index)}`);
+        </button>${favoriteEditOverlay()}${favoriteColorButton(index)}${favoriteRemoveButton(index)}`);
     }
 
     function renderFavoriteProductSlot(fav, index) {
         const product = state.inventory.find(p => p.id === fav.id);
         if (!product) return renderFavoriteMissingSlot(index);
         const stockCount = Math.max(0, Number(product.stock) || 0);
-        return favoriteSlotShell(index, `<button onclick="handleFavoriteClick(${index})" class="relative w-full h-full bg-surface border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-1.5 pt-2 pb-6 md:px-2 md:pt-3 md:pb-7 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all">
+        return favoriteSlotShell(index, `<button onclick="handleFavoriteClick(${index})" class="relative w-full h-full border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-1.5 pt-2 pb-6 md:px-2 md:pt-3 md:pb-7 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all"${favoriteColorStyle(index)}>
             <span class="text-[9px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
             <span class="text-[11px] md:text-[16px] font-black text-secondary mt-1 leading-none">${formatCurrency(product.price)}</span>
             <span class="absolute bottom-1.5 md:bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-1 md:px-2 py-0.5 rounded-full text-[6px] md:text-[8px] font-black uppercase tracking-wide ${favoriteStockClass(product)}">Stock: ${stockCount}</span>
             ${favoriteEditOverlay()}
-        </button>${favoriteRemoveButton(index)}`);
+        </button>${favoriteColorButton(index)}${favoriteRemoveButton(index)}`);
     }
 
     function renderFavorites() {
@@ -1118,7 +1172,7 @@
 
     function beginFavoriteDrag(event, index) {
         if (!favoritesEditMode || event.pointerType === 'mouse' && event.button !== 0) return;
-        if (event.target && event.target.closest && event.target.closest('[data-fav-remove="true"]')) return;
+        if (event.target && event.target.closest && event.target.closest('[data-fav-remove="true"],[data-fav-color="true"]')) return;
         favoriteDragState = {
             from: index,
             startX: event.clientX,
@@ -1220,6 +1274,36 @@
     function assignFavorite(productId) { if (currentFavSlotIndex === null) return; state.favorites[currentFavSlotIndex] = { id: productId }; sync(); renderFavorites(); closeModal('fav-picker-modal'); showToast("Slot updated", "success"); }
     function clearFavoriteSlot() { if (currentFavSlotIndex === null) return; state.favorites[currentFavSlotIndex] = null; sync(); renderFavorites(); closeModal('fav-picker-modal'); showToast("Slot cleared", "info"); }
     function removeFavoriteSlotAction() { if (currentFavSlotIndex === null) return; removeFavoriteSlot(currentFavSlotIndex); closeModal('fav-picker-modal'); }
+
+    function openFavoriteColorPicker(index, event) {
+        if (event) { event.preventDefault(); event.stopPropagation(); }
+        currentFavSlotIndex = index;
+        const list = document.getElementById('fav-color-palette');
+        if (!list) return;
+        const current = favoriteColorValue(index);
+        list.innerHTML = favoriteColorPalette.map(color => {
+            const selected = current === color.value;
+            const swatch = color.value || '#FFFFFF';
+            return `<button onclick="setFavoriteColor('${color.value}', ${index})" class="fav-color-chip ${selected ? 'selected' : ''}" style="--fav-chip-color:${swatch}"><span></span><small>${escapeHTML(color.name)}</small></button>`;
+        }).join('');
+        closeModal('fav-picker-modal');
+        document.getElementById('fav-color-modal').classList.replace('hidden', 'flex');
+    }
+
+    function setFavoriteColor(value, index = currentFavSlotIndex) {
+        if (index === null || index === undefined) return;
+        const key = String(index);
+        if (!value) delete favoriteSlotColors[key];
+        else favoriteSlotColors[key] = value;
+        saveFavoriteColors();
+        renderFavorites();
+        closeModal('fav-color-modal');
+        showToast(value ? 'Favorite color updated' : 'Favorite color reset', 'success');
+    }
+
+    function clearFavoriteColor() {
+        setFavoriteColor('', currentFavSlotIndex);
+    }
 
     function updateSyncUI() {
         const pill = document.getElementById('sync-pill');
@@ -1702,7 +1786,7 @@ function switchScreen(id) {
     }
 
     function createProductId() {
-        // v7.2.53: Always create a fresh product id. A previous build accidentally
+        // v7.2.55: Always create a fresh product id. A previous build accidentally
         // froze this value, which could make new stock items overwrite each other.
         let id = '';
         do {
@@ -5191,7 +5275,7 @@ function getClosingCounts(transactions) {
             activeBD._offline = true;
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
-            // v7.2.53: If older layers created duplicate OPEN business-day records
+            // v7.2.55: If older layers created duplicate OPEN business-day records
             // for the same calendar date, close them together so the header pill
             // cannot remain OPEN after a manual End Day.
             const closeDate = activeBD.date || (activeBD.openedAt ? String(activeBD.openedAt).slice(0, 10) : new Date().toISOString().slice(0, 10));
@@ -5736,7 +5820,7 @@ window.addEventListener('load', vc7218StartApp, { once: true });
 setTimeout(vc7218StartApp, 1200);
 
 document.addEventListener('click', function(e){
-  // v7.2.53: Keep this cleanup scoped to POS search-result selections only.
+  // v7.2.55: Keep this cleanup scoped to POS search-result selections only.
   // The older global selector cleared Stock/Favorites search fields after
   // unrelated button taps, which made stock searching feel jumpy.
   const resultButton = e.target.closest('#search-results-container button');
@@ -7360,7 +7444,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.53: Cheap manual refresh for Business Calendar metadata only.
+// v7.2.55: Cheap manual refresh for Business Calendar metadata only.
 // Reads only the businessDays collection; it does not read transactions/inventory and does not write to Firestore.
 (function(){
     if (window.__vc7250BusinessDaysRefreshOnly) return;
@@ -7727,7 +7811,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.53: Local-only missed business-day auto-close.
+// v7.2.55: Local-only missed business-day auto-close.
 (function(){
     if (window.__vc7240AutoClosePreviousBusinessDays) return;
     window.__vc7240AutoClosePreviousBusinessDays = true;
