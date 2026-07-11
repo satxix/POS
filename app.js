@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.55';
+    window.VILLACART_APP_VERSION = 'v7.2.56';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1105,6 +1105,11 @@
         return value ? ` style="background-color: ${value};"` : '';
     }
 
+    function favoriteSlotControls(index) {
+        if (!favoritesEditMode) return '';
+        return `${favoriteEditOverlay()}${favoriteColorButton(index)}${favoriteRemoveButton(index)}`;
+    }
+
     function favoriteColorButton(index) {
         if (!favoritesEditMode) return '';
         return `<button data-fav-color="true" onclick="openFavoriteColorPicker(${index}, event)" class="absolute top-1 left-1 bg-white/90 text-primary w-6 h-6 rounded-full flex items-center justify-center shadow-md active:scale-90 z-20 border border-primary/10" title="Change color"><span class="material-symbols-outlined text-[14px]">palette</span></button>`;
@@ -1125,6 +1130,12 @@
         </button>`;
     }
 
+    function favoriteBaseButtonClass(kind) {
+        if (kind === 'empty') return 'w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors';
+        if (kind === 'missing') return 'w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50';
+        return 'relative w-full h-full border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-1.5 pt-2 pb-6 md:px-2 md:pt-3 md:pb-7 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all';
+    }
+
     function favoriteStockClass(product) {
         const stockCount = Math.max(0, Number(product.stock) || 0);
         if (stockCount <= 0) return 'text-error bg-error/10';
@@ -1133,28 +1144,31 @@
     }
 
     function renderFavoriteEmptySlot(index) {
-        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors"${favoriteColorStyle(index)}>
+        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="${favoriteBaseButtonClass('empty')}"${favoriteColorStyle(index)}>
             <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary/30 group-hover:text-primary transition-colors">add</span>
             <span class="text-[7px] md:text-[10px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
-        </button>${favoriteEditOverlay()}${favoriteColorButton(index)}${favoriteRemoveButton(index)}`);
+        </button>${favoriteSlotControls(index)}`);
     }
 
     function renderFavoriteMissingSlot(index) {
-        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50"${favoriteColorStyle(index)}>
+        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="${favoriteBaseButtonClass('missing')}"${favoriteColorStyle(index)}>
             <span class="material-symbols-outlined">error</span>
-        </button>${favoriteEditOverlay()}${favoriteColorButton(index)}${favoriteRemoveButton(index)}`);
+        </button>${favoriteSlotControls(index)}`);
+    }
+
+    function favoriteProductContent(product) {
+        const stockCount = Math.max(0, Number(product.stock) || 0);
+        return `<span class="text-[9px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
+            <span class="text-[11px] md:text-[16px] font-black text-secondary mt-1 leading-none">${formatCurrency(product.price)}</span>
+            <span class="absolute bottom-1.5 md:bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-1 md:px-2 py-0.5 rounded-full text-[6px] md:text-[8px] font-black uppercase tracking-wide ${favoriteStockClass(product)}">Stock: ${stockCount}</span>`;
     }
 
     function renderFavoriteProductSlot(fav, index) {
         const product = state.inventory.find(p => p.id === fav.id);
         if (!product) return renderFavoriteMissingSlot(index);
-        const stockCount = Math.max(0, Number(product.stock) || 0);
-        return favoriteSlotShell(index, `<button onclick="handleFavoriteClick(${index})" class="relative w-full h-full border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-1.5 pt-2 pb-6 md:px-2 md:pt-3 md:pb-7 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all"${favoriteColorStyle(index)}>
-            <span class="text-[9px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
-            <span class="text-[11px] md:text-[16px] font-black text-secondary mt-1 leading-none">${formatCurrency(product.price)}</span>
-            <span class="absolute bottom-1.5 md:bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-1 md:px-2 py-0.5 rounded-full text-[6px] md:text-[8px] font-black uppercase tracking-wide ${favoriteStockClass(product)}">Stock: ${stockCount}</span>
-            ${favoriteEditOverlay()}
-        </button>${favoriteColorButton(index)}${favoriteRemoveButton(index)}`);
+        return favoriteSlotShell(index, `<button onclick="handleFavoriteClick(${index})" class="${favoriteBaseButtonClass('product')}"${favoriteColorStyle(index)}>
+            ${favoriteProductContent(product)}
+        </button>${favoriteSlotControls(index)}`);
     }
 
     function renderFavorites() {
@@ -1786,7 +1800,7 @@ function switchScreen(id) {
     }
 
     function createProductId() {
-        // v7.2.55: Always create a fresh product id. A previous build accidentally
+        // Always create a fresh product id. A previous build accidentally
         // froze this value, which could make new stock items overwrite each other.
         let id = '';
         do {
@@ -5275,7 +5289,7 @@ function getClosingCounts(transactions) {
             activeBD._offline = true;
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', activeBD);
 
-            // v7.2.55: If older layers created duplicate OPEN business-day records
+            // If older layers created duplicate OPEN business-day records
             // for the same calendar date, close them together so the header pill
             // cannot remain OPEN after a manual End Day.
             const closeDate = activeBD.date || (activeBD.openedAt ? String(activeBD.openedAt).slice(0, 10) : new Date().toISOString().slice(0, 10));
@@ -5820,7 +5834,7 @@ window.addEventListener('load', vc7218StartApp, { once: true });
 setTimeout(vc7218StartApp, 1200);
 
 document.addEventListener('click', function(e){
-  // v7.2.55: Keep this cleanup scoped to POS search-result selections only.
+  // Keep this cleanup scoped to POS search-result selections only.
   // The older global selector cleared Stock/Favorites search fields after
   // unrelated button taps, which made stock searching feel jumpy.
   const resultButton = e.target.closest('#search-results-container button');
@@ -7444,7 +7458,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.55: Cheap manual refresh for Business Calendar metadata only.
+// Cheap manual refresh for Business Calendar metadata only.
 // Reads only the businessDays collection; it does not read transactions/inventory and does not write to Firestore.
 (function(){
     if (window.__vc7250BusinessDaysRefreshOnly) return;
@@ -7811,7 +7825,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 
-// v7.2.55: Local-only missed business-day auto-close.
+// Local-only missed business-day auto-close.
 (function(){
     if (window.__vc7240AutoClosePreviousBusinessDays) return;
     window.__vc7240AutoClosePreviousBusinessDays = true;

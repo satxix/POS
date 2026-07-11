@@ -3902,7 +3902,7 @@
 }
 
 
-/* v7.2.55: keep receipt actions reachable on long settlement receipts */
+/* Keep receipt actions reachable on long settlement receipts. */
 #receipt-modal {
     overflow: hidden !important;
     padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
@@ -3967,7 +3967,7 @@
 }
 
 
-/* v7.2.55: preserve receipt printing after long-receipt screen layout fix */
+/* Preserve receipt printing after long-receipt screen layout fix. */
 @media print {
     #receipt-modal,
     #receipt-modal > div,
@@ -3984,7 +3984,7 @@
 }
 
 
-/* v7.2.55: keep receipt controls fixed on-screen for very long receipts */
+/* Keep receipt controls fixed on-screen for very long receipts. */
 #receipt-modal {
     align-items: stretch !important;
     justify-content: center !important;
@@ -4038,7 +4038,7 @@
 }
 
 
-/* v7.2.55: target actual receipt action footer, not receipt content children */
+/* Target actual receipt action footer, not receipt content children. */
 #receipt-modal {
     overflow: hidden !important;
     padding: 8px !important;
@@ -4094,7 +4094,7 @@
 }
 
 
-/* v7.2.55: Favorite slot pastel color picker. Local-only colors; low-stock badges keep their warning colors. */
+/* Favorite slot pastel color picker. Local-only colors; low-stock badges keep their warning colors. */
 .fav-color-chip {
     min-height: 70px;
     border-radius: 18px;
