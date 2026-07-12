@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.59';
+    window.VILLACART_APP_VERSION = 'v7.2.60';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -944,7 +944,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.59: The older fallback keydown listener was removed.
+    // v7.2.60: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -2480,43 +2480,107 @@ body {
         sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
     }
 
+    function findReceiptTransaction(id) {
+        return (state.transactions || []).find(t => t.id === id)
+            || (state.archiveTransactions || []).find(t => t.id === id)
+            || null;
+    }
+
+    function resetReceiptModalScroll() {
+        requestAnimationFrame(() => {
+            const modal = document.getElementById('receipt-modal');
+            const content = document.getElementById('receipt-content');
+            if (modal) modal.scrollTop = 0;
+            if (content) content.scrollTop = 0;
+        });
+    }
+
+    function resetReceiptFields() {
+        const byId = id => document.getElementById(id);
+        if (byId('rec-items-list')) byId('rec-items-list').innerHTML = '';
+        if (byId('rec-label-total')) byId('rec-label-total').innerText = 'TOTAL:';
+        if (byId('rec-cash')) byId('rec-cash').innerText = formatCurrency(0);
+        if (byId('rec-change')) byId('rec-change').innerText = formatCurrency(0);
+        if (byId('rec-customer')) byId('rec-customer').innerText = 'N/A';
+        if (byId('rec-set-customer')) byId('rec-set-customer').innerText = 'N/A';
+    }
+
+    function showReceiptModal() {
+        const modal = document.getElementById('receipt-modal');
+        if (modal) modal.classList.replace('hidden', 'flex');
+        resetReceiptModalScroll();
+    }
+
+    function renderReceiptItems(items) {
+        if (!items || !items.length) return '';
+        return items.map(i => `<div class="flex justify-between gap-2 py-0.5"><span class="w-1/2 min-w-0 break-words">${escapeHTML(i.name)}</span><span class="w-1/4 text-center">${escapeHTML(i.qty)}</span><span class="w-1/4 text-right whitespace-nowrap">${formatCurrency((Number(i.price) || 0) * (Number(i.qty) || 0))}</span></div>`).join('');
+    }
+
     function viewReceipt(id) {
-        const tx = state.transactions.find(t => t.id === id); if (!tx) return; lastTransactionId = id;
+        const tx = findReceiptTransaction(id);
+        if (!tx) {
+            showToast('Receipt not found', 'error');
+            return;
+        }
+        lastTransactionId = id;
+        resetReceiptFields();
         if (tx.notes && tx.notes.includes('CR-') && tx.type === 'SA') { buildSettlementRcpt(tx); return; }
         document.getElementById('receipt-title').innerText = 'OFFICIAL RECEIPT';
-        document.getElementById('receipt-standard-fields').classList.remove('hidden'); document.getElementById('receipt-settlement-fields').classList.add('hidden');
-        document.getElementById('receipt-items-header').classList.remove('hidden'); document.getElementById('receipt-settlement-header').classList.add('hidden');
-        document.getElementById('rec-id').innerText = tx.id; document.getElementById('rec-date').innerText = new Date(tx.timestamp).toLocaleDateString();
+        document.getElementById('receipt-standard-fields').classList.remove('hidden');
+        document.getElementById('receipt-settlement-fields').classList.add('hidden');
+        document.getElementById('receipt-items-header').classList.remove('hidden');
+        document.getElementById('receipt-settlement-header').classList.add('hidden');
+        document.getElementById('rec-id').innerText = tx.id;
+        document.getElementById('rec-date').innerText = new Date(tx.timestamp).toLocaleDateString();
         document.getElementById('rec-total').innerText = formatCurrency(tx.total);
-        let receiptItemsHtml = tx.items && tx.items.length > 0 ? tx.items.map(i => `<div class="flex justify-between"><span class="w-1/2">${escapeHTML(i.name)}</span><span class="w-1/4 text-center">${escapeHTML(i.qty)}</span><span class="w-1/4 text-right">${formatCurrency(i.price * i.qty)}</span></div>`).join('') : `<div>${escapeHTML(tx.desc || tx.notes || '')}</div>`;
+        let receiptItemsHtml = tx.items && tx.items.length > 0 ? renderReceiptItems(tx.items) : `<div>${escapeHTML(tx.desc || tx.notes || '')}</div>`;
         if ((Number(tx.discount) || 0) > 0) {
-            receiptItemsHtml += `<div class="mt-2 pt-2 border-t border-black/40 space-y-1"><div class="flex justify-between"><span class="font-bold">Subtotal</span><span>${formatCurrency(tx.subtotal || (tx.total + tx.discount))}</span></div><div class="flex justify-between"><span class="font-bold">Discount</span><span>-${formatCurrency(tx.discount)}</span></div></div>`;
+            receiptItemsHtml += `<div class="mt-2 pt-2 border-t border-black/40 space-y-1"><div class="flex justify-between"><span class="font-bold">Subtotal</span><span>${formatCurrency(tx.subtotal || (Number(tx.total) + Number(tx.discount)))}</span></div><div class="flex justify-between"><span class="font-bold">Discount</span><span>-${formatCurrency(tx.discount)}</span></div></div>`;
         }
         document.getElementById('rec-items-list').innerHTML = receiptItemsHtml;
-        document.getElementById('rec-cash-row').classList.toggle('hidden', tx.type !== 'SA'); document.getElementById('rec-change-row').classList.toggle('hidden', tx.type !== 'SA');
-        if (tx.type === 'SA') { document.getElementById('rec-cash').innerText = formatCurrency(tx.cashReceived || 0); document.getElementById('rec-change').innerText = formatCurrency(tx.change || 0); }
-        document.getElementById('rec-customer-row').classList.toggle('hidden', !tx.customer); if (tx.customer) document.getElementById('rec-customer').innerText = tx.customer;
-        document.getElementById('receipt-modal').classList.replace('hidden', 'flex');
+        document.getElementById('rec-cash-row').classList.toggle('hidden', tx.type !== 'SA');
+        document.getElementById('rec-change-row').classList.toggle('hidden', tx.type !== 'SA');
+        if (tx.type === 'SA') {
+            document.getElementById('rec-cash').innerText = formatCurrency(tx.cashReceived || 0);
+            document.getElementById('rec-change').innerText = formatCurrency(tx.change || 0);
+        }
+        document.getElementById('rec-customer-row').classList.toggle('hidden', !tx.customer);
+        if (tx.customer) document.getElementById('rec-customer').innerText = tx.customer;
+        showReceiptModal();
     }
 
     function buildSettlementRcpt(tx) {
+        resetReceiptFields();
         document.getElementById('receipt-title').innerText = 'CREDIT SETTLEMENT';
-        document.getElementById('receipt-standard-fields').classList.add('hidden'); document.getElementById('receipt-settlement-fields').classList.remove('hidden');
-        document.getElementById('receipt-items-header').classList.add('hidden'); document.getElementById('receipt-settlement-header').classList.remove('hidden');
-        document.getElementById('rec-set-customer').innerText = tx.customer || 'Guest'; document.getElementById('rec-set-date').innerText = new Date(tx.timestamp).toLocaleDateString();
+        document.getElementById('receipt-standard-fields').classList.add('hidden');
+        document.getElementById('receipt-settlement-fields').classList.remove('hidden');
+        document.getElementById('receipt-items-header').classList.add('hidden');
+        document.getElementById('receipt-settlement-header').classList.remove('hidden');
+        document.getElementById('rec-set-customer').innerText = tx.customer || 'Guest';
+        document.getElementById('rec-set-date').innerText = new Date(tx.timestamp).toLocaleDateString();
+        document.getElementById('rec-label-total').innerText = 'TOTAL PAID:';
         document.getElementById('rec-total').innerText = formatCurrency(tx.total);
-        const itemsList = document.getElementById('rec-items-list'); let html = '';
+        const itemsList = document.getElementById('rec-items-list');
+        let html = '';
         if (tx.items && tx.items.length > 0) {
             const ticketGroups = {};
-            tx.items.forEach(item => { const ticketId = item.originalTicketId || tx.notes || 'Original Order'; if (!ticketGroups[ticketId]) ticketGroups[ticketId] = []; ticketGroups[ticketId].push(item); });
+            tx.items.forEach(item => {
+                const ticketId = item.originalTicketId || tx.notes || 'Original Order';
+                if (!ticketGroups[ticketId]) ticketGroups[ticketId] = [];
+                ticketGroups[ticketId].push(item);
+            });
             for (const ticketId in ticketGroups) {
                 html += `<div class="mt-4 mb-1.5 border-b border-black pb-0.5"><span class="font-bold uppercase text-[10px]">Ticket: ${escapeHTML(ticketId)}</span></div>`;
-                html += ticketGroups[ticketId].map(i => `<div class="flex justify-between py-0.5"><span class="w-1/2">${escapeHTML(i.name)}</span><span class="w-1/4 text-center">${escapeHTML(i.qty)}</span><span class="w-1/4 text-right">${formatCurrency(i.price * i.qty)}</span></div>`).join('');
+                html += renderReceiptItems(ticketGroups[ticketId]);
             }
-        } else { html = `<div class="p-2 bg-gray-50 border border-gray-200 rounded text-[9px]"><p class="font-mono break-all">Settled: ${escapeHTML(tx.notes)}</p></div>`; }
+        } else {
+            html = `<div class="p-2 bg-gray-50 border border-gray-200 rounded text-[9px]"><p class="font-mono break-all">Settled: ${escapeHTML(tx.notes)}</p></div>`;
+        }
         itemsList.innerHTML = html;
-        document.getElementById('rec-cash-row').classList.add('hidden'); document.getElementById('rec-change-row').classList.add('hidden'); document.getElementById('rec-customer-row').classList.add('hidden');
-        document.getElementById('receipt-modal').classList.replace('hidden', 'flex');
+        document.getElementById('rec-cash-row').classList.add('hidden');
+        document.getElementById('rec-change-row').classList.add('hidden');
+        document.getElementById('rec-customer-row').classList.add('hidden');
+        showReceiptModal();
     }
 
     function printReceiptFromSuccess() { if (lastTransactionId) viewReceipt(lastTransactionId); closeModal('mod-success'); }
