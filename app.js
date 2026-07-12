@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.57';
+    window.VILLACART_APP_VERSION = 'v7.2.58';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -944,39 +944,9 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    document.addEventListener('keydown', (e) => {
-        const target = e.target;
-        const isInput = target && target.tagName === 'INPUT';
-        const isScannerEndKey = e.key === 'Enter' || e.key === 'Tab' || e.key === 'NumpadEnter';
-
-        // Many Bluetooth scanners type directly into the focused input, then
-        // send Enter or Tab. If we ignore input keystrokes, the buffer stays
-        // empty and the scan appears to do nothing.
-        if (isInput) {
-            if (!isScannerEndKey) return;
-            const typedCode = vc7227NormalizeBarcode(target.value);
-            if (vc7226LooksLikeBarcode(typedCode)) {
-                e.preventDefault();
-                scannerBuffer = "";
-                handlePhysicalScan(typedCode);
-                if (target.id === 'pos-search') vc7227ClearPosSearch();
-            }
-            return;
-        }
-
-        clearTimeout(scannerTimeout);
-        scannerTimeout = setTimeout(() => { scannerBuffer = ""; }, 350);
-        if (isScannerEndKey) {
-            const code = vc7227NormalizeBarcode(scannerBuffer);
-            if (vc7226LooksLikeBarcode(code)) {
-                e.preventDefault();
-                handlePhysicalScan(code);
-                scannerBuffer = "";
-            }
-        } else if (e.key.length === 1) {
-            scannerBuffer += e.key;
-        }
-    });
+    // v7.2.58: The older fallback keydown listener was removed.
+    // The capture-phase scanner listener above now handles focused inputs,
+    // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
     function vc7248IsInventoryScreenActive() {
         const inventoryScreen = document.getElementById('screen-inventory');
@@ -996,21 +966,29 @@
         return true;
     }
 
-    function handlePhysicalScan(barcode) {
+    function vc7258RouteBarcodeScan(barcode, options = {}) {
         const cleanBarcode = vc7227NormalizeBarcode(barcode);
+        if (!vc7226LooksLikeBarcode(cleanBarcode)) return false;
+        if (!options.force && vc7228RecentlyHandled(cleanBarcode)) {
+            vc7228ScannerDebug('ignored-duplicate', { code: cleanBarcode, source: options.source || 'unknown' });
+            return true;
+        }
+
         const productModal = document.getElementById('product-modal');
         if (productModal && !productModal.classList.contains('hidden')) {
             const barcodeField = document.getElementById('p-barcode');
             if (barcodeField) {
                 barcodeField.value = cleanBarcode;
+                if (typeof vc7228MarkHandled === 'function') vc7228MarkHandled(cleanBarcode, 'product-modal');
                 showToast("Barcode detected", "success");
+                return true;
             }
-            return;
         }
+
         if (vc7248IsInventoryScreenActive()) {
-            vc7248ShowStockBarcodeSearch(cleanBarcode);
-            return;
+            return vc7248ShowStockBarcodeSearch(cleanBarcode);
         }
+
         const product = vc7227FindProductByBarcode(cleanBarcode);
         if (product) {
             if (typeof vc7228MarkHandled === 'function') vc7228MarkHandled(cleanBarcode, 'matched:' + product.id);
@@ -1023,15 +1001,17 @@
                 switchScreen('pos');
                 showToast(`Added: ${product.name}`, "success");
             }
-            const searchInput = document.getElementById('pos-search');
-            if (searchInput) {
-                searchInput.value = "";
-                searchInput.blur();
-                document.getElementById('search-results-container').classList.add('hidden');
-            }
-        } else {
-            showToast(`Product not found: ${barcode}`, "error");
+            vc7227ClearPosSearch();
+            return true;
         }
+
+        if (typeof vc7228MarkHandled === 'function') vc7228MarkHandled(cleanBarcode, 'not-found');
+        showToast(`Product not found: ${cleanBarcode}`, "error");
+        return false;
+    }
+
+    function handlePhysicalScan(barcode) {
+        return vc7258RouteBarcodeScan(barcode, { source: 'physical' });
     }
 
     function openScanChoiceModal(product) {
@@ -5864,20 +5844,30 @@ document.addEventListener('DOMContentLoaded',()=>{
     scanInputTimer = setTimeout(()=>{
       try {
         const code = typeof vc7227NormalizeBarcode === 'function' ? vc7227NormalizeBarcode(s.value) : String(s.value || '').trim();
-        if (typeof vc7226LooksLikeBarcode === 'function' && vc7226LooksLikeBarcode(code) && typeof vc7227FindProductByBarcode === 'function' && vc7227FindProductByBarcode(code)) {
+        if (
+          typeof vc7226LooksLikeBarcode === 'function' &&
+          typeof vc7227FindProductByBarcode === 'function' &&
+          typeof handlePhysicalScan === 'function' &&
+          vc7226LooksLikeBarcode(code) &&
+          vc7227FindProductByBarcode(code) &&
+          !(typeof vc7228RecentlyHandled === 'function' && vc7228RecentlyHandled(code))
+        ) {
           handlePhysicalScan(code);
-          if (typeof vc7227ClearPosSearch === 'function') vc7227ClearPosSearch();
         }
       } catch(e) {}
-    }, 120);
+    }, 160);
   });
   s.addEventListener('keydown',(e)=>{
     if(e.key==='Enter' || e.key==='Tab' || e.key==='NumpadEnter'){
       const code = typeof vc7227NormalizeBarcode === 'function' ? vc7227NormalizeBarcode(s.value) : String(s.value || '').trim();
-      if (typeof vc7226LooksLikeBarcode === 'function' && vc7226LooksLikeBarcode(code)) {
+      if (
+        typeof vc7226LooksLikeBarcode === 'function' &&
+        typeof handlePhysicalScan === 'function' &&
+        vc7226LooksLikeBarcode(code) &&
+        !(typeof vc7228RecentlyHandled === 'function' && vc7228RecentlyHandled(code))
+      ) {
         e.preventDefault();
         handlePhysicalScan(code);
-        if (typeof vc7227ClearPosSearch === 'function') vc7227ClearPosSearch();
       } else {
         s.blur();
       }
