@@ -1,127 +1,4 @@
 (function(){
-  async function readCount(name){
-    if (typeof db === 'undefined' || !db) return {name, ok:false, count:null, error:'db not ready'};
-    try {
-      const snap = await db.collection(name).limit(50).get({source:'server'});
-      return {name, ok:true, count:snap.size, empty:snap.empty, fromCache:!!snap.metadata.fromCache};
-    } catch(e) {
-      return {name, ok:false, count:null, error:e.message || String(e)};
-    }
-  }
-
-  async function collect(){
-    const transactions = await readCount('transactions');
-    const inventory = await readCount('inventory');
-    const businessDays = await readCount('businessDays');
-    const report = {
-      at: new Date().toISOString(),
-      online: navigator.onLine,
-      firebaseReady: typeof firebase !== 'undefined',
-      dbReady: typeof db !== 'undefined' && !!db,
-      firebaseProjectId: (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) ? firebase.app().options.projectId : null,
-      firestore: { transactions, inventory, businessDays },
-      memory: {
-        transactions: (window.state && Array.isArray(state.transactions)) ? state.transactions.length : null,
-        inventory: (window.state && Array.isArray(state.inventory)) ? state.inventory.length : null,
-        businessDays: (window.state && Array.isArray(state.businessDays)) ? state.businessDays.length : null
-      },
-      offlineQueue: Array.isArray(window.offlineQueue) ? offlineQueue.length : null,
-      pendingQueue: Array.isArray(window.offlineQueue) ? offlineQueue.map(q => ({
-        type: q.type,
-        table: q.table,
-        id: q.data && q.data.id,
-        queuedAt: q.ts ? new Date(q.ts).toISOString() : null
-      })) : [],
-      syncErrorMsg: typeof syncErrorMsg !== 'undefined' ? (syncErrorMsg || null) : null,
-      startup: window.__villacartStartup || null,
-      optionalLibraries: {
-        quaggaLoaded: typeof Quagga !== 'undefined',
-        chartLoaded: typeof Chart !== 'undefined',
-        html2canvasLoaded: typeof html2canvas !== 'undefined'
-      },
-      serviceWorker: navigator.serviceWorker ? {
-        controller: !!navigator.serviceWorker.controller,
-        controllerScript: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null
-      } : null,
-      scannerDebug: window.__villacartScannerDebug || null,
-      appVersion: window.VILLACART_APP_VERSION || null,
-      lastSnapshots: {
-        transactions: window.__villacartLastTransactionsSnapshot || null,
-        businessDays: window.__villacartLastBusinessDaysSnapshot || null
-      }
-    };
-    window.__vc558LastReport = report;
-    return report;
-  }
-
-  function card(label, value, sub, cls){
-    return '<div class="vc558-card '+(cls||'')+'"><label>'+label+'</label><strong>'+value+'</strong><small>'+(sub||'')+'</small></div>';
-  }
-
-  async function run(){
-    const grid = document.getElementById('vc558-grid');
-    const log = document.getElementById('vc558-log');
-    if (grid) grid.innerHTML = card('Checking','...','Please wait','vc558-warn');
-
-    let r = await collect();
-
-    const txFs = r.firestore.transactions.count;
-    const txMem = r.memory.transactions;
-    const mismatch = Number(txFs) > 0 && Number(txMem) === 0;
-
-    if (grid) {
-      grid.innerHTML = [
-        card('DB', r.dbReady ? 'Ready' : 'No', r.dbReady ? 'Firestore object exists' : 'db missing', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
-        card('Firestore Tx', txFs === null ? 'Err' : txFs, r.firestore.transactions.error || 'transactions collection', r.firestore.transactions.ok ? 'vc558-ok' : 'vc558-bad'),
-        card('Memory Tx', txMem === null ? 'N/A' : txMem, mismatch ? 'Firestore has tx but app memory is empty' : 'state.transactions', mismatch ? 'vc558-bad' : 'vc558-ok'),
-        card('Queue', r.offlineQueue === null ? 'N/A' : r.offlineQueue, 'offline queue', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
-        card('Inventory FS', r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count, r.firestore.inventory.error || 'inventory collection', r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
-        card('Inventory Mem', r.memory.inventory === null ? 'N/A' : r.memory.inventory, 'state.inventory', r.memory.inventory > 0 ? 'vc558-ok' : 'vc558-warn'),
-        card('Business Days', r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count, r.firestore.businessDays.error || 'businessDays collection', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad'),
-        card('Online', r.online ? 'Yes' : 'No', r.syncErrorMsg || 'browser online status', r.online ? 'vc558-ok' : 'vc558-bad')
-      ].join('');
-    }
-    if (log) log.textContent = JSON.stringify(r, null, 2);
-  }
-
-  function openPanel(){
-    var panel = document.getElementById('vc558-diag-panel');
-    if (panel) panel.classList.add('vc-open');
-    // The current diagnostics handler below performs the one authoritative
-    // check. Do not also run this legacy checker.
-  }
-  function closePanel(){
-    var panel = document.getElementById('vc558-diag-panel');
-    if (panel) panel.classList.remove('vc-open');
-  }
-  function copyReport(){
-    var text = JSON.stringify(window.__vc558LastReport || {}, null, 2);
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(function(){
-        if (typeof showToast === 'function') showToast('Diagnostics copied','success');
-      }).catch(function(){ alert(text); });
-    } else alert(text);
-  }
-
-  window.villacartDiagnostics = collect;
-  window.vc558OpenDiagnostics = openPanel;
-
-  function bind(){
-    var btn = document.getElementById('vc558-diag-btn');
-    var close = document.getElementById('vc558-close');
-    var runBtn = document.getElementById('vc558-run');
-    var copyBtn = document.getElementById('vc558-copy');
-    if (btn) btn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); openPanel(); }, true);
-    if (close) close.addEventListener('click', function(e){ e.preventDefault(); closePanel(); });
-    if (runBtn) runBtn.addEventListener('click', function(e){ e.preventDefault(); run(); });
-    if (copyBtn) copyBtn.addEventListener('click', function(e){ e.preventDefault(); copyReport(); });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
-  else bind();
-})();
-
-(function(){
   async function vc559ReadCollection(name){
     if (typeof db === 'undefined' || !db) return {name, ok:false, count:null, docs:[], error:'db not ready'};
     try {
@@ -254,8 +131,36 @@
     return report;
   }
 
+  function vc559Escape(value){
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function vc559Card(label, value, sub, cls){
-    return '<div class="vc558-card '+(cls||'')+'"><label>'+label+'</label><strong>'+value+'</strong><small>'+(sub||'')+'</small></div>';
+    return '<div class="vc558-card '+(cls||'')+'"><label>'+vc559Escape(label)+'</label><strong>'+vc559Escape(value)+'</strong><small>'+vc559Escape(sub||'')+'</small></div>';
+  }
+
+  function vc559LastStartupMark(startup){
+    if (!startup || !Array.isArray(startup.marks) || !startup.marks.length) return null;
+    return startup.marks[startup.marks.length - 1] || null;
+  }
+
+  function vc559PosVisibleMark(startup){
+    return startup && Array.isArray(startup.marks) ? startup.marks.find(x => x && x.name === 'pos-screen-shown') : null;
+  }
+
+  function vc559Summary(report){
+    const problems = [];
+    if (!report.online) problems.push('Device is offline');
+    if (!report.dbReady) problems.push('Firestore is not ready');
+    if (report.offlineQueue > 0) problems.push(report.offlineQueue + ' pending sync item(s)');
+    if (report.versionInfo && !report.versionInfo.matches) problems.push('App/cache version mismatch');
+    if (report.serviceWorker && report.serviceWorker.updateAvailable) problems.push('App update is waiting');
+    return problems.length ? problems.join(' · ') : 'No obvious issue detected';
   }
 
   async function vc559Run(hydrate){
@@ -279,22 +184,23 @@
     const mismatch = Number(txFs) > 0 && Number(txMem) !== Number(txFs);
 
     if (grid) {
+      const posMark = vc559PosVisibleMark(r.startup);
+      const lastMark = vc559LastStartupMark(r.startup);
+      const versionText = r.versionInfo && r.versionInfo.matches ? 'Current' : 'Check';
       grid.innerHTML = [
-        vc559Card('DB', r.dbReady ? 'Ready' : 'No', r.dbReady ? 'Firestore object exists' : 'db missing', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
-        vc559Card('State', r.stateReady ? 'Ready' : 'No', r.stateReady ? 'App state is accessible' : 'state not ready', r.stateReady ? 'vc558-ok' : 'vc558-bad'),
-        vc559Card('Firestore Tx', txFs === null ? 'Err' : txFs, r.firestore.transactions.error || 'transactions collection', r.firestore.transactions.ok ? 'vc558-ok' : 'vc558-bad'),
-        vc559Card('Memory Tx', txMem === null ? 'N/A' : txMem, mismatch ? 'Does not match Firestore count' : 'state.transactions', mismatch ? 'vc558-bad' : 'vc558-ok'),
-        vc559Card('Queue', r.offlineQueue === null ? 'N/A' : r.offlineQueue, 'offline queue', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
-        vc559Card('Inventory FS', r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count, r.firestore.inventory.error || 'inventory collection', r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
-        vc559Card('Inventory Mem', r.memory.inventory === null ? 'N/A' : r.memory.inventory, 'state.inventory', r.memory.inventory > 0 ? 'vc558-ok' : 'vc558-warn'),
-        vc559Card('Business Days', r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count, r.firestore.businessDays.error || 'businessDays collection', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad'),
-        vc559Card('POS Visible', (() => { const m = r.startup && Array.isArray(r.startup.marks) ? r.startup.marks.find(x => x && x.name === 'pos-screen-shown') : null; return m ? (m.msSinceScriptStart + 'ms') : 'N/A'; })(), r.startup ? 'pos-screen-shown timing' : 'not recorded', r.startup ? 'vc558-ok' : 'vc558-warn'),
-        vc559Card('Background Ready', r.startup && r.startup.marks && r.startup.marks.length ? (r.startup.marks[r.startup.marks.length - 1].msSinceScriptStart + 'ms') : 'N/A', r.startup ? ('last: ' + (r.startup.lastMark || 'unknown')) : 'not recorded', r.startup ? 'vc558-ok' : 'vc558-warn'),
-        vc559Card('Optional Libs', (r.optionalLibraries && r.optionalLibraries.chartLoaded ? 'Chart ' : '') + (r.optionalLibraries && r.optionalLibraries.html2canvasLoaded ? 'Image ' : '') || 'Deferred', 'Quagga: ' + (r.optionalLibraries && r.optionalLibraries.quaggaLoaded ? 'loaded' : 'not loaded'), 'vc558-ok'),
-        vc559Card('App JS', (r.versionInfo && r.versionInfo.appVersion) || 'Old/cache?', r.versionInfo ? ('script: ' + (r.versionInfo.appScriptVersion || 'unknown')) : 'app.js marker missing', r.versionInfo && r.versionInfo.appVersion ? 'vc558-ok' : 'vc558-bad'),
-        vc559Card('Version Match', r.versionInfo && r.versionInfo.matches ? 'OK' : 'Check', r.versionInfo ? ('expected ' + (r.versionInfo.expectedVersion || 'unknown') + ' / SW ' + (r.versionInfo.serviceWorkerVersion || 'none')) : 'version info missing', r.versionInfo && r.versionInfo.matches ? 'vc558-ok' : 'vc558-warn'),
-        vc559Card('Update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Ready' : 'None', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Tap Reload App below' : 'no waiting service worker', r.serviceWorker && r.serviceWorker.updateAvailable ? 'vc558-warn' : 'vc558-ok'),
-        vc559Card('Scanner', r.scannerDebug && r.scannerDebug.lastBarcodeAttempt ? r.scannerDebug.lastBarcodeAttempt : 'No scan', r.scannerDebug ? ((r.scannerDebug.lastBarcodeResult || 'waiting') + ' / input: ' + (r.scannerDebug.lastInputValue || '').slice(0, 24)) : 'debug not ready', r.scannerDebug && r.scannerDebug.lastBarcodeResult && r.scannerDebug.lastBarcodeResult.indexOf('matched:') === 0 ? 'vc558-ok' : 'vc558-warn')
+        vc559Card('Overall', (r.online && r.dbReady && r.offlineQueue === 0) ? 'Good' : 'Check', vc559Summary(r), (r.online && r.dbReady && r.offlineQueue === 0) ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Project', r.firebaseProjectId || 'Unknown', r.dbReady ? 'Firestore connected' : 'Firestore not ready', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Online', r.online ? 'Yes' : 'No', r.syncErrorMsg || 'device/browser status', r.online ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Pending Sync', r.offlineQueue === null ? 'N/A' : r.offlineQueue, r.offlineQueue > 0 ? 'will sync when possible' : 'nothing waiting', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
+        vc559Card('Sales Local / Cloud', (txMem === null ? 'N/A' : txMem) + ' / ' + (txFs === null ? 'Err' : txFs), mismatch ? 'counts do not match' : 'transactions', mismatch ? 'vc558-warn' : 'vc558-ok'),
+        vc559Card('Stock Local / Cloud', (r.memory.inventory === null ? 'N/A' : r.memory.inventory) + ' / ' + (r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count), r.firestore.inventory.error || 'inventory items', r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Business Days', (r.memory.businessDays === null ? 'N/A' : r.memory.businessDays) + ' local / ' + (r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count) + ' cloud', r.firestore.businessDays.error || 'calendar records', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('POS Visible', posMark ? (posMark.msSinceScriptStart + 'ms') : 'N/A', posMark ? 'screen shown quickly' : 'not recorded', posMark ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Background Ready', lastMark ? (lastMark.msSinceScriptStart + 'ms') : 'N/A', lastMark ? ('last: ' + (r.startup.lastMark || lastMark.name || 'unknown')) : 'not recorded', lastMark ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Scanner', r.scannerDebug && r.scannerDebug.lastBarcodeAttempt ? r.scannerDebug.lastBarcodeAttempt : 'No scan', r.scannerDebug ? ((r.scannerDebug.lastBarcodeResult || 'waiting') + ' / input: ' + (r.scannerDebug.lastInputValue || '').slice(0, 24)) : 'debug not ready', r.scannerDebug && r.scannerDebug.lastBarcodeResult && r.scannerDebug.lastBarcodeResult.indexOf('matched:') === 0 ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Optional Tools', (r.optionalLibraries && r.optionalLibraries.chartLoaded ? 'Chart ' : '') + (r.optionalLibraries && r.optionalLibraries.html2canvasLoaded ? 'Image ' : '') || 'Deferred', 'Camera scanner: ' + (r.optionalLibraries && r.optionalLibraries.quaggaLoaded ? 'ready' : 'not loaded'), 'vc558-ok'),
+        vc559Card('Version', versionText, r.versionInfo ? ('app ' + (r.versionInfo.appVersion || 'unknown') + ' / expected ' + (r.versionInfo.expectedVersion || 'unknown')) : 'version info missing', r.versionInfo && r.versionInfo.matches ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Ready' : 'None', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Tap Reload App below' : 'no waiting app update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'vc558-warn' : 'vc558-ok')
       ].join('');
     }
     if (log) log.textContent = JSON.stringify(r, null, 2);
@@ -334,10 +240,16 @@
     const runBtn = document.getElementById('vc558-run');
     const copyBtn = document.getElementById('vc558-copy');
     if (runBtn) {
-      runBtn.textContent = 'Load Firestore';
+      runBtn.textContent = 'Load Firestore / Full Refresh';
+      runBtn.title = 'Reads Firestore and replaces local app data. Use only when local data looks stale.';
       runBtn.replaceWith(runBtn.cloneNode(true));
       const newRun = document.getElementById('vc558-run');
       newRun.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); vc559Run(true); }, true);
+      if (!document.getElementById('vc559-check')) {
+        newRun.insertAdjacentHTML('beforebegin', '<button id="vc559-check" type="button" class="vc558-action bg-white border border-border-subtle text-primary">Check Status</button>');
+        const checkBtn = document.getElementById('vc559-check');
+        checkBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); vc559Run(false); }, true);
+      }
       if (!document.getElementById('vc559-reload')) {
         newRun.insertAdjacentHTML('afterend', '<button id="vc559-reload" type="button" class="vc558-action bg-white border border-border-subtle text-primary">Reload App</button>');
         const reloadBtn = document.getElementById('vc559-reload');

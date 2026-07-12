@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.60';
+    window.VILLACART_APP_VERSION = 'v7.2.62';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -944,7 +944,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.60: The older fallback keydown listener was removed.
+    // v7.2.62: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -6798,6 +6798,62 @@ document.addEventListener('DOMContentLoaded',()=>{
             }).join('');
     }
 
+    function vc7262BuildCashLedger(tx) {
+        const list = vc5632Filtered(tx.filter(t => t && (t.type === 'SA' || vc5632IsSettlement(t))));
+        const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
+        return {
+            list,
+            kind: 'cash',
+            summary: vc5632SummaryCard('Total Cash Sales', vc5632Peso(total), 'Cash sales and payments', 'blue') +
+                vc5632SummaryCard('Cash Received', vc5632Peso(total), 'Collected amount', 'green') +
+                vc5632SummaryCard('Transactions', String(list.length), 'Matching records', 'purple')
+        };
+    }
+
+    function vc7262BuildCreditLedger(tx) {
+        const creditBase = tx.filter(t => t && t.type === 'CR');
+        const openCredits = creditBase.filter(t => !vc5632CreditIsSettled(t, tx));
+        const settledCredits = creditBase
+            .filter(t => vc5632CreditIsSettled(t, tx))
+            .map(t => ({ ...t, _vcCreditSettled: true }));
+        const openList = vc5632Filtered(openCredits);
+        const settledList = vc5632FilteredSettledCredits(settledCredits, tx);
+        const view = vc5632CreditLedgerView === 'settled' ? 'settled' : 'open';
+        const list = view === 'settled' ? settledList : openList;
+        const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
+        const customers = new Set(list.map(t => String(t.customer || 'Guest').trim().toLowerCase() || 'guest'));
+        return {
+            list,
+            kind: 'credit',
+            view,
+            summary: vc5632RenderCreditToggle(view, openList.length, settledList.length) +
+                (view === 'settled'
+                    ? vc5632SummaryCard('Settled Credit', vc5632Peso(total), 'Paid credit tickets', 'green')
+                    : vc5632SummaryCard('Outstanding Credit', vc5632Peso(total), 'Unpaid balance', 'orange')) +
+                vc5632SummaryCard('Customers', String(customers.size), view === 'settled' ? 'Paid accounts' : 'With balance', 'purple') +
+                vc5632SummaryCard('Credit Tickets', String(list.length), view === 'settled' ? 'Settled tickets' : 'Pending tickets', 'blue')
+        };
+    }
+
+    function vc7262BuildExpenseLedger(tx) {
+        const list = vc5632Filtered(tx.filter(t => t && t.type === 'EX'));
+        const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
+        const categories = new Set(list.map(t => t.category || 'Expense'));
+        return {
+            list,
+            kind: 'expense',
+            summary: vc5632SummaryCard('Total Expenses', vc5632Peso(total), 'Recorded expense amount', 'red') +
+                vc5632SummaryCard('Expense Records', String(list.length), 'Matching records', 'purple') +
+                vc5632SummaryCard('Categories', String(categories.size), 'Expense groups', 'blue')
+        };
+    }
+
+    function vc7262BuildLedgerState(tab, tx) {
+        if (tab === 'credit') return vc7262BuildCreditLedger(tx);
+        if (tab === 'expense') return vc7262BuildExpenseLedger(tx);
+        return vc7262BuildCashLedger(tx);
+    }
+
     const vc5632OldRenderLedger = typeof renderLedger === 'function' ? renderLedger : null;
     if (vc5632OldRenderLedger && !window.__vcRenderLedger5632Patched) {
         window.__vcRenderLedger5632Patched = true;
@@ -6813,43 +6869,14 @@ document.addEventListener('DOMContentLoaded',()=>{
                     ? vc710AllTransactionsForLocalViews()
                     : (Array.isArray(state.transactions) ? state.transactions : []);
                 const tab = activeLedgerTab || 'cash';
-                let list = [];
-                let kind = 'cash';
-                if (tab === 'cash') {
-                    list = vc5632Filtered(tx.filter(t => t && (t.type === 'SA' || vc5632IsSettlement(t))));
-                    const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
-                    const cash = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
-                    summary.innerHTML = vc5632SummaryCard('Total Cash Sales', vc5632Peso(total), 'Cash sales and payments', 'blue') + vc5632SummaryCard('Cash Received', vc5632Peso(cash), 'Collected amount', 'green') + vc5632SummaryCard('Transactions', String(list.length), 'Matching records', 'purple');
-                    kind = 'cash';
-                } else if (tab === 'credit') {
-                    const creditBase = tx.filter(t => t && t.type === 'CR');
-                    const openCredits = creditBase.filter(t => !vc5632CreditIsSettled(t, tx));
-                    const settledCredits = creditBase
-                        .filter(t => vc5632CreditIsSettled(t, tx))
-                        .map(t => ({ ...t, _vcCreditSettled: true }));
-                    const openList = vc5632Filtered(openCredits);
-                    const settledList = vc5632FilteredSettledCredits(settledCredits, tx);
-                    const view = vc5632CreditLedgerView === 'settled' ? 'settled' : 'open';
-                    list = view === 'settled' ? settledList : openList;
-                    const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
-                    const customers = new Set(list.map(t => String(t.customer || 'Guest').trim().toLowerCase() || 'guest'));
-                    summary.innerHTML = vc5632RenderCreditToggle(view, openList.length, settledList.length) +
-                        (view === 'settled'
-                            ? vc5632SummaryCard('Settled Credit', vc5632Peso(total), 'Paid credit tickets', 'green')
-                            : vc5632SummaryCard('Outstanding Credit', vc5632Peso(total), 'Unpaid balance', 'orange')) +
-                        vc5632SummaryCard('Customers', String(customers.size), view === 'settled' ? 'Paid accounts' : 'With balance', 'purple') +
-                        vc5632SummaryCard('Credit Tickets', String(list.length), view === 'settled' ? 'Settled tickets' : 'Pending tickets', 'blue');
-                    kind = 'credit';
-                } else {
-                    list = vc5632Filtered(tx.filter(t => t && t.type === 'EX'));
-                    const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
-                    const categories = new Set(list.map(t => t.category || 'Expense'));
-                    summary.innerHTML = vc5632SummaryCard('Total Expenses', vc5632Peso(total), 'Recorded expense amount', 'red') + vc5632SummaryCard('Expense Records', String(list.length), 'Matching records', 'purple') + vc5632SummaryCard('Categories', String(categories.size), 'Expense groups', 'blue');
-                    kind = 'expense';
-                }
+                const ledgerState = vc7262BuildLedgerState(tab, tx);
+                const kind = ledgerState.kind || 'cash';
+                summary.innerHTML = ledgerState.summary || '';
                 content.classList.toggle('vc5632-credit-customer-list', kind === 'credit');
                 content.classList.toggle('vc5632-ledger-date-list', kind !== 'credit');
-                content.innerHTML = kind === 'credit' ? vc5632RenderCreditCustomers(list, vc5632CreditLedgerView) : vc5632RenderGroups(list, kind);
+                content.innerHTML = kind === 'credit'
+                    ? vc5632RenderCreditCustomers(ledgerState.list || [], ledgerState.view || vc5632CreditLedgerView)
+                    : vc5632RenderGroups(ledgerState.list || [], kind);
             } catch (error) {
                 console.warn('Ledger render fallback', error);
                 return vc5632OldRenderLedger.apply(this, arguments);

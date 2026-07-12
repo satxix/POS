@@ -3902,7 +3902,7 @@
 }
 
 
-/* v7.2.60: one clean receipt modal layout for official and credit-settlement receipts. */
+/* v7.2.62: one clean receipt modal layout for official and credit-settlement receipts. */
 #receipt-modal {
     overflow: hidden !important;
     align-items: center !important;
@@ -4058,7 +4058,7 @@
     letter-spacing: .04em;
 }
 
-/* v7.2.60: reduce Android/PWA pull-to-refresh while preserving normal scrolling. */
+/* v7.2.62: reduce Android/PWA pull-to-refresh while preserving normal scrolling. */
 html,
 body {
     overscroll-behavior-y: none;
