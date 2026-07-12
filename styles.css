@@ -4127,3 +4127,32 @@
     text-transform: uppercase;
     letter-spacing: .04em;
 }
+
+/* v7.2.57: reduce Android/PWA pull-to-refresh while preserving normal scrolling. */
+html,
+body {
+    overscroll-behavior-y: none;
+}
+
+body {
+    overscroll-behavior-x: none;
+}
+
+#app,
+.screen-transition,
+#screen-pos,
+#screen-inventory,
+#screen-history,
+#screen-insights,
+#screen-business {
+    overscroll-behavior: contain;
+}
+
+.custom-scrollbar,
+#cart-items,
+#fav-picker-list,
+#notif-list,
+#business-calendar-detail-modal,
+#receipt-modal {
+    overscroll-behavior: contain;
+}
