@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.58';
+    window.VILLACART_APP_VERSION = 'v7.2.59';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -944,7 +944,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.58: The older fallback keydown listener was removed.
+    // v7.2.59: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1859,40 +1859,104 @@ function switchScreen(id) {
         } 
     }
 
-    function toggleCategory(cat) { inventoryState.collapsedCategories[cat] = !inventoryState.collapsedCategories[cat]; renderInventory(document.querySelector('#screen-inventory input[type="text"]').value); }
+    function getInventorySearchValue() {
+        const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
+        return stockSearch ? String(stockSearch.value || '') : '';
+    }
+
+    function inventoryLowStockThreshold(product) {
+        const threshold = Number(product && product.lowStock);
+        return Number.isFinite(threshold) ? threshold : 5;
+    }
+
+    function isLowStockProduct(product) {
+        return Number(product && product.stock) <= inventoryLowStockThreshold(product);
+    }
+
+    function inventoryCategoryKey(product) {
+        return String((product && product.category) || 'Uncategorized').trim().toLowerCase() || 'uncategorized';
+    }
+
+    function inventoryCategoryName(product) {
+        return titleCase((product && product.category) || 'Uncategorized');
+    }
+
+    function inventoryMatchesSearch(product, searchValue) {
+        const q = String(searchValue || '').trim().toLowerCase();
+        if (!q) return true;
+        const barcode = vc7227NormalizeBarcode(product && product.barcode);
+        return String(product && product.name || '').toLowerCase().includes(q)
+            || barcode.toLowerCase().includes(q)
+            || String(product && product.category || '').toLowerCase().includes(q);
+    }
+
+    function inventoryEmptyStateHtml(hasInventory) {
+        if (!hasInventory) {
+            return '<div class="col-span-full flex flex-col items-center justify-center py-24 opacity-50"><span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">inventory_2</span><p class="font-black text-sm uppercase text-primary/40 tracking-widest mb-2">No Products Yet</p><p class="text-xs text-on-surface-variant font-bold">Tap "Add Product" to get started</p></div>';
+        }
+        return '<div class="col-span-full flex flex-col items-center justify-center py-24 opacity-50"><span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">search_off</span><p class="font-black text-sm uppercase text-primary/40 tracking-widest">No matching products</p></div>';
+    }
+
+    function inventoryMetricCard(label, value, extraClass = 'bg-surface-container/60', valueClass = 'text-on-surface') {
+        return `<div class="${extraClass} rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">${label}</p><p class="text-xs font-black ${valueClass}">${value}</p></div>`;
+    }
+
+    function renderInventoryProductRow(product) {
+        const isLow = isLowStockProduct(product);
+        const marginVal = Number(product.price) > 0 ? (((Number(product.price) - Number(product.cost || 0)) / Number(product.price)) * 100).toFixed(1) : 0;
+        const stockValue = `${escapeHTML(product.stock)} pcs`;
+        const metrics = [
+            inventoryMetricCard('Stock', stockValue, 'bg-surface-container/60', isLow ? 'text-error' : 'text-primary'),
+            inventoryMetricCard('Cost', formatCurrency(product.cost), 'bg-surface-container/60', 'text-on-surface'),
+            inventoryMetricCard('Retail', formatCurrency(product.price), 'bg-surface-container/60', 'text-primary'),
+            inventoryMetricCard('Margin', `${marginVal}%`, 'bg-secondary/5 border border-secondary/10', 'text-secondary')
+        ].join('');
+
+        return `<div class="p-4 flex gap-3 ${isLow ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate uppercase">${escapeHTML(product.name)}</h4><p class="text-[10px] font-medium opacity-50 mb-3 tracking-tight">#${escapeHTML(product.barcode || '---')}</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-2">${metrics}</div></div><div class="flex flex-col gap-1.5 border-l pl-3 justify-center"><button onclick="openStockAdjust(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-secondary/10 text-secondary rounded-xl active-scale transition-all" title="Adjust Stock"><span class="material-symbols-outlined text-[20px]">move_item</span></button><button onclick="openProductModal(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="deleteProduct(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`;
+    }
+
+    function renderInventoryCategory(catKey, group, searchValue) {
+        const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
+        const itemsHtml = group.items.map(renderInventoryProductRow).join('');
+        return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
+    }
+
+    function toggleCategory(cat) {
+        inventoryState.collapsedCategories[cat] = !inventoryState.collapsedCategories[cat];
+        renderInventory(getInventorySearchValue());
+    }
 
     function renderInventory(f = '') {
         const list = document.getElementById('inventory-list');
         if (!list) return;
-        const lowStockItems = state.inventory.filter(p => p.stock <= (p.lowStock !== undefined ? p.lowStock : 5));
-        document.getElementById('low-stock-alert').classList.toggle('hidden', lowStockItems.length === 0);
-        document.getElementById('low-stock-alert-text').innerText = `${lowStockItems.length} items are low on stock!`;
-        const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(f.toLowerCase()) || (p.barcode && p.barcode.includes(f)) || (p.category && p.category.toLowerCase().includes(f.toLowerCase())));
-        const groups = {};
-        filtered.forEach(p => { 
-            const cat = (p.category || 'Uncategorized').trim().toLowerCase(); 
-            if (!groups[cat]) groups[cat] = { name: titleCase(p.category || 'Uncategorized'), items: [] }; 
-            groups[cat].items.push(p); 
-            if (inventoryState.collapsedCategories[cat] === undefined) inventoryState.collapsedCategories[cat] = true; 
-        });
-        const sortedCats = Object.keys(groups).sort();
-        if (filtered.length === 0) { 
-            list.innerHTML = state.inventory.length === 0 
-                ? `<div class="col-span-full flex flex-col items-center justify-center py-24 opacity-50"><span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">inventory_2</span><p class="font-black text-sm uppercase text-primary/40 tracking-widest mb-2">No Products Yet</p><p class="text-xs text-on-surface-variant font-bold">Tap "Add Product" to get started</p></div>`
-                : `<div class="col-span-full flex flex-col items-center justify-center py-24 opacity-50"><span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">search_off</span><p class="font-black text-sm uppercase text-primary/40 tracking-widest">No matching products</p></div>`;
-            return; 
+
+        const inventory = Array.isArray(state.inventory) ? state.inventory : [];
+        const lowStockItems = inventory.filter(isLowStockProduct);
+        const lowStockAlert = document.getElementById('low-stock-alert');
+        const lowStockText = document.getElementById('low-stock-alert-text');
+        if (lowStockAlert) lowStockAlert.classList.toggle('hidden', lowStockItems.length === 0);
+        if (lowStockText) lowStockText.innerText = `${lowStockItems.length} items are low on stock!`;
+
+        const searchValue = String(f || '');
+        const filtered = inventory.filter(product => inventoryMatchesSearch(product, searchValue));
+        if (filtered.length === 0) {
+            list.innerHTML = inventoryEmptyStateHtml(inventory.length > 0);
+            updateNotifBadge();
+            return;
         }
-        
-        list.innerHTML = sortedCats.map(catKey => {
-            const group = groups[catKey];
-            const isCollapsed = inventoryState.collapsedCategories[catKey] === true && f.length === 0;
-            return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${group.items.map(p => {
-                const threshold = p.lowStock !== undefined ? p.lowStock : 5;
-                const isLow = p.stock <= threshold;
-                const marginVal = p.price > 0 ? (((p.price - p.cost) / p.price) * 100).toFixed(1) : 0;
-                return `<div class="p-4 flex gap-3 ${isLow ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate uppercase">${escapeHTML(p.name)}</h4><p class="text-[10px] font-medium opacity-50 mb-3 tracking-tight">#${escapeHTML(p.barcode || '---')}</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-2"><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Stock</p><p class="text-xs font-black ${isLow ? 'text-error' : 'text-primary'}">${escapeHTML(p.stock)} pcs</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Cost</p><p class="text-xs font-black text-on-surface">${formatCurrency(p.cost)}</p></div><div class="bg-surface-container/60 rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">Retail</p><p class="text-xs font-black text-primary">${formatCurrency(p.price)}</p></div><div class="bg-secondary/5 rounded-xl p-2 border border-secondary/10"><p class="text-[8px] font-black uppercase text-secondary">Margin</p><p class="text-xs font-black text-secondary">${marginVal}%</p></div></div></div><div class="flex flex-col gap-1.5 border-l pl-3 justify-center"><button onclick="openStockAdjust(${jsArg(p.id)})" class="w-9 h-9 flex items-center justify-center bg-secondary/10 text-secondary rounded-xl active-scale transition-all" title="Adjust Stock"><span class="material-symbols-outlined text-[20px]">move_item</span></button><button onclick="openProductModal(${jsArg(p.id)})" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="deleteProduct(${jsArg(p.id)})" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`;
-            }).join('')}</div></div>`;
-        }).join('');
+
+        const groups = {};
+        filtered.forEach(product => {
+            const cat = inventoryCategoryKey(product);
+            if (!groups[cat]) groups[cat] = { name: inventoryCategoryName(product), items: [] };
+            groups[cat].items.push(product);
+            if (inventoryState.collapsedCategories[cat] === undefined) inventoryState.collapsedCategories[cat] = true;
+        });
+
+        list.innerHTML = Object.keys(groups)
+            .sort()
+            .map(catKey => renderInventoryCategory(catKey, groups[catKey], searchValue))
+            .join('');
         updateNotifBadge();
     }
 
