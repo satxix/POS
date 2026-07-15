@@ -3902,7 +3902,7 @@
 }
 
 
-/* v7.2.62: one clean receipt modal layout for official and credit-settlement receipts. */
+/* v7.2.63: one clean receipt modal layout for official and credit-settlement receipts. */
 #receipt-modal {
     overflow: hidden !important;
     align-items: center !important;
@@ -4058,7 +4058,7 @@
     letter-spacing: .04em;
 }
 
-/* v7.2.62: reduce Android/PWA pull-to-refresh while preserving normal scrolling. */
+/* v7.2.63: reduce Android/PWA pull-to-refresh while preserving normal scrolling. */
 html,
 body {
     overscroll-behavior-y: none;
@@ -4085,4 +4085,162 @@ body {
 #business-calendar-detail-modal,
 #receipt-modal {
     overscroll-behavior: contain;
+}
+
+
+/* v7.2.63: compact phone-only Business Calendar layout. */
+@media (max-width: 640px) {
+  #screen-business {
+    padding: .75rem .9rem calc(5.75rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  #screen-business > .flex:first-child {
+    gap: .75rem !important;
+    margin-bottom: .85rem !important;
+  }
+
+  #screen-business > .flex:first-child h2 {
+    font-size: 1.55rem !important;
+    line-height: 1 !important;
+    letter-spacing: -0.04em !important;
+  }
+
+  #screen-business > .flex:first-child p {
+    font-size: .78rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .business-calendar-controls {
+    gap: .45rem !important;
+  }
+
+  .business-calendar-action-row {
+    gap: .4rem !important;
+  }
+
+  .business-calendar-action-btn {
+    min-height: 38px !important;
+    border-radius: .95rem !important;
+    font-size: .54rem !important;
+    letter-spacing: .025em !important;
+    padding: 0 .35rem !important;
+    gap: .16rem !important;
+  }
+
+  .business-calendar-action-btn .material-symbols-outlined {
+    font-size: 16px !important;
+  }
+
+  .business-calendar-month-row {
+    grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem !important;
+    gap: .4rem !important;
+  }
+
+  .business-month-btn {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: .95rem !important;
+  }
+
+  .business-month-title {
+    min-height: 40px !important;
+    border-radius: .95rem !important;
+    font-size: .76rem !important;
+    padding: 0 .55rem !important;
+  }
+
+  #vc728-archive-safety {
+    border-radius: 1.35rem !important;
+    padding: .75rem !important;
+    margin-bottom: .85rem !important;
+  }
+
+  #vc728-archive-safety > .flex {
+    gap: .55rem !important;
+  }
+
+  #vc728-archive-safety .w-10.h-10 {
+    width: 2rem !important;
+    height: 2rem !important;
+    border-radius: .9rem !important;
+  }
+
+  #vc728-archive-safety .material-symbols-outlined {
+    font-size: 17px !important;
+  }
+
+  #vc728-archive-safety p.mt-1 {
+    margin-top: .2rem !important;
+    font-size: .68rem !important;
+    line-height: 1.25 !important;
+  }
+
+  #vc728-archive-safety .grid {
+    gap: .4rem !important;
+    margin-top: .55rem !important;
+  }
+
+  #vc728-archive-safety .grid > div {
+    padding: .55rem .65rem !important;
+    border-radius: .9rem !important;
+  }
+
+  #vc728-archive-safety .grid span,
+  #vc728-archive-safety .grid strong {
+    line-height: 1.15 !important;
+  }
+
+  #vc728-archive-safety .mt-3 {
+    margin-top: .55rem !important;
+  }
+
+  #vc728-archive-safety button {
+    padding: .45rem .65rem !important;
+    border-radius: .85rem !important;
+    font-size: .55rem !important;
+  }
+
+  #vc728-archive-safety .mt-3 span {
+    font-size: .58rem !important;
+    line-height: 1.15 !important;
+  }
+
+  #business-month-summary {
+    gap: .55rem !important;
+    margin-bottom: .85rem !important;
+  }
+
+  #business-month-summary .business-stat-card {
+    border-radius: 1.1rem !important;
+    padding: .75rem .8rem !important;
+  }
+
+  #business-month-summary .business-stat-card p {
+    margin-bottom: .35rem !important;
+    font-size: .55rem !important;
+    letter-spacing: .08em !important;
+  }
+
+  #business-month-summary .business-stat-card h3 {
+    font-size: 1.18rem !important;
+  }
+
+  .business-shell {
+    border-radius: 1.25rem !important;
+    padding: .65rem !important;
+  }
+
+  .business-week-header {
+    gap: .28rem !important;
+    padding: .15rem .1rem .45rem !important;
+  }
+
+  .business-week-header span {
+    font-size: .54rem !important;
+    letter-spacing: .05em !important;
+  }
+
+  .business-calendar-grid {
+    gap: .32rem !important;
+  }
 }
