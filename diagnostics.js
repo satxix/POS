@@ -311,6 +311,31 @@
       const newCopy = document.getElementById('vc558-copy');
       newCopy.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); vc559Copy(); }, true);
     }
+    const closeBtn = document.getElementById('vc558-close');
+    if (closeBtn && !closeBtn.__vc559CloseBound) {
+      closeBtn.__vc559CloseBound = true;
+      closeBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        const panel = document.getElementById('vc558-diag-panel');
+        if (panel) {
+          panel.classList.remove('vc-open');
+          panel.classList.remove('open');
+        }
+      }, true);
+    }
+
+    const panel = document.getElementById('vc558-diag-panel');
+    if (panel && !panel.__vc559BackdropBound) {
+      panel.__vc559BackdropBound = true;
+      panel.addEventListener('click', function(e){
+        if (e.target === panel) {
+          panel.classList.remove('vc-open');
+          panel.classList.remove('open');
+        }
+      }, true);
+    }
+
     const btn = document.getElementById('vc558-diag-btn');
     if (btn) btn.addEventListener('click', function(){ setTimeout(function(){ vc559Run(false); }, 120); }, true);
   }

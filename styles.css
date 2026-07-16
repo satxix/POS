@@ -3902,7 +3902,7 @@
 }
 
 
-/* v7.2.66: one clean receipt modal layout for official and credit-settlement receipts. */
+/* v7.2.67: one clean receipt modal layout for official and credit-settlement receipts. */
 #receipt-modal {
     overflow: hidden !important;
     align-items: center !important;
@@ -4058,7 +4058,7 @@
     letter-spacing: .04em;
 }
 
-/* v7.2.66: reduce Android/PWA pull-to-refresh while preserving normal scrolling. */
+/* v7.2.67: reduce Android/PWA pull-to-refresh while preserving normal scrolling. */
 html,
 body {
     overscroll-behavior-y: none;
@@ -4088,7 +4088,7 @@ body {
 }
 
 
-/* v7.2.66: compact phone-only Business Calendar layout. */
+/* v7.2.67: compact phone-only Business Calendar layout. */
 @media (max-width: 640px) {
   #screen-business {
     padding: .75rem .9rem calc(5.75rem + env(safe-area-inset-bottom, 0px)) !important;
