@@ -1,1 +1,1099 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PesoTrack 3.55</title><meta name="description" content="Offline-first personal finance manager for Philippine accounts, cards, cash, wallets, budgets, and reports."><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#2f5368"><link rel="icon" href="icon-192.png" type="image/png"><link rel="apple-touch-icon" href="icon-192.png"><link rel="apple-touch-icon" sizes="152x152" href="icon-152.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="PesoTrack"><meta name="mobile-web-app-capable" content="yes"><meta name="application-name" content="PesoTrack"><meta name="msapplication-TileColor" content="#2f5368"><meta name="msapplication-TileImage" content="icon-192.png"><meta name="color-scheme" content="dark"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,450;9..144,560;9..144,650&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="./styles.css?v=179"></head><body class="booting"><script>window.addEventListener('error',function(){document.body.classList.remove('booting')});setTimeout(function(){document.body.classList.remove('booting')},1800);</script><main class="app"><div id="dashboard" class="screen active premiumDashboard"><div class="premiumTop"><div><div class="premiumKicker" id="dashDate">Your money snapshot today</div><div class="appVersionPill homeVersionPill" id="homeVersionPill">v3.55</div></div><button class="premiumIconBtn settingsGearBtn" onclick="go('settings',null)" aria-label="Open settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.9"/><path d="M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.5-2-3.5-2.4 1a8 8 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A8 8 0 0 0 7 6.5l-2.4-1-2 3.5 2 1.5A8.8 8.8 0 0 0 4.5 12c0 .5 0 1 .1 1.5l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a8 8 0 0 0 2.6-1.5l2.4 1 2-3.5-2-1.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button></div><section class="premiumHero"><div class="premiumHeroGlow"></div><div class="premiumHeroMain"><div class="healthRing premiumRing" id="healthRing"><b id="healthScoreDash">--</b></div><div class="premiumHeroText"><div class="label">Financial Health</div><div class="premiumHeroTitle" id="healthLabelDash">Calculating</div><div class="heroSub" id="healthSummaryDash">Savings, utilization, budgets, and bill status are considered.</div></div></div><div class="premiumCashBlock"><div><div class="label">Available Cash</div><div class="premiumCash" id="safeSpendHero">&#8369;0</div><div class="heroSub" id="safeSpendHint">After unpaid bills are set aside</div></div><div class="dashPill" id="dashHealth">Ready</div></div><div class="premiumSummaryChips"><button onclick="go('bills',document.querySelectorAll('.nav button')[1])"><span>Due</span><b id="todayBills">0 due</b></button><button onclick="go('reports',document.querySelectorAll('.nav button')[4])"><span>Net</span><b id="todayNet">&#8369;0</b></button><button onclick="cycleHeroAccount()" title="Tap to switch account"><span id="heroAccountName">Account</span><b id="heroAccountAmount">&#8369;0</b></button></div><div class="dashMetrics premiumMetrics"><div class="dashMetric"><div class="mLabel">Bank Accounts</div><div class="mValue" id="bankTotal">&#8369;0</div></div><div class="dashMetric"><div class="mLabel">Cash on Hand</div><div class="mValue" id="cashHandTotal">&#8369;0</div></div><div class="dashMetric"><div class="mLabel">E-Wallets</div><div class="mValue" id="walletTotal">&#8369;0</div></div><div class="dashMetric"><div class="mLabel">Cards</div><div class="mValue" id="cardTotal">&#8369;0</div></div></div><span id="netWorth" class="hide">&#8369;0</span><span id="cashTotal" class="hide">&#8369;0</span><span id="billsDue" class="hide">&#8369;0</span><span id="safeSpend" class="hide">&#8369;0</span><span id="healthSavingsDash" class="hide">--</span><span id="healthUtilDash" class="hide">--</span></section><section class="premiumPulse"><div class="pulseHead"><div><div class="label">Today's Pulse</div><h2>Activity at a glance</h2></div><span class="sub">Income  -  Expense  -  Transfer</span></div><div class="pulseGrid"><div><span>Income</span><b class="green" id="todayIncome">&#8369;0</b></div><div><span>Expense</span><b class="red" id="todayExpense">&#8369;0</b></div><div><span>Transfer</span><b id="todayTransfer">&#8369;0</b></div></div></section><div class="section premiumSection"><h2>Upcoming</h2><span class="sub">Bills and scheduled items</span></div><div class="premiumTimeline" id="upcoming"></div><div class="section premiumSection"><h2>Recent Activity</h2></div><div class="list premiumRecent" id="recent"></div></div><div id="search" class="screen"><div class="top"><div><div class="title">Search</div><div class="sub">Find transactions, accounts, notes, categories, and bills</div></div><button class="iconbtn settingsHomeBtn" onclick="go('dashboard',document.querySelectorAll('.nav button')[0])" aria-label="Go home" title="Home"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2M6 9.8V20h12V9.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div class="searchBox"><input class="searchInputBig" id="globalSearchInput" placeholder="Search BDO, coffee, salary, GCash..." oninput="renderGlobalSearch()"><div class="searchTabs"><button class="active" onclick="setSearchFilter('All',this)">All</button><button onclick="setSearchFilter('Transactions',this)">Transactions</button><button onclick="setSearchFilter('Accounts',this)">Accounts</button><button onclick="setSearchFilter('Bills',this)">Bills</button></div></div><div id="globalSearchResults"></div></div><div id="accounts" class="screen"><div class="top"><div><div class="title">Accounts</div><div class="sub">Only accounts you add appear here</div></div><button class="iconbtn" onclick="openAddAccount()">+</button></div><div class="chips"><button class="chip active" onclick="filterAccounts('All',this)">All</button><button class="chip" onclick="filterAccounts('Savings',this)">Banks</button><button class="chip" onclick="filterAccounts('Cash',this)">Cash</button><button class="chip" onclick="filterAccounts('Wallet',this)">Wallet</button><button class="chip" onclick="filterAccounts('Credit Card',this)">Credit</button><button class="chip" onclick="filterAccounts('Investment',this)">Invest</button></div><div class="grid" id="accountGrid"></div></div><div id="bills" class="screen"><div class="top"><div><div class="title">Bills</div><div class="sub">Credit cards, settlements, and recurring items</div></div></div><div class="section"><h2>Credit Card Center</h2><span class="sub">Statement and due dates</span></div><div class="ccGrid" id="creditCenter"><div class="billSetupCard ccFallback"><b>Credit Card Center needs a card account</b><p>Add or finish setting up a credit card account so statement dates, due dates, and settlement details can appear here.</p><button type="button" onclick="openAddCreditCard()">Add Credit Card</button></div></div><div class="list" id="billList"></div><div class="section"><h2>Recurring</h2><button class="ghost" onclick="openRecurring()">+ Add</button></div><div class="list" id="recurringList"></div></div><div id="reports" class="screen"><div class="top"><div><div class="title">Reports</div><div class="sub">Income vs Expense</div></div></div><div class="reportTabs"><button class="active" onclick="setReportPeriod('Today',this)">Day</button><button onclick="setReportPeriod('Week',this)">Week</button><button onclick="setReportPeriod('Month',this)">Month</button><button onclick="setReportPeriod('Year',this)">Year</button></div><section class="gm3-reportHero"><div class="section" style="margin:0 0 10px"><h2>Executive Summary</h2><span class="sub" id="gm3ReportRange">This period</span></div><div class="gm3-scorecard"><div class="gm3-score"><span>Savings Rate</span><b id="gm3SavingsRate">0%</b></div><div class="gm3-score"><span>Cash Flow</span><b id="gm3CashFlow">&#8369;0</b></div><div class="gm3-score"><span>Top Category</span><b id="gm3TopCategory">-</b></div><div class="gm3-score"><span>Activity</span><b id="gm3ActivityCount">0 entries</b></div></div><div class="gm3-pillrow" id="gm3ReportPills"></div></section><section class="gm3-story"><div class="sub">Financial Story</div><h3 id="gm3StoryTitle">Your period at a glance</h3><div class="gm3-story-grid"><div class="gm3-story-tile"><span>Income</span><b id="gm3StoryIncome">&#8369;0</b></div><div class="gm3-story-tile"><span>Expense</span><b id="gm3StoryExpense">&#8369;0</b></div><div class="gm3-story-tile"><span>Saved</span><b id="gm3StorySaved">&#8369;0</b></div><div class="gm3-story-tile"><span>Score</span><b id="gm3StoryScore">-</b></div></div><div class="gm3-story-list" id="gm3StoryLines"></div></section><section class="reportPanel"><h3>Analytics & Insights</h3><div class="analyticsHero" style="margin-top:0"><div class="healthWrap"><div class="healthRing" id="healthRingReport"><b id="healthScoreReport">--</b></div><div><div class="label">Financial Health Score</div><div class="name" id="healthLabelReport">Calculating</div><div class="sub" id="healthExplainReport">Based on this month's cash flow, card utilization, budgets, and unpaid bills.</div></div></div><div class="trendGrid"><div class="trendCard"><span>Savings Rate</span><b id="savingsRateReport">--</b><div class="spark" id="incomeSpark"></div></div><div class="trendCard"><span>Expense Trend</span><b id="expenseTrendReport">--</b><div class="spark" id="expenseSpark"></div></div></div></div><div class="monthCompare" id="monthCompareReport"></div><div id="smartAnalyticsReport"></div></section><section class="reportPanel"><h3>Top Categories</h3><div id="analyticsCategories"></div></section><section class="analyticsHero" id="analyticsHealthHero"><div class="healthRow"><div><div class="sub">Financial Health</div><div class="healthScore" id="premiumHealthScore">--</div><div class="sub" id="premiumHealthLabel">Analyzing your month</div></div><div class="healthRing" id="premiumHealthRing"><b id="premiumHealthRingText">--</b></div></div></section><section class="reportPanel"><div class="analyticsSectionTitle"><h3>Premium Analytics</h3><span class="analyticsBadge">Phase 4</span></div><div class="analyticsGrid"><div class="analyticsTile"><div class="small">Savings Rate</div><div class="big" id="premiumSavingsRate">0%</div><div class="miniChartLabel"><span>Income less expense</span><span id="premiumSavedAmount">&#8369;0</span></div></div><div class="analyticsTile"><div class="small">Monthly Comparison</div><div class="big" id="premiumMonthlyCompare">-</div><div class="miniChartLabel"><span>This month vs last</span><span id="premiumCompareDelta">&#8369;0</span></div></div></div><div class="analyticsTile"><div class="analyticsSectionTitle"><h3>6-Month Cash Flow</h3><span class="small">Income / Expense</span></div><div id="premiumTrendBars" class="trendBars"></div><div id="premiumTrendLabels" class="trendLabels"></div></div><div class="analyticsGrid"><div class="analyticsTile"><div class="analyticsSectionTitle"><h3>Top Categories</h3></div><div id="premiumCategoryViz" class="categoryViz"></div></div><div class="analyticsTile"><div class="analyticsSectionTitle"><h3>Spending Heatmap</h3><span class="small">This month</span></div><div id="premiumHeatmap" class="heatmap"></div></div></div><div class="coachCard"><div class="coachIcon">i</div><div class="coachText"><b id="premiumCoachTitle">Financial Coach</b><div class="sub" id="premiumCoachText">Add transactions to unlock personalized insights.</div></div></div></section><section class="reportPanel"><h3>Income vs Expense Trend</h3><div id="cashFlowBars"></div></section><section class="reportPanel"><h3>Spending by Category</h3><div id="categoryReport"></div></section><section class="reportPanel"><div class="panelHead"><h3>Monthly Budgets</h3><button class="tiny" onclick="openBudget()">+ Add</button></div><div id="budgetReport" class="budgetGrid"></div></section><section class="reportPanel"><h3>Smart Insights</h3><div id="insightReport" class="insightList"></div></section><section class="reportPanel"><h3>Income Sources</h3><div id="incomeReport"></div></section><section class="reportPanel"><h3>Account Activity</h3><div id="accountReport"></div></section><section class="reportPanel"><h3>Transactions</h3><input class="txnSearch" id="txnSearch" placeholder="Search account, category, amount..." oninput="renderTransactionsList()"><div id="transactionReport"></div></section><section class="reportPanel"><h3>Backup / Restore</h3><div class="backupGrid"><button class="backupBtn primary" onclick="exportBackup()">Export Backup</button><button class="backupBtn" onclick="importBackup()">Restore Backup</button><button class="backupBtn" onclick="exportReportCSV()">Export Report CSV</button><button class="backupBtn" onclick="exportTransactionsCSV()">Export Transactions CSV</button></div><input class="hide" id="restoreFile" type="file" accept="application/json" onchange="handleRestore(this)"><div class="mutedNote">Export saves your accounts, transactions, and bills as a JSON file. Restore replaces the current local data after confirmation.</div></section></div><div id="settings" class="screen"><div class="top"><div><div class="title">Settings</div><div class="sub">Categories, preferences, backup, and restore</div><div class="appVersionPill" id="appVersionPill">v3.55</div></div><button class="iconbtn settingsHomeBtn" onclick="go('dashboard',document.querySelectorAll('.nav button')[0])" aria-label="Go home" title="Home"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2M6 9.8V20h12V9.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><section class="reportPanel"><h3>Preferences</h3><div class="settingRow"><div><label>First day of week</label><div class="sub">Used by weekly reports</div></div><select class="field" id="weekStart" onchange="saveSettings()"><option value="1">Monday</option><option value="0">Sunday</option></select></div><div class="settingRow"><div><label>Currency</label><div class="sub">Display currency</div></div><select class="field" id="currencySetting" onchange="saveSettings()"><option value="PHP">PHP &#8369;</option></select></div></section><section class="reportPanel"><div class="panelHead"><h3>Categories</h3></div><div class="categoryGrid" id="settingsCategories"></div></section><section class="reportPanel"><h3>Backup / Restore</h3><div class="backupGrid"><button class="backupBtn primary" onclick="exportBackup()">Export Backup</button><button class="backupBtn" onclick="importBackup()">Restore Backup</button></div><div class="mutedNote">Your data is stored locally on this device. Export a dated backup before changing phones, clearing app data, or testing major changes.</div></section><section class="reportPanel dangerZone"><h3>Danger Zone</h3><div class="mutedNote">This permanently removes all local PesoTrack data on this browser.</div><button class="dangerBtn" onclick="resetAllData()">Reset All Data</button></section></div></main><div id="modalBackdrop" class="modalBackdrop" onclick="closeTopModal()"></div><div id="toast" class="toast">Saved</div><nav class="nav"><button class="active" onclick="go('dashboard',this)"><svg viewBox="0 0 24 24" fill="none"><path d="M4 11.2 12 4l8 7.2M6 9.8V20h12V9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Home</span></button><button onclick="go('bills',this)"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4.5" width="16" height="15" rx="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 9h9M7.5 12.5h9M7.5 16h5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Bills</span></button><button class="fab" onclick="openTxn()" aria-label="Add transaction"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg></button><button onclick="go('accounts',this)"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6.5" width="17" height="12" rx="2.3" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10.5h17" stroke="currentColor" stroke-width="1.8"/></svg><span>Accounts</span></button><button onclick="go('reports',this)"><svg viewBox="0 0 24 24" fill="none"><path d="M5 19.5V13M12 19.5V7M19 19.5v-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Reports</span></button></nav><section id="txnSheet" class="sheet"><div class="top"><div class="title" id="txnTitle">Add Transaction</div><button class="ghost" onclick="closeSheets()">Cancel</button></div><div class="seg"><button class="active" onclick="setTxnType('Expense',this)">Expense</button><button onclick="setTxnType('Income',this)">Income</button><button onclick="setTxnType('Transfer',this)">Transfer</button></div><div class="pick" id="txnPick"></div><div class="txnUtilityRow"><label class="txnDatePill" for="txnDate"><span>Date</span><input id="txnDate" type="date"></label><button type="button" class="txnNoteToggle" id="txnNoteToggle" onclick="toggleTxnNote()">+ Note</button></div><input class="field txnNoteField collapsed" id="txnNote" placeholder="Note (optional)"><div class="display" id="amtDisplay">&#8369;0</div><div class="pad" id="pad"></div><button class="save" id="txnSaveBtn">Save Transaction</button><button class="dangerBtn hide" id="txnDeleteBtn" onclick="deleteEditingTxn()">Delete Transaction</button></section><section id="accountSheet" class="sheet"><div class="top"><div class="title" id="acctTitle">Add Account</div><button class="ghost" onclick="closeSheets()">Cancel</button></div><select class="field" id="atype" onchange="renderAccountFields()"><option>Savings</option><option>Credit Card</option><option>Wallet</option><option>Investment</option><option>Cash</option></select><div class="logoPickLabel">Choose a bank</div><div class="logoPickGrid" id="logoPickGrid"></div><input type="hidden" id="instLogo" value="otherbank"><input class="field" id="inst" placeholder="Bank / institution name, e.g. BPI, GCash, Maya" oninput="autoPickLogo(this.value)"><input class="field" id="aname" placeholder="Account name, e.g. Payroll"><div id="dynamicFields"></div><button class="save" onclick="saveAccount()">Save Account</button></section><section id="settleSheet" class="sheet"><div class="top"><div class="title">Settle Bill</div><button class="ghost" onclick="closeSheets()">Cancel</button></div><div id="settleBody"></div></section><section id="accountDetailSheet" class="sheet"><div class="top"><div class="title">Account Details</div><button class="ghost" onclick="closeSheets()">Close</button></div><div id="accountDetailBody"></div></section><section id="recurringSheet" class="sheet"><div class="top"><div class="title" id="recTitle">Add Recurring</div><button class="ghost" onclick="closeSheets()">Cancel</button></div><div class="recNote">Create monthly items like salary, subscriptions, MP2, utilities, or recurring card purchases. Nothing is added automatically; tap Pay or Received when it is done.</div><label class="small">Type</label><select class="field" id="recType" onchange="renderRecurringFields()"><option>Income</option><option>Expense</option></select><input class="field" id="recName" placeholder="Name, e.g. Salary or Netflix"><div id="recDynamic"></div><label class="small">Amount</label><input class="field" id="recAmount" type="number" placeholder="Amount"><label class="small">Day of month</label><input class="field" id="recDay" type="number" min="1" max="31" placeholder="e.g. 15"><label class="toggleRow"><input type="checkbox" id="recEnabled" checked><span><b>Enabled</b><div class="sub">Show every month until paid</div></span></label><button class="save" onclick="saveRecurring()">Save Recurring</button><button class="dangerBtn hide" id="recDeleteBtn" onclick="deleteRecurring()">Delete Recurring</button></section><section id="budgetSheet" class="sheet"><div class="top"><div class="title" id="budgetTitle">Add Budget</div><button class="ghost" onclick="closeSheets()">Cancel</button></div><div class="recNote">Set a monthly spending limit by category. Budgets compare against expenses for the current month.</div><label class="small">Category</label><select class="field" id="budgetCategory"><option>Food</option><option>Groceries</option><option>Transport</option><option>Shopping</option><option>Bills</option><option>Utilities</option><option>Health</option><option>Subscription</option><option>MP2</option><option>Investment</option><option>Transfer Fees</option><option>Other</option></select><label class="small">Monthly Limit</label><input class="field" id="budgetAmount" type="number" placeholder="e.g. 8000"><button class="save" onclick="saveBudget()">Save Budget</button><button class="dangerBtn hide" id="budgetDeleteBtn" onclick="deleteBudget()">Delete Budget</button></section><section id="pickerSheet" class="sheet"><div class="sheetHead"><div><div class="title" id="pickerTitle">Choose</div><div class="sub" id="pickerSub">Select from your saved items</div></div><button class="ghost" onclick="closePicker()">Cancel</button></div><input class="search" id="pickerSearch" placeholder="Search" oninput="renderPicker()"><div id="pickerList"></div></section><script src="./app.js?v=179"></script></body></html>
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="#1e3a5f" name="theme-color"/>
+<title>Villacart POS v7.2.68</title>
+
+<link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
+
+<!-- PWA Manifest & Service Worker Setup -->
+<link rel="manifest" href="manifest.webmanifest?v=7.2.68"/>
+<meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
+<script>
+        (function() {
+            window.VILLACART_EXPECTED_VERSION = 'v7.2.68';
+            window.__villacartUpdateAvailable = false;
+            window.__villacartSWRegistration = null;
+            window.vcReloadApp = function() {
+                try {
+                    var reg = window.__villacartSWRegistration;
+                    if (reg && reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                } catch (e) {}
+                setTimeout(function(){ window.location.reload(); }, 120);
+            };
+            if ('serviceWorker' in navigator) {
+                var refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (refreshing) return;
+                    refreshing = true;
+                    window.location.reload();
+                });
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('sw.js?v=7.2.68').then(function(reg) {
+                        window.__villacartSWRegistration = reg;
+                        if (reg.waiting) window.__villacartUpdateAvailable = true;
+                        reg.addEventListener('updatefound', function() {
+                            var worker = reg.installing;
+                            if (!worker) return;
+                            worker.addEventListener('statechange', function() {
+                                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    window.__villacartUpdateAvailable = true;
+                                    if (typeof showToast === 'function') showToast('App update ready. Open Diagnostics > Reload App.', 'info');
+                                }
+                            });
+                        });
+                    }).catch(err => console.log('SW registration failed:', err));
+                });
+            }
+        })();
+    </script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#1e3a5f",
+                    "on-primary": "#ffffff",
+                    "secondary": "#006e2d",
+                    "on-secondary": "#ffffff",
+                    "background": "#f0f4f8", 
+                    "surface": "#ffffff",
+                    "surface-container": "#eff4ff",
+                    "border-subtle": "#e2e8f0",
+                    "on-surface": "#0b1c30",
+                    "on-surface-variant": "#43474e",
+                    "error": "#ba1a1a",
+                    "primary-container": "#d5e3ff",
+                    "on-primary-container": "#001c3b",
+                    "accent-violet": "#7c3aed",
+                    "brand-yellow": "#facc15"
+            },
+            "borderRadius": {
+                    "DEFAULT": "8px",
+                    "lg": "12px",
+                    "xl": "16px",
+                    "2xl": "20px",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "12px",
+                    "base": "4px",
+                    "touch-target": "44px",
+                    "gutter": "12px",
+                    "stack-sm": "6px",
+                    "margin-tablet": "20px",
+                    "stack-lg": "20px",
+                    "stack-md": "12px"
+            },
+            "fontFamily": {
+                    "sans": ["Inter", "system-ui", "-apple-system", "sans-serif"],
+                    "headline-lg": ["Inter", "sans-serif"],
+                    "label-sm": ["Inter", "sans-serif"],
+                    "body-lg": ["Inter", "sans-serif"],
+                    "price-display": ["Inter", "sans-serif"],
+                    "num-monospace": ["monospace"],
+                    "body-md": ["Inter", "sans-serif"],
+                    "headline-md": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<link rel="stylesheet" href="styles.css?v=7.2.68"/>
+</head>
+<body class="selection:bg-primary-container selection:text-primary text-sm">
+<!-- Toast Notification Container -->
+<div class="fixed top-4 right-4 z-[250] pointer-events-none flex flex-col gap-2" id="toast-container"></div>
+<!-- Top Navigation Bar -->
+<header class="vc551-header fixed top-0 left-0 right-0 z-50">
+    <div class="vc551-inner">
+        <div class="vc551-brand">
+            <img class="vc551-logo" src="assets/icons/villacart-logo.svg" alt="Villacart POS"/>
+            <div class="vc551-copy">
+                <div class="vc551-title-row">
+                    <h1>VILLACART POS</h1>
+                    <span class="vc551-version">v7.2.68</span>
+                </div>
+                <p id="vc551-date">Today</p>
+            </div>
+        </div>
+
+        <div class="vc551-actions">
+            <button class="vc551-pill" id="vc551-day-pill" onclick="showBusinessDayInfo()" title="Business Day">
+                <span class="vc551-dot"></span><span id="vc551-day-text">OPEN</span>
+            </button>
+            <button class="vc551-pill" id="vc551-sync-pill" onclick="showSyncInfo()" title="Cloud Sync">
+                <span class="vc551-dot"></span><span id="vc551-sync-text">ONLINE</span>
+            </button>
+            <button class="vc551-bell" onclick="showNotifications()" id="vc551-notif-bell" title="Alerts">
+                <span class="material-symbols-outlined">notifications</span>
+                <span class="vc551-alert-dot hidden" id="vc551-notif-dot"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden compatibility targets used by older sync/business-day code. Not displayed, so they cannot flicker the visible header. -->
+    <span class="hidden" id="business-day-pill"></span>
+    <span class="hidden" id="business-day-dot"></span>
+    <span class="hidden" id="business-day-text">OPEN</span>
+    <span class="hidden" id="sync-pill"></span>
+    <span class="hidden" id="sync-dot"></span>
+    <span class="hidden" id="sync-spinner"></span>
+    <span class="hidden" id="sync-text">ONLINE</span>
+    <span class="hidden" id="queue-badge">0</span>
+    <span class="hidden" id="notif-bell"></span>
+    <span class="hidden" id="notif-dot"></span>
+    <span class="hidden" id="sync-timestamp">Last Sync • --:--</span>
+    <span class="hidden" id="sync-error-label">Sync Error</span>
+</header>
+<!-- Navigation - Adaptive Rail/Bottom -->
+<nav class="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border-subtle flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:flex-col md:left-0 md:bottom-0 md:bottom-0 md:w-20 md:h-auto md:justify-start md:pt-6 md:gap-8 md:border-t-0 md:border-r">
+<button class="nav-item nav-active flex flex-col items-center justify-center gap-1 text-primary transition-all active-scale" data-screen="pos" onclick="switchScreen('pos')">
+<span class="material-symbols-outlined text-[24px]">point_of_sale</span>
+<span class="text-[9px] font-bold uppercase">Terminal</span>
+</button>
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant transition-all active-scale" data-screen="inventory" onclick="attemptInventoryAccess()">
+<span class="material-symbols-outlined text-[24px]">inventory_2</span>
+<span class="text-[9px] font-bold uppercase">Stock</span>
+</button>
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant transition-all active-scale" data-screen="history" onclick="switchScreen('history')">
+<span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
+<span class="text-[9px] font-bold uppercase">Ledger</span>
+</button>
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant transition-all active-scale" data-screen="insights" onclick="switchScreen('insights')">
+<span class="material-symbols-outlined text-[24px]">monitoring</span>
+<span class="text-[9px] font-bold uppercase">Insights</span>
+</button>
+<button class="nav-item flex flex-col items-center justify-center gap-1 text-on-surface-variant transition-all active-scale" data-screen="business" onclick="switchScreen('business')">
+<span class="material-symbols-outlined text-[24px]">calendar_month</span>
+<span class="text-[9px] font-bold uppercase">Business</span>
+</button>
+</nav>
+<main class="pt-[64px] pb-24 md:pb-6 md:pl-20 min-h-screen">
+<!-- TERMINAL SCREEN -->
+<div class="screen-transition p-3 lg:p-6 lg:max-h-[calc(100vh-56px)]" id="screen-pos">
+<div class="lg:grid lg:grid-cols-[1fr_400px] lg:gap-6 lg:items-start max-w-[1400px] mx-auto h-full">
+<!-- Left Column: Search & Favorites -->
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-3">
+<div class="relative group w-full">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[22px] group-focus-within:text-primary">search</span>
+<input class="w-full pl-12 pr-14 py-4 bg-surface border border-border-subtle rounded-2xl focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm font-medium shadow-sm" id="pos-search" oninput="handlePosSearch(this.value)" placeholder="Search or scan barcode..." type="text"/>
+<button id="clear-search-btn" class="hidden absolute right-14 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-on-surface-variant" onclick="const s=document.getElementById('pos-search');s.value='';handlePosSearch('');s.blur();this.classList.add('hidden');"><span class="material-symbols-outlined">close</span></button>
+<button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary active-scale w-10 h-10 flex items-center justify-center bg-primary-container rounded-xl" onclick="togglePosScanner()" id="pos-scan-btn" title="Scan Barcode">
+<span class="material-symbols-outlined text-[22px]">barcode_scanner</span>
+</button>
+</div>
+<div class="hidden bg-black rounded-2xl overflow-hidden relative mt-2" id="pos-cam-area-container">
+<div id="pos-cam-area" style="width:100%;min-height:180px;"></div>
+<button class="absolute top-2 right-2 bg-error text-white p-1 rounded-full z-[61]" onclick="stopPosScanner()"><span class="material-symbols-outlined text-sm">close</span></button>
+</div>
+<div class="hidden absolute top-[140px] lg:top-[120px] left-3 right-3 lg:left-auto lg:w-[calc(100%-480px)] lg:max-w-[800px] bg-surface border border-border-subtle rounded-2xl shadow-2xl z-[60] max-h-[60vh] overflow-y-auto custom-scrollbar p-2" id="search-results-container">
+<div class="divide-y divide-border-subtle" id="product-grid"></div>
+</div>
+<!-- Favorites Section -->
+<div class="mt-2">
+<div class="flex items-center justify-between px-1 mb-3">
+<p class="text-[10px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2">
+<span class="w-1 h-3 bg-brand-yellow rounded-full"></span>
+                                Favorite Items
+                            </p>
+<button class="text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors" id="fav-mode-btn" onclick="toggleFavoritesMode()">Edit Slots</button>
+</div>
+<div class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3" id="favorites-grid"></div>
+</div>
+<div class="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-primary/60 mt-2 hidden" id="pos-scanner-active-label">
+<span class="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+                        Scanner Active
+                    </div>
+</div>
+</div>
+<!-- Right Column: Current Order/Cart -->
+<div class="lg:sticky lg:top-4 bg-surface rounded-3xl border border-border-subtle flex flex-col shadow-lg overflow-hidden mt-4 lg:mt-0 lg:h-[calc(100vh-100px)]">
+<div class="px-5 py-4 bg-primary text-on-primary flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+<h2 class="font-bold text-sm uppercase tracking-wider">Current Order</h2>
+<span id="cart-count-pill" class="min-w-7 h-7 px-2 rounded-full bg-white/15 border border-white/20 text-white text-xs font-black flex items-center justify-center leading-none" aria-label="Current order item count">0</span>
+</div>
+<button class="bg-white/10 text-white font-bold text-[10px] px-4 py-2 rounded-xl uppercase transition-colors active-scale" onclick="clearCart(event)">Clear</button>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3" id="cart-items"></div>
+<div class="p-6 bg-surface border-t border-border-subtle space-y-4">
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-semibold text-on-surface-variant">
+<span>Subtotal</span>
+<span id="cart-subtotal">₱0.00</span>
+</div>
+<div class="hidden flex justify-between text-xs font-bold text-error" id="cart-discount-row">
+<span>Discount</span>
+<span id="cart-discount">-₱0.00</span>
+</div>
+<button class="w-full h-10 rounded-xl border border-dashed border-primary/30 text-primary text-xs font-black uppercase tracking-wider active-scale" id="cart-discount-btn" onclick="setCartDiscount()">Add Discount</button>
+<div class="flex justify-between items-baseline pt-3 border-t border-border-subtle mt-2">
+<span class="font-bold text-sm uppercase text-primary">Total Amount</span>
+<span class="text-3xl font-black text-primary tracking-tighter" id="cart-total">₱0.00</span>
+</div>
+</div>
+<button class="w-full bg-secondary text-on-secondary h-16 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 active-scale shadow-xl hover:bg-secondary/90 transition-all" onclick="openReview()">
+<span class="material-symbols-outlined text-[28px]">payments</span>
+                        Process Payment
+                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- STOCK SCREEN -->
+<div class="screen-transition hidden p-4 lg:p-8 max-w-[1400px] mx-auto" id="screen-inventory">
+<div class="flex flex-col gap-6 mb-8">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-2xl font-black text-primary uppercase">Stock Inventory</h2>
+<p class="text-on-surface-variant text-sm font-medium">Manage your product catalog</p>
+</div>
+<div class="flex flex-wrap justify-end gap-2">
+<button id="refresh-stock-btn" class="bg-primary/10 text-primary h-12 px-4 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale border border-primary/10" onclick="refreshStockFromCloud()" title="Refresh stock from Firestore">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+<span>Refresh Stock</span>
+</button>
+<button class="bg-primary text-on-primary h-12 px-6 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale shadow-lg" onclick="openProductModal()">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+                    Add Product
+                </button>
+</div>
+<button class="bg-primary/10 text-primary h-12 px-4 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale" onclick="exportInventoryCSV()" title="Export Inventory">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+<button class="bg-primary/10 text-primary h-12 px-4 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale" onclick="openPinModal('change-pin')" title="Change PIN">
+<span class="material-symbols-outlined text-[20px]">key</span>
+</button>
+</div>
+<div class="hidden bg-yellow-50 border-2 border-yellow-200 p-5 rounded-2xl flex items-center gap-4 shadow-sm" id="low-stock-alert">
+<div class="bg-yellow-100 p-2 rounded-xl">
+<span class="material-symbols-outlined text-yellow-600">warning</span>
+</div>
+<p class="text-sm font-bold text-yellow-800" id="low-stock-alert-text">0 items are low on stock!</p>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[22px]">search</span>
+<input id="stock-search" class="w-full pl-12 pr-4 py-3.5 bg-surface border border-border-subtle rounded-2xl focus:border-primary transition-all text-sm font-medium shadow-sm" oninput="renderInventory(this.value)" placeholder="Search inventory by name, barcode, or category..." type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="inventory-list"></div>
+</div>
+<!-- LEDGER SCREEN -->
+<div class="screen-transition hidden p-4 lg:p-8 max-w-[1400px] mx-auto" id="screen-history">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h2 class="text-2xl font-black text-primary uppercase">Transactions</h2>
+<p class="text-on-surface-variant text-sm font-medium">Manage cash, credits, and expenses</p>
+</div>
+<button class="bg-error text-white h-11 px-5 rounded-2xl font-bold text-xs uppercase flex items-center gap-2 active-scale shadow-lg" onclick="openExpenseModal()">
+<span class="material-symbols-outlined text-[18px]">remove_circle</span>
+                Record Expense
+            </button>
+</div>
+<div class="flex bg-surface-container p-1.5 rounded-2xl mb-8 max-w-md">
+<button class="flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="tab-cash" onclick="switchLedgerTab('cash')">Cash Sales</button>
+<button class="flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="tab-credit" onclick="switchLedgerTab('credit')">Credits</button>
+<button class="flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="tab-expense" onclick="switchLedgerTab('expense')">Expenses</button>
+</div>
+<div class="mb-6 max-w-md" id="ledger-summary-container"></div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 relative" id="ledger-content"></div>
+</div>
+<!-- INSIGHTS -->
+<div class="screen-transition hidden p-4 lg:p-8 max-w-[1400px] mx-auto" id="screen-insights">
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<h2 class="text-2xl font-black text-primary uppercase">Analytics &amp; Reports</h2>
+<div class="flex flex-wrap gap-2">
+<button class="bg-on-surface-variant/10 text-on-surface-variant h-11 px-4 sm:px-5 rounded-2xl font-bold text-[10px] sm:text-xs uppercase flex items-center gap-2 active-scale border border-border-subtle" onclick="troubleshootConnection()">
+<span class="material-symbols-outlined text-[18px] sm:text-[20px]">refresh</span>
+                    Troubleshoot
+                </button>
+<button class="bg-secondary text-white h-11 px-4 sm:px-5 rounded-2xl font-bold text-[10px] sm:text-xs uppercase flex items-center gap-2 active-scale shadow-md" onclick="exportSalesCSV()">
+<span class="material-symbols-outlined text-[18px] sm:text-[20px]">download</span>
+                    Export CSV
+                </button>
+<button class="bg-primary/10 text-primary h-11 px-4 sm:px-5 rounded-2xl font-bold text-[10px] sm:text-xs uppercase flex items-center gap-2 active-scale border border-border-subtle" onclick="showStoreClosingSummary()">
+<span class="material-symbols-outlined text-[18px] sm:text-[20px]">summarize</span>
+                    Closing
+                </button>
+</div>
+</div>
+<div class="flex bg-surface-container p-1.5 rounded-2xl mb-6 max-w-md">
+<button class="flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-tight ledger-tab-active transition-all" id="insight-tab-day" onclick="switchInsightPeriod('day')">Day</button>
+<button class="flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="insight-tab-month" onclick="switchInsightPeriod('month')">Month</button>
+<button class="flex-1 py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-tight text-on-surface-variant transition-all" id="insight-tab-range" onclick="switchInsightPeriod('range')">Range</button>
+</div>
+<div class="hidden grid grid-cols-2 gap-4 mb-8 max-w-md" id="date-range-controls">
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1.5">Start Date</label>
+<input class="w-full py-2 px-3 text-xs font-bold border-border-subtle rounded-xl" id="insight-start-date" onchange="renderInsights()" type="date"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1.5">End Date</label>
+<input class="w-full py-2 px-3 text-xs font-bold border-border-subtle rounded-xl" id="insight-end-date" onchange="renderInsights()" type="date"/>
+</div>
+</div>
+
+
+<div class="business-day-status-card mb-6" id="business-day-status-card">
+<div class="flex items-center justify-between gap-3">
+<div>
+<p class="text-[10px] font-black uppercase tracking-widest text-primary/60">Business Day</p>
+<h3 class="font-black text-xl text-primary leading-tight" id="bd-status-title">No active business day</h3>
+<p class="text-xs font-bold text-on-surface-variant mt-1" id="bd-status-subtitle">First transaction will start the business day automatically.</p>
+</div>
+<div class="business-day-status-badge" id="bd-status-badge">AUTO</div>
+</div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8" id="business-dashboard-cards">
+<div class="business-card business-card-sales">
+<p class="business-label">Total Sales</p>
+<h3 class="business-value" id="biz-total-sales">₱0.00</h3>
+<p class="business-sub">Cash + Credit Sales Today</p>
+</div>
+<div class="business-card business-card-cash">
+<p class="business-label">Cash Received Today</p>
+<h3 class="business-value" id="biz-cash-in">₱0.00</h3>
+<p class="business-sub">Cash Sales + Credit Payments</p>
+</div>
+<div class="business-card business-card-credit">
+<p class="business-label">Credit Sales Today</p>
+<h3 class="business-value" id="biz-credit-sales">₱0.00</h3>
+<p class="business-sub">Sales made on credit today</p>
+</div>
+<div class="business-card business-card-outstanding">
+<p class="business-label">Outstanding Credit</p>
+<h3 class="business-value" id="biz-outstanding-credit">₱0.00</h3>
+<p class="business-sub">Amount still owed by customers</p>
+</div>
+</div>
+
+<div class="vc560-quick-grid" id="vc560-quick-metrics"></div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+<div class="bg-primary text-white p-7 rounded-[32px] shadow-xl lg:col-span-1">
+<p class="text-white/70 text-[11px] font-bold uppercase tracking-widest mb-1.5" id="insight-revenue-label">Gross Sales (Cash + Credit) (Today)</p>
+<h3 class="text-4xl font-black" id="daily-revenue">₱0.00</h3>
+<div class="mt-6 pt-6 border-t border-white/10 grid grid-cols-2 gap-6">
+<div>
+<p class="text-white/60 text-[10px] font-bold uppercase">Net Profit</p>
+<p class="text-xl font-black" id="daily-profit">₱0.00</p>
+</div>
+<div class="text-right">
+<p class="text-white/60 text-[10px] font-bold uppercase">Profit Margin</p>
+<p class="text-xl font-black" id="daily-margin">0%</p>
+</div>
+</div>
+</div>
+<div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm hover:shadow-md transition-all">
+<p class="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-1.5">Cost of Goods (COGS)</p>
+<h3 class="text-2xl font-black text-primary" id="daily-cogs">₱0.00</h3>
+</div>
+<div class="bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm hover:shadow-md transition-all">
+<p class="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-1.5">Operating Expenses</p>
+<h3 class="text-2xl font-black text-error" id="daily-expenses">₱0.00</h3>
+</div>
+<div class="bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm hover:shadow-md transition-all sm:col-span-2">
+<div class="flex justify-between items-center">
+<div>
+<p class="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-1.5">Asset Value (Stock)</p>
+<h3 class="text-2xl font-black text-primary" id="inventory-value">₱0</h3>
+</div>
+<div class="text-right">
+<span class="bg-primary/5 px-4 py-1.5 rounded-full text-[11px] text-primary font-black uppercase" id="inventory-count">0 items</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+<div class="xl:col-span-2 bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm">
+<p class="text-[10px] font-black uppercase text-primary/60 mb-4 tracking-widest">Sales Trend</p>
+<canvas id="sales-chart" height="80"></canvas>
+</div>
+<div class="space-y-3" id="insight-transactions-list"></div>
+<div class="bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm">
+<p class="text-[10px] font-black uppercase text-primary/60 mb-4 tracking-widest">Top Selling Products</p>
+<div class="space-y-2" id="best-sellers-list"></div>
+</div>
+<div class="hidden bg-yellow-50 border-2 border-yellow-200 p-6 rounded-[32px] flex flex-col gap-4" id="restock-alerts-container">
+<div class="flex items-center gap-3 text-yellow-800 font-black text-base uppercase tracking-tight">
+<div class="bg-yellow-200 p-2 rounded-xl">
+<span class="material-symbols-outlined text-yellow-600">notification_important</span>
+</div>
+<span>Urgent Restock Needed</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="insight-low-stock-list"></div>
+</div>
+</div>
+</div>
+
+<!-- BUSINESS SCREEN -->
+<div class="screen-transition hidden p-4 lg:p-8 max-w-[1400px] mx-auto" id="screen-business">
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<div>
+<h2 class="text-2xl font-black text-primary uppercase">Business Calendar</h2>
+<p class="text-on-surface-variant text-sm font-medium">Monthly performance from closed business days</p>
+</div>
+<div class="business-calendar-controls">
+<div class="business-calendar-action-row">
+<button id="vc710-backup-old-btn" class="business-calendar-action-btn bg-primary/10 text-primary border-primary/10" onclick="backupOldCalendarData()" title="Backup old calendar-month data">
+<span class="material-symbols-outlined text-[18px]">archive</span> Backup Old Data
+</button>
+<button id="vc710-load-backup-btn" class="business-calendar-action-btn bg-primary/10 text-primary border-primary/10" onclick="loadBackupArchive()" title="Load backup locally only">
+<span class="material-symbols-outlined text-[18px]">upload_file</span> Load Backup
+</button>
+<button id="vc7250-refresh-businessdays-btn" class="business-calendar-action-btn bg-success/10 text-success border-success/10" onclick="refreshBusinessDaysOnly()" title="Refresh business days only">
+<span class="material-symbols-outlined text-[18px]">event_repeat</span> Refresh Days
+</button>
+<button id="vc7236-clean-businessdays-btn" class="business-calendar-action-btn bg-error/10 text-error border-error/10" onclick="vc7236CleanupBusinessDays()" title="Move duplicate business days back to one calendar day">
+<span class="material-symbols-outlined text-[18px]">cleaning_services</span> Clean Days
+</button>
+</div>
+<input id="vc710-load-backup-input" type="file" accept="application/json,.json" class="hidden" onchange="vc710HandleBackupFile(this)">
+<div class="business-calendar-month-row">
+<button class="business-month-btn" onclick="changeBusinessMonth(-1)" aria-label="Previous month">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<div class="business-month-title" id="business-month-title">Month YYYY</div>
+<button class="business-month-btn" onclick="changeBusinessMonth(1)" aria-label="Next month">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+
+<div id="vc728-archive-safety" class="mb-5 rounded-[2rem] bg-white/80 border border-border-subtle p-4 shadow-sm"></div>
+
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="business-month-summary">
+<div class="business-stat-card"><p>Business Days</p><h3 id="month-business-days">0</h3></div>
+<div class="business-stat-card"><p>Total Sales</p><h3 id="month-total-sales">₱0.00</h3></div>
+<div class="business-stat-card"><p>Net Profit</p><h3 id="month-net-profit">₱0.00</h3></div>
+<div class="business-stat-card"><p>Transactions</p><h3 id="month-transactions">0</h3></div>
+</div>
+
+<div class="business-shell">
+<div class="business-week-header">
+<span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+</div>
+<div class="business-calendar-grid" id="business-calendar-grid"></div>
+</div>
+
+<div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+<div class="business-insight-card lg:col-span-1">
+<p class="business-label">Best Sales Day</p>
+<h3 id="business-best-day">—</h3>
+<span id="business-best-day-sub">No closed business days yet</span>
+</div>
+<div class="business-insight-card lg:col-span-1">
+<p class="business-label">Average Sales / Day</p>
+<h3 id="business-average-day">₱0.00</h3>
+<span>Based on business days this month</span>
+</div>
+<div class="business-insight-card lg:col-span-1">
+<p class="business-label">Latest Closed Day</p>
+<h3 id="business-latest-day">—</h3>
+<span id="business-latest-day-sub">No records yet</span>
+</div>
+</div>
+</div>
+
+</main>
+<!-- SCAN CHOICE MODAL -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[230] hidden items-center justify-center p-4" id="scan-choice-modal">
+<div class="bg-surface w-full max-w-[340px] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+<div class="p-5 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+<h3 class="font-black text-xs uppercase tracking-wider">Scanning Choice</h3>
+</div>
+<button class="material-symbols-outlined hover:bg-white/10 rounded-full w-8 h-8 flex items-center justify-center transition-colors" onclick="closeModal('scan-choice-modal')">close</button>
+</div>
+<div class="p-6 text-center">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Product Detected</p>
+<h4 class="text-xl font-black text-primary leading-tight mb-6 uppercase" id="scan-choice-name">Product Name</h4>
+<div class="flex flex-col gap-3">
+<button class="w-full bg-surface-container hover:bg-primary/5 border-2 border-border-subtle p-4 rounded-2xl flex items-center justify-between group transition-all active-scale" id="scan-choice-piece-btn">
+<div class="text-left">
+<p class="text-[9px] font-black uppercase text-on-surface-variant/60">Retail</p>
+<p class="text-base font-black text-on-surface uppercase">Add Piece</p>
+</div>
+<p class="text-lg font-black text-primary" id="scan-choice-piece-price">₱0</p>
+</button>
+<button class="w-full bg-secondary/5 hover:bg-secondary/10 border-2 border-secondary/20 p-4 rounded-2xl flex items-center justify-between group transition-all active-scale" id="scan-choice-pack-btn">
+<div class="text-left">
+<p class="text-[9px] font-black uppercase text-secondary/60" id="scan-choice-pack-label">Wholesale (0 pcs)</p>
+<p class="text-base font-black text-secondary uppercase">Add Pack</p>
+</div>
+<p class="text-lg font-black text-secondary" id="scan-choice-pack-price">₱0</p>
+</button>
+</div>
+</div>
+<div class="p-4 bg-surface-container/30 text-center">
+<button class="text-[10px] font-black text-on-surface-variant/40 uppercase hover:text-error transition-colors" onclick="closeModal('scan-choice-modal')">Cancel Operation</button>
+</div>
+</div>
+</div>
+<!-- FAVORITES PICKER MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[220] hidden items-center justify-center p-4" id="fav-picker-modal">
+<div class="bg-surface w-full max-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+<div class="p-4 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<h3 class="font-black text-xs uppercase" id="fav-picker-title">Assign Favorite Slot</h3>
+<button class="material-symbols-outlined" onclick="closeModal('fav-picker-modal')">close</button>
+</div>
+<div class="p-3 border-b border-border-subtle bg-surface-container/50">
+<input class="w-full px-3 py-2 border rounded-lg text-sm font-medium" id="fav-picker-search" oninput="renderFavPickerList(this.value)" placeholder="Search products..." type="text"/>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1" id="fav-picker-list"></div>
+<div class="p-3 border-t border-border-subtle text-center">
+<div class="flex gap-2">
+<button class="flex-1 bg-surface-container text-xs font-black text-error uppercase py-2 rounded-lg hover:bg-error/10 transition-colors" onclick="clearFavoriteSlot()">Clear Slot</button>
+<button class="flex-1 bg-error/10 text-xs font-black text-error uppercase py-2 rounded-lg hover:bg-error/20 transition-colors hidden" id="fav-remove-slot-btn" onclick="removeFavoriteSlotAction()">Delete Slot</button>
+</div>
+</div>
+</div>
+</div>
+<!-- FAVORITE COLOR MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[221] hidden items-center justify-center p-4" id="fav-color-modal">
+<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+<div class="p-4 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<h3 class="font-black text-xs uppercase">Favorite Color</h3>
+<button class="material-symbols-outlined" onclick="closeModal('fav-color-modal')">close</button>
+</div>
+<div class="p-4">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Choose a soft background</p>
+<div class="grid grid-cols-4 gap-2" id="fav-color-palette"></div>
+<button class="w-full mt-4 bg-surface-container text-primary border border-border-subtle rounded-2xl h-11 text-xs font-black uppercase active-scale" onclick="clearFavoriteColor()">Use Default White</button>
+</div>
+</div>
+</div>
+<!-- NOTIFICATIONS PANEL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[180] hidden items-start justify-end p-4 pt-16" id="notif-panel" onclick="closeModal('notif-panel')">
+<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+<div class="p-4 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<h3 class="font-black text-xs uppercase">Notifications</h3>
+<button class="material-symbols-outlined text-[20px]" onclick="closeModal('notif-panel')">close</button>
+</div>
+<div class="divide-y divide-border-subtle max-h-[60vh] overflow-y-auto custom-scrollbar" id="notif-list">
+<div class="p-6 text-center text-xs opacity-40 font-bold uppercase">All clear!</div>
+</div>
+</div>
+</div>
+<!-- CHANGE PIN MODAL -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[210] hidden items-center justify-center p-4" id="change-pin-modal">
+<div class="bg-surface w-full max-w-[320px] rounded-2xl shadow-2xl p-6 flex flex-col items-center text-center">
+<div class="w-14 h-14 bg-primary-container text-primary rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-[28px]">key</span>
+</div>
+<h3 class="font-black text-base text-primary uppercase mb-1">Change PIN</h3>
+<p class="text-xs text-on-surface-variant mb-4" id="change-pin-msg">Enter your new 4-digit PIN</p>
+<div class="flex gap-3 mb-6">
+<div class="w-4 h-4 rounded-full border-2 border-primary-container" id="new-dot-0"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container" id="new-dot-1"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container" id="new-dot-2"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container" id="new-dot-3"></div>
+</div>
+<div class="grid grid-cols-3 gap-3 w-full">
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('1')">1</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('2')">2</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('3')">3</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('4')">4</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('5')">5</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('6')">6</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('7')">7</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('8')">8</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('9')">9</button>
+<button class="h-14 bg-error/10 text-error rounded-xl font-bold text-sm active-scale" onclick="clearNewPin()">CLR</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressNewPin('0')">0</button>
+<button class="h-14 bg-on-surface-variant/10 text-on-surface-variant rounded-xl font-bold text-sm active-scale" onclick="closeModal('change-pin-modal')">ESC</button>
+</div>
+</div>
+</div>
+<!-- PIN MODAL -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] hidden items-center justify-center p-4" id="pin-modal">
+<div class="bg-surface w-full max-w-[320px] rounded-2xl shadow-2xl p-6 flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-primary-container text-primary rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-[32px]">lock</span>
+</div>
+<h3 class="font-black text-lg text-primary uppercase mb-1">Restricted</h3>
+<p class="text-xs text-on-surface-variant mb-6" id="pin-modal-msg">Enter PIN to proceed</p>
+<div class="flex gap-3 mb-8">
+<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-0"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-1"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-2"></div>
+<div class="w-4 h-4 rounded-full border-2 border-primary-container pin-dot" id="dot-3"></div>
+</div>
+<div class="grid grid-cols-3 gap-3 w-full">
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('1')">1</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('2')">2</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('3')">3</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('4')">4</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('5')">5</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('6')">6</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('7')">7</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('8')">8</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('9')">9</button>
+<button class="h-14 bg-error/10 text-error rounded-xl font-bold text-sm active-scale" onclick="clearPin()">CLR</button>
+<button class="h-14 bg-surface-container rounded-xl font-bold text-xl active-scale" onclick="pressPin('0')">0</button>
+<button class="h-14 bg-on-surface-variant/10 text-on-surface-variant rounded-xl font-bold text-sm active-scale" onclick="closeModal('pin-modal')">ESC</button>
+</div>
+</div>
+</div>
+<!-- PRODUCT MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-end md:items-center justify-center p-0 md:p-4" id="product-modal">
+<div class="bg-surface w-full max-w-lg rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+<div class="p-5 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary sticky top-0 z-10">
+<h3 class="font-black text-sm uppercase tracking-tight" id="product-modal-title">Add New Product</h3>
+<button class="material-symbols-outlined" onclick="closeModal('product-modal')">close</button>
+</div>
+<div class="flex-1 overflow-y-auto p-5 custom-scrollbar pb-[100px]">
+<div class="space-y-4">
+<div class="hidden mb-4 relative" id="scanner-preview-container">
+<div class="bg-black aspect-video rounded-xl overflow-hidden relative" id="inv-cam-area"></div>
+<button class="absolute top-2 right-2 bg-error text-white p-1 rounded-full z-[101]" onclick="stopInvScanner()"><span class="material-symbols-outlined text-sm">close</span></button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="col-span-2">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Barcode / SKU</label>
+<div class="relative">
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-barcode" placeholder="Enter barcode manually or scan" type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-primary w-10 h-10 flex items-center justify-center bg-primary-container hover:bg-primary hover:text-white rounded-lg transition-colors active-scale" onclick="startInvScanner()" title="Scan Barcode">
+<span class="material-symbols-outlined text-[24px]">barcode_scanner</span>
+</button>
+</div>
+</div>
+<div class="col-span-2">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Product Name</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-name" type="text"/>
+</div>
+<div class="col-span-2">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Category</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-category" type="text"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Cost Price</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-cost" type="number" inputmode="decimal"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Selling Price</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-price" type="number" inputmode="decimal"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Stock Quantity</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-stock" type="number" inputmode="numeric"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Low Stock Alert At</label>
+<input class="w-full px-4 py-2.5 bg-surface-container border border-border-subtle rounded-lg font-bold" id="p-low-stock" type="number" inputmode="numeric" placeholder="e.g. 5"/>
+</div>
+<div class="col-span-2 border-t border-border-subtle pt-4">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-black uppercase text-primary">Wholesale Pricing</span>
+<input id="p-has-pack" onchange="togglePackFields()" type="checkbox"/>
+</div>
+<div class="hidden grid-cols-2 gap-4" id="pack-fields">
+<input class="w-full px-4 py-2.5 bg-surface-container border rounded-lg" id="p-pack-size" placeholder="Pack Size" type="number"/>
+<input class="w-full px-4 py-2.5 bg-surface-container border rounded-lg" id="p-pack-price" placeholder="Pack Price" type="number"/>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-bold py-3.5 rounded-xl active-scale" onclick="saveProduct()">Save Product</button>
+</div>
+</div>
+</div>
+</div>
+<!-- CART DISCOUNT MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[101] hidden items-end md:items-center justify-center p-0 md:p-4" id="cart-discount-modal">
+<div class="bg-surface w-full max-w-sm rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden">
+<div class="p-5 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<h3 class="font-black text-sm uppercase">Cart Discount</h3>
+<button class="material-symbols-outlined" onclick="closeModal('cart-discount-modal')">close</button>
+</div>
+<div class="p-5 space-y-4">
+<div class="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex justify-between items-center">
+<span class="text-[10px] font-black uppercase text-on-surface-variant tracking-wider">Subtotal</span>
+<span class="font-black text-primary text-lg" id="discount-modal-subtotal">₱0.00</span>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1.5 block">Discount Amount</label>
+<input class="w-full px-4 py-4 bg-surface-container border border-border-subtle rounded-2xl font-black text-xl text-secondary text-center" id="discount-modal-input" oninput="updateCartDiscountPreview()" placeholder="0" type="number" inputmode="decimal" min="0" step="0.01"/>
+</div>
+<div class="bg-secondary/5 border border-secondary/10 rounded-2xl p-4 flex justify-between items-center">
+<span class="text-[10px] font-black uppercase text-on-surface-variant tracking-wider">New Total</span>
+<span class="font-black text-secondary text-2xl" id="discount-modal-total">₱0.00</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<button class="h-12 rounded-2xl bg-error/10 text-error font-black text-xs uppercase active-scale" onclick="removeCartDiscount()">Remove</button>
+<button class="h-12 rounded-2xl bg-secondary text-white font-black text-xs uppercase active-scale shadow-lg" onclick="applyCartDiscount()">Apply</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- REVIEW & CHECKOUT MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden items-end md:items-center justify-center p-0 md:p-4" id="review-modal">
+<div class="bg-surface w-full max-w-sm md:max-w-md rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+<div class="p-5 border-b border-border-subtle flex justify-between items-center bg-primary text-on-primary">
+<h3 class="font-black text-sm uppercase">Complete Sale</h3>
+<button class="material-symbols-outlined" onclick="closeModal('review-modal')">close</button>
+</div>
+<div class="p-6">
+<div class="bg-secondary/5 border-2 border-secondary/20 rounded-xl p-4 mb-4 flex justify-between items-center">
+<span class="font-bold text-xs uppercase text-on-surface-variant">Amount Payable</span>
+<span class="text-xl font-black text-secondary" id="rev-total">₱0.00</span>
+</div>
+<div class="mb-4">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-2 block">Payment Mode</label>
+<div class="flex gap-2">
+<button class="flex-1 py-3 border-2 border-secondary bg-secondary text-white rounded-xl font-bold text-xs" id="btn-pay-cash" onclick="switchPayMode('cash')">CASH</button>
+<button class="flex-1 py-3 border-2 border-border-subtle text-on-surface-variant rounded-xl font-bold text-xs" id="btn-pay-credit" onclick="switchPayMode('credit')">CREDIT</button>
+</div>
+</div>
+<div class="space-y-4" id="cash-payment-area">
+<div class="grid grid-cols-3 gap-3 sm:gap-4" id="cash-quick-amounts">
+<button class="cash-quick-btn" data-cash="50" onclick="setCash(50)">₱50</button>
+<button class="cash-quick-btn" data-cash="100" onclick="setCash(100)">₱100</button>
+<button class="cash-quick-btn" data-cash="200" onclick="setCash(200)">₱200</button>
+<button class="cash-quick-btn" data-cash="500" onclick="setCash(500)">₱500</button>
+<button class="cash-quick-btn" data-cash="1000" onclick="setCash(1000)">₱1K</button>
+<button class="cash-quick-btn cash-exact-btn" data-cash="exact" onclick="setExact()">EXACT</button>
+</div>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-black text-lg text-secondary" id="cash-input" oninput="calculateChange()" placeholder="Cash Received" type="number" inputmode="decimal"/>
+<div class="hidden change-hero-card" id="change-display">
+<div class="flex flex-col gap-1">
+<span class="change-hero-label" id="change-status-label">Change to Give</span>
+<span class="change-hero-amount" id="change-amount">₱0.00</span>
+</div>
+</div>
+</div>
+<div class="hidden space-y-4" id="credit-payment-area">
+<label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1 block">Customer Name</label>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold text-primary" id="credit-customer" placeholder="Enter Full Name" type="text"/>
+</div>
+<button class="w-full bg-primary text-on-primary h-14 rounded-xl font-bold text-base mt-6 active-scale shadow-lg flex items-center justify-center gap-2" id="confirm-checkout" onclick="confirmSale()">
+<span class="material-symbols-outlined text-[24px]">check_circle</span>
+<span>Confirm Transaction</span>
+</button>
+</div>
+</div>
+</div>
+
+
+
+<!-- BUSINESS CALENDAR DAY DETAIL MODAL -->
+<div class="fixed inset-0 bg-black/70 backdrop-blur-md z-[196] hidden items-end md:items-center justify-center p-0 md:p-4" id="business-calendar-detail-modal">
+<div class="bg-surface w-full max-w-lg rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+<div class="p-5 bg-primary text-on-primary flex justify-between items-center">
+<div>
+<h3 class="font-black text-sm uppercase tracking-wider" id="business-detail-title">Business Day</h3>
+<p class="text-[10px] font-bold text-white/70 uppercase" id="business-detail-subtitle">Summary</p>
+</div>
+<button class="material-symbols-outlined hover:bg-white/10 rounded-full w-10 h-10 flex items-center justify-center" onclick="closeModal('business-calendar-detail-modal')">close</button>
+</div>
+<div class="p-5 overflow-y-auto custom-scrollbar space-y-4">
+<div class="closing-hero">
+<p class="closing-label">Total Sales</p>
+<h2 id="business-detail-total-sales">₱0.00</h2>
+<p class="closing-sub" id="business-detail-status">Closed Business Day</p>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="closing-mini"><span>Cash Sales</span><strong id="business-detail-cash-sales">₱0.00</strong></div>
+<div class="closing-mini"><span>Credit Sales</span><strong id="business-detail-credit-sales">₱0.00</strong></div>
+<div class="closing-mini"><span>Collections</span><strong id="business-detail-collections">₱0.00</strong></div>
+<div class="closing-mini"><span>Expenses</span><strong id="business-detail-expenses">₱0.00</strong></div>
+</div>
+<div class="closing-section">
+<div class="closing-row"><span>COGS</span><strong id="business-detail-cogs">₱0.00</strong></div>
+<div class="closing-row"><span>Net Profit</span><strong id="business-detail-net-profit">₱0.00</strong></div>
+<div class="closing-row"><span>Transactions</span><strong id="business-detail-transactions">0</strong></div>
+<div class="closing-row"><span>Opened</span><strong id="business-detail-opened">—</strong></div>
+<div class="closing-row"><span>Closed</span><strong id="business-detail-closed">—</strong></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- BUSINESS DAY HISTORY MODAL -->
+<div class="fixed inset-0 bg-black/70 backdrop-blur-md z-[195] hidden items-end md:items-center justify-center p-0 md:p-4" id="business-day-modal">
+<div class="bg-surface w-full max-w-lg rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+<div class="p-5 bg-primary text-on-primary flex justify-between items-center">
+<div>
+<h3 class="font-black text-sm uppercase tracking-wider">Business Day</h3>
+<p class="text-[10px] font-bold text-white/70 uppercase" id="business-day-modal-subtitle">Current operation day</p>
+</div>
+<button class="material-symbols-outlined hover:bg-white/10 rounded-full w-10 h-10 flex items-center justify-center" onclick="closeModal('business-day-modal')">close</button>
+</div>
+<div class="p-5 overflow-y-auto custom-scrollbar space-y-4">
+<div class="business-day-current-card">
+<p class="business-day-card-label">Current Status</p>
+<h2 id="business-day-modal-title">No active business day</h2>
+<p id="business-day-modal-detail">First transaction will start the day automatically.</p>
+</div>
+<div class="business-day-actions grid grid-cols-1 sm:grid-cols-2 gap-3">
+<button class="bg-primary text-on-primary h-12 rounded-2xl font-bold text-xs uppercase active-scale" onclick="showStoreClosingSummary()">Preview Closing</button>
+<button class="bg-error/10 text-error h-12 rounded-2xl font-bold text-xs uppercase active-scale border border-red-200" onclick="endBusinessDay()">End Business Day</button>
+</div>
+<div>
+<p class="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-3">Recent Business Days</p>
+<div class="space-y-2" id="business-day-history-list"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- END OF DAY / STORE CLOSING MODAL -->
+<div class="fixed inset-0 bg-black/70 backdrop-blur-md z-[190] hidden items-end md:items-center justify-center p-0 md:p-4" id="closing-summary-modal">
+<div class="bg-surface w-full max-w-lg rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+<div class="p-5 bg-primary text-on-primary flex justify-between items-center">
+<div>
+<h3 class="font-black text-sm uppercase tracking-wider">Store Closing Summary</h3>
+<p class="text-[10px] font-bold text-white/70 uppercase" id="closing-period-label">Today</p>
+</div>
+<button class="material-symbols-outlined hover:bg-white/10 rounded-full w-10 h-10 flex items-center justify-center" onclick="closeModal('closing-summary-modal')">close</button>
+</div>
+<div class="p-5 overflow-y-auto custom-scrollbar space-y-4">
+<div class="closing-hero">
+<p class="closing-label">Cash In Drawer</p>
+<h2 id="closing-cash-in">₱0.00</h2>
+<p class="closing-sub">Cash Sales + Credit Collections</p>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="closing-mini"><span>Cash Sales</span><strong id="closing-cash-sales">₱0.00</strong></div>
+<div class="closing-mini"><span>Credit Sales</span><strong id="closing-credit-sales">₱0.00</strong></div>
+<div class="closing-mini"><span>Collections</span><strong id="closing-collections">₱0.00</strong></div>
+<div class="closing-mini"><span>Expenses</span><strong id="closing-expenses">₱0.00</strong></div>
+</div>
+<div class="closing-section">
+<div class="closing-row"><span>Total Sales</span><strong id="closing-total-sales">₱0.00</strong></div>
+<div class="closing-row"><span>COGS</span><strong id="closing-cogs">₱0.00</strong></div>
+<div class="closing-row"><span>Net Profit</span><strong id="closing-net-profit">₱0.00</strong></div>
+<div class="closing-row"><span>Outstanding Credit</span><strong id="closing-outstanding">₱0.00</strong></div>
+</div>
+<div class="closing-section">
+<p class="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-3">Transaction Count</p>
+<div class="grid grid-cols-4 gap-2 text-center">
+<div class="closing-count"><strong id="closing-count-cash">0</strong><span>Cash</span></div>
+<div class="closing-count"><strong id="closing-count-credit">0</strong><span>Credit</span></div>
+<div class="closing-count"><strong id="closing-count-collections">0</strong><span>Collect</span></div>
+<div class="closing-count"><strong id="closing-count-expenses">0</strong><span>Exp</span></div>
+</div>
+</div>
+<div class="bg-surface-container/70 border border-border-subtle rounded-2xl p-4">
+<p class="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-2">How this works</p>
+<p class="text-xs font-bold text-on-surface-variant leading-relaxed">This preview uses the selected Insights period. For Day, it covers transactions from 12:00 AM until now. Later, we can upgrade this into a true business-day close that saves and locks the summary.</p>
+</div>
+</div>
+<div class="p-4 border-t border-border-subtle bg-surface flex gap-2">
+<button class="flex-1 bg-primary text-on-primary h-12 rounded-2xl font-bold text-xs uppercase active-scale" onclick="printClosingSummary()">Print</button>
+<button class="flex-1 bg-error/10 text-error h-12 rounded-2xl font-bold text-xs uppercase active-scale border border-red-200" onclick="endBusinessDay()">End Day</button>
+<button class="flex-1 bg-surface-container text-primary h-12 rounded-2xl font-bold text-xs uppercase active-scale" onclick="closeModal('closing-summary-modal')">Done</button>
+</div>
+</div>
+</div>
+
+<!-- EXPENSE MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="expense-modal">
+<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-6">
+<h3 class="font-black text-primary uppercase mb-4">Record Expense</h3>
+<div class="space-y-4">
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Category</label>
+<select class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-category">
+<option value="Utilities">Utilities</option>
+<option value="Supplies">Supplies</option>
+<option value="Rent">Rent</option>
+<option value="Salaries">Salaries</option>
+<option value="Delivery">Delivery</option>
+<option value="Maintenance">Maintenance</option>
+<option value="Other">Other</option>
+</select>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Description</label>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-desc" placeholder="e.g. Meralco bill" type="text"/>
+</div>
+<div>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Amount (₱)</label>
+<input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-amt" type="number"/>
+</div>
+<div class="flex gap-2 pt-2">
+<button class="flex-1 bg-primary text-on-primary py-3 rounded-xl font-bold active-scale" onclick="saveExpense()">Save Expense</button>
+<button class="px-6 border border-border-subtle rounded-xl font-bold" onclick="closeModal('expense-modal')">Cancel</button>
+</div>
+</div>
+</div>
+</div>
+<!-- SUCCESS MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="mod-success">
+<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-8 flex flex-col items-center text-center">
+<div class="w-20 h-20 bg-secondary/10 text-secondary rounded-full flex items-center justify-center mb-6 animate-pulse">
+<span class="material-symbols-outlined text-[48px]">check_circle</span>
+</div>
+<h3 class="font-black text-2xl text-primary uppercase mb-2">Sale Confirmed</h3>
+<p class="text-sm text-on-surface-variant mb-8">Transaction has been recorded successfully.</p>
+<div class="flex flex-col gap-3 w-full">
+<button class="w-full bg-secondary text-on-secondary h-14 rounded-xl font-bold text-base flex items-center justify-center gap-2 active-scale shadow-lg" onclick="printReceiptFromSuccess()">
+<span class="material-symbols-outlined">print</span>
+                Print Receipt
+            </button>
+<button class="w-full bg-surface-container text-primary h-14 rounded-xl font-bold text-base active-scale" onclick="closeSuccessAndNewSale()">
+                New Sale
+            </button>
+</div>
+</div>
+</div>
+<!-- RECEIPT MODAL -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] hidden items-center justify-center p-4 overflow-y-auto" id="receipt-modal">
+<div class="bg-white w-full max-w-[320px] p-6 shadow-2xl relative mb-10 mt-10">
+<button class="absolute -top-12 right-0 text-white flex items-center gap-2 font-bold no-print" onclick="closeModal('receipt-modal')">
+<span class="material-symbols-outlined">close</span> CLOSE
+        </button>
+<div class="receipt-container text-[12px] text-black" id="receipt-content">
+<div class="text-center mb-4">
+<h3 class="font-bold text-lg uppercase">Villacart</h3>
+<p>Balagtas BMA San Rafael, Bulacan</p>
+<p class="mt-2 border-t border-b border-black py-1 font-bold" id="receipt-title">OFFICIAL RECEIPT</p>
+</div>
+<div id="receipt-standard-fields">
+<div class="flex justify-between mb-1">
+<span>Date:</span>
+<span id="rec-date">01/01/2024</span>
+</div>
+<div class="flex justify-between mb-3">
+<span>Trans #:</span>
+<span id="rec-id">SA-000000</span>
+</div>
+</div>
+<div class="hidden" id="receipt-settlement-fields">
+<div class="flex justify-between mb-1">
+<span class="font-bold">Customer:</span>
+<span class="font-bold" id="rec-set-customer">N/A</span>
+</div>
+<div class="flex justify-between mb-3">
+<span>Settlement Date:</span>
+<span id="rec-set-date">01/01/2024</span>
+</div>
+</div>
+<div class="border-b border-black border-dashed mb-2 pb-1 flex justify-between font-bold" id="receipt-items-header">
+<span class="w-1/2">Item</span>
+<span class="w-1/4 text-center">Qty</span>
+<span class="w-1/4 text-right">Price</span>
+</div>
+<div class="border-b border-black border-dashed mb-2 pb-1 flex justify-between font-bold hidden" id="receipt-settlement-header">
+<span class="w-full text-left uppercase">Settlement Breakdown</span>
+</div>
+<div class="mb-3 space-y-1" id="rec-items-list"></div>
+<div class="border-t border-black pt-2 space-y-1">
+<div class="flex justify-between font-bold text-sm">
+<span id="rec-label-total">TOTAL:</span>
+<span id="rec-total">₱0.00</span>
+</div>
+<div class="flex justify-between" id="rec-cash-row">
+<span>Cash Received:</span>
+<span id="rec-cash">₱0.00</span>
+</div>
+<div class="flex justify-between" id="rec-change-row">
+<span>Change:</span>
+<span id="rec-change">₱0.00</span>
+</div>
+<div class="flex justify-between hidden" id="rec-customer-row">
+<span>Customer:</span>
+<span id="rec-customer">N/A</span>
+</div>
+</div>
+<div class="text-center mt-6 pt-4 border-t border-black border-dashed">
+<p class="font-bold">THANK YOU!</p>
+<p class="text-[10px]">Please come again.</p>
+</div>
+</div>
+<div id="receipt-actions" class="flex flex-col gap-2 mt-6 no-print">
+<div class="flex gap-2">
+<button class="flex-1 bg-primary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="printThermalReceipt()">
+<span class="material-symbols-outlined text-[20px]">print</span> Print
+                </button>
+<button class="flex-1 bg-secondary text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active-scale" id="share-receipt-btn" onclick="shareReceipt()">
+<span class="material-symbols-outlined text-[20px]">image</span> Share Image
+                </button>
+</div>
+<button class="w-full bg-border-subtle text-on-surface font-bold py-3 rounded-xl flex items-center justify-center gap-2 active-scale" onclick="closeModal('receipt-modal')">
+<span class="material-symbols-outlined text-[20px]">close</span> Close
+            </button>
+</div>
+</div>
+</div>
+<!-- TRANSACTION DETAIL MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] hidden items-center justify-center p-4" id="mod-tx">
+<div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl p-6">
+<div class="flex justify-between items-center mb-4 border-b pb-2">
+<h3 class="font-black text-primary uppercase text-sm" id="txmtitle">Transaction Details</h3>
+<button class="material-symbols-outlined" onclick="closeModal('mod-tx')">close</button>
+</div>
+<div class="space-y-3" id="txdetail"></div>
+<div class="flex gap-2 mt-6">
+<button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="printTx()">
+<span class="material-symbols-outlined text-[20px]">print</span> Print
+            </button>
+<button class="flex-1 bg-error text-white font-bold py-3 rounded-xl active-scale flex items-center justify-center gap-2" onclick="confirmDeleteTransaction()">
+<span class="material-symbols-outlined text-[20px]">delete</span> Delete
+            </button>
+</div>
+</div>
+</div>
+<!-- Application logic -->
+<script src="app.js?v=7.2.68"></script>
+<button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
+    <span class="material-symbols-outlined">monitoring</span>
+</button>
+
+<div id="vc558-diag-panel" class="no-print">
+    <div class="vc558-box">
+        <div class="vc558-head">
+            <div>
+                <h3>Device Diagnostics</h3>
+                <p>Firestore / realtime / memory check</p>
+            </div>
+            <button id="vc558-close" type="button" class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="vc558-body">
+            <div id="vc558-grid" class="vc558-grid"></div>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <button id="vc558-run" type="button" class="vc558-action bg-primary text-white">Run Check</button>
+                <button id="vc558-copy" type="button" class="vc558-action bg-white border border-border-subtle text-primary">Copy</button>
+            </div>
+            <pre id="vc558-log">Tap Run Check.</pre>
+        </div>
+    </div>
+</div>
+
+
+<!-- Diagnostics -->
+<script src="diagnostics.js?v=7.2.68"></script>
+
+
+
+
+
+
+
+
+
+
+</body></html>
