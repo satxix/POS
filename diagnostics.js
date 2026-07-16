@@ -26,11 +26,31 @@
     return (list || []).sort((a,b)=>new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0));
   }
 
+  function vc559CloudSummary(result, includeIds){
+    const docs = Array.isArray(result && result.docs) ? result.docs : [];
+    return {
+      name: result && result.name,
+      ok: !!(result && result.ok),
+      count: result ? result.count : null,
+      empty: result ? result.empty : null,
+      fromCache: !!(result && result.fromCache),
+      ids: includeIds ? docs.map(d => d && d.id).filter(Boolean).sort().slice(0, 80) : [],
+      idsTruncated: includeIds && docs.length > 80 ? docs.length - 80 : 0,
+      error: result && result.error ? result.error : null
+    };
+  }
+
+  function vc559LocalCloudPlaceholder(name){
+    return { name, ok:null, count:null, empty:null, fromCache:false, ids:[], idsTruncated:0, error:null, skipped:true };
+  }
+
   async function vc559HydrateFromFirestore(){
     if (!vc559HasState()) throw new Error('App state is not ready yet.');
-    const tx = await vc559ReadCollection('transactions');
-    const inv = await vc559ReadCollection('inventory');
-    const bd = await vc559ReadCollection('businessDays');
+    const [tx, inv, bd] = await Promise.all([
+      vc559ReadCollection('transactions'),
+      vc559ReadCollection('inventory'),
+      vc559ReadCollection('businessDays')
+    ]);
 
     if (tx.ok) {
       state.transactions = vc559SortTx(tx.docs);
@@ -56,7 +76,13 @@
     try { if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar(); } catch(e) { console.warn(e); }
     try { if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI(); } catch(e) { console.warn(e); }
 
-    window.__vc559LastHydrate = {at:new Date().toISOString(), tx:tx.count, inventory:inv.count, businessDays:bd.count};
+    window.__vc559LastCloudSummary = {
+      at: new Date().toISOString(),
+      transactions: vc559CloudSummary(tx, true),
+      inventory: vc559CloudSummary(inv, false),
+      businessDays: vc559CloudSummary(bd, true)
+    };
+    window.__vc559LastHydrate = {at:window.__vc559LastCloudSummary.at, tx:tx.count, inventory:inv.count, businessDays:bd.count};
     return window.__vc559LastHydrate;
   }
 
@@ -88,10 +114,28 @@
     return info;
   }
 
-  async function vc559Collect(){
-    const transactions = await vc559ReadCollection('transactions');
-    const inventory = await vc559ReadCollection('inventory');
-    const businessDays = await vc559ReadCollection('businessDays');
+  async function vc559Collect(options){
+    const opts = options || {};
+    let transactions = vc559LocalCloudPlaceholder('transactions');
+    let inventory = vc559LocalCloudPlaceholder('inventory');
+    let businessDays = vc559LocalCloudPlaceholder('businessDays');
+
+    if (opts.useLastCloud && window.__vc559LastCloudSummary) {
+      transactions = window.__vc559LastCloudSummary.transactions || transactions;
+      inventory = window.__vc559LastCloudSummary.inventory || inventory;
+      businessDays = window.__vc559LastCloudSummary.businessDays || businessDays;
+    } else if (opts.readFirestore) {
+      const results = await Promise.all([
+        vc559ReadCollection('transactions'),
+        vc559ReadCollection('inventory'),
+        vc559ReadCollection('businessDays')
+      ]);
+      transactions = vc559CloudSummary(results[0], true);
+      inventory = vc559CloudSummary(results[1], false);
+      businessDays = vc559CloudSummary(results[2], true);
+      window.__vc559LastCloudSummary = { at: new Date().toISOString(), transactions, inventory, businessDays };
+    }
+
     const report = {
       at: new Date().toISOString(),
       online: navigator.onLine,
@@ -100,9 +144,9 @@
       firebaseProjectId: (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) ? firebase.app().options.projectId : null,
       stateReady: vc559HasState(),
       firestore: {
-        transactions: {name:'transactions', ok:transactions.ok, count:transactions.count, empty:transactions.empty, fromCache:!!transactions.fromCache, ids:(transactions.docs || []).map(d => d.id).sort(), error:transactions.error || null},
-        inventory: {name:'inventory', ok:inventory.ok, count:inventory.count, empty:inventory.empty, fromCache:!!inventory.fromCache, error:inventory.error || null},
-        businessDays: {name:'businessDays', ok:businessDays.ok, count:businessDays.count, empty:businessDays.empty, fromCache:!!businessDays.fromCache, error:businessDays.error || null}
+        transactions,
+        inventory,
+        businessDays
       },
       memory: vc559GetMem(),
       offlineQueue: (typeof offlineQueue !== 'undefined' && Array.isArray(offlineQueue)) ? offlineQueue.length : null,
@@ -125,7 +169,9 @@
         controllerScript: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null,
         updateAvailable: !!window.__villacartUpdateAvailable
       } : null,
-      versionInfo: vc559VersionInfo()
+      versionInfo: vc559VersionInfo(),
+      scannerDebug: window.__villacartScannerDebug || null,
+      diagnosticsMode: opts.useLastCloud ? 'full-refresh-result' : (opts.readFirestore ? 'cloud-check' : 'local-check')
     };
     window.__vc559LastReport = report;
     return report;
@@ -176,12 +222,13 @@
       }
     }
 
-    const r = await vc559Collect();
+    const r = await vc559Collect({ readFirestore: false, useLastCloud: !!hydrateResult });
     if (hydrateResult) r.hydrateResult = hydrateResult;
 
     const txFs = r.firestore.transactions.count;
     const txMem = r.memory.transactions;
-    const mismatch = Number(txFs) > 0 && Number(txMem) !== Number(txFs);
+    const cloudSkipped = !!(r.firestore.transactions && r.firestore.transactions.skipped);
+    const mismatch = !cloudSkipped && Number(txFs) > 0 && Number(txMem) !== Number(txFs);
 
     if (grid) {
       const posMark = vc559PosVisibleMark(r.startup);
@@ -192,9 +239,9 @@
         vc559Card('Project', r.firebaseProjectId || 'Unknown', r.dbReady ? 'Firestore connected' : 'Firestore not ready', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('Online', r.online ? 'Yes' : 'No', r.syncErrorMsg || 'device/browser status', r.online ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('Pending Sync', r.offlineQueue === null ? 'N/A' : r.offlineQueue, r.offlineQueue > 0 ? 'will sync when possible' : 'nothing waiting', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
-        vc559Card('Sales Local / Cloud', (txMem === null ? 'N/A' : txMem) + ' / ' + (txFs === null ? 'Err' : txFs), mismatch ? 'counts do not match' : 'transactions', mismatch ? 'vc558-warn' : 'vc558-ok'),
-        vc559Card('Stock Local / Cloud', (r.memory.inventory === null ? 'N/A' : r.memory.inventory) + ' / ' + (r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count), r.firestore.inventory.error || 'inventory items', r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
-        vc559Card('Business Days', (r.memory.businessDays === null ? 'N/A' : r.memory.businessDays) + ' local / ' + (r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count) + ' cloud', r.firestore.businessDays.error || 'calendar records', r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Sales Local / Cloud', (txMem === null ? 'N/A' : txMem) + ' / ' + (cloudSkipped ? 'not checked' : (txFs === null ? 'Err' : txFs)), cloudSkipped ? 'local-only check; use Full Refresh for cloud count' : (mismatch ? 'counts do not match' : 'transactions'), mismatch ? 'vc558-warn' : 'vc558-ok'),
+        vc559Card('Stock Local / Cloud', (r.memory.inventory === null ? 'N/A' : r.memory.inventory) + ' / ' + (cloudSkipped ? 'not checked' : (r.firestore.inventory.count === null ? 'Err' : r.firestore.inventory.count)), cloudSkipped ? 'local-only check' : (r.firestore.inventory.error || 'inventory items'), cloudSkipped || r.firestore.inventory.ok ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Business Days', (r.memory.businessDays === null ? 'N/A' : r.memory.businessDays) + ' local / ' + (cloudSkipped ? 'not checked' : (r.firestore.businessDays.count === null ? 'Err' : r.firestore.businessDays.count)) + ' cloud', cloudSkipped ? 'local-only check' : (r.firestore.businessDays.error || 'calendar records'), cloudSkipped || r.firestore.businessDays.ok ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('POS Visible', posMark ? (posMark.msSinceScriptStart + 'ms') : 'N/A', posMark ? 'screen shown quickly' : 'not recorded', posMark ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Background Ready', lastMark ? (lastMark.msSinceScriptStart + 'ms') : 'N/A', lastMark ? ('last: ' + (r.startup.lastMark || lastMark.name || 'unknown')) : 'not recorded', lastMark ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Scanner', r.scannerDebug && r.scannerDebug.lastBarcodeAttempt ? r.scannerDebug.lastBarcodeAttempt : 'No scan', r.scannerDebug ? ((r.scannerDebug.lastBarcodeResult || 'waiting') + ' / input: ' + (r.scannerDebug.lastInputValue || '').slice(0, 24)) : 'debug not ready', r.scannerDebug && r.scannerDebug.lastBarcodeResult && r.scannerDebug.lastBarcodeResult.indexOf('matched:') === 0 ? 'vc558-ok' : 'vc558-warn'),
@@ -203,7 +250,10 @@
         vc559Card('Update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Ready' : 'None', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Tap Reload App below' : 'no waiting app update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'vc558-warn' : 'vc558-ok')
       ].join('');
     }
-    if (log) log.textContent = JSON.stringify(r, null, 2);
+    if (log) {
+      const text = JSON.stringify(r, null, 2);
+      log.textContent = text.length > 18000 ? text.slice(0, 18000) + '\n... diagnostics log truncated for performance; use Copy Report for full text ...' : text;
+    }
   }
 
   async function vc559Copy(){

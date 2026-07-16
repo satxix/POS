@@ -1,7 +1,7 @@
-// --- Firebase Configuration ---
+﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.63';
+    window.VILLACART_APP_VERSION = 'v7.2.66';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -944,7 +944,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.63: The older fallback keydown listener was removed.
+    // v7.2.66: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1917,7 +1917,9 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        const itemsHtml = group.items.map(renderInventoryProductRow).join('');
+        // v7.2.66: Do not build every product row for collapsed categories.
+        // This keeps Stock opening fast after PIN while preserving search/expanded views.
+        const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
     }
 
@@ -4788,13 +4790,14 @@ function getClosingCounts(transactions) {
         if (!document.getElementById('screen-business')?.classList.contains('hidden')) vc541RefreshBusinessScreen();
     }
 
+    window.vc541RefreshBusinessScreen = vc541RefreshBusinessScreen;
+
     const vc541OldBusiness = typeof renderBusinessCalendar === 'function' ? renderBusinessCalendar : null;
     if (vc541OldBusiness && !window.__vcRenderBusiness541Patched) {
         window.__vcRenderBusiness541Patched = true;
         renderBusinessCalendar = function() {
-            const result = vc541OldBusiness();
-            setTimeout(vc541RefreshBusinessScreen, 0);
-            setTimeout(vc541RefreshBusinessScreen, 120);
+            const result = vc541OldBusiness.apply(this, arguments);
+            vc541RefreshBusinessScreen();
             return result;
         };
     }
@@ -4803,18 +4806,15 @@ function getClosingCounts(transactions) {
     if (vc541OldSwitch && !window.__vcSwitch541Patched) {
         window.__vcSwitch541Patched = true;
         switchScreen = function(screen) {
-            vc541OldSwitch(screen);
-            if (screen === 'business') {
-                setTimeout(vc541RefreshBusinessScreen, 50);
-                setTimeout(vc541RefreshBusinessScreen, 250);
-            }
+            const result = vc541OldSwitch.apply(this, arguments);
+            if (screen === 'business') setTimeout(vc541RefreshBusinessScreen, 80);
+            return result;
         };
     }
 
     window.addEventListener('focus', vc541ForceUI);
     window.addEventListener('resize', vc541ForceUI);
-    setTimeout(vc541ForceUI, 500);
-    setTimeout(vc541ForceUI, 1500);
+    setTimeout(vc541ForceUI, 700);
 
 
     // v5.6.1 Cross-device Recent Activities Fix
@@ -6906,17 +6906,9 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    const vc5632OldOpenPinModal = typeof openPinModal === 'function' ? openPinModal : null;
-    if (vc5632OldOpenPinModal && !window.__vcOpenPin5632Patched) {
-        window.__vcOpenPin5632Patched = true;
-        openPinModal = function(target) {
-            const result = vc5632OldOpenPinModal.apply(this, arguments);
-            if (target === 'inventory' && typeof renderInventory === 'function') {
-                setTimeout(() => { try { renderInventory(); } catch(e) {} }, 30);
-            }
-            return result;
-        };
-    }
+    // v7.2.66: Do not pre-render Stock while the PIN modal is still open.
+    // switchScreen('inventory') renders Stock once after PIN succeeds.
+
 
     const vc5632OldPressPin = typeof pressPin === 'function' ? pressPin : null;
     if (vc5632OldPressPin && !window.__vcPressPin5632Patched) {
@@ -7573,12 +7565,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     function refreshBusinessMonthView() {
         if (typeof renderBusinessCalendar === 'function') {
             try { renderBusinessCalendar(); } catch (e) { console.warn(e); }
+        } else if (typeof vc541RefreshBusinessScreen === 'function') {
+            try { vc541RefreshBusinessScreen(); } catch (e) { console.warn(e); }
         }
         if (typeof vc728RenderArchiveSafety === 'function') {
             try { vc728RenderArchiveSafety(); } catch (e) { console.warn(e); }
-        }
-        if (typeof vc541RefreshBusinessScreen === 'function') {
-            try { vc541RefreshBusinessScreen(); } catch (e) { console.warn(e); }
         }
     }
 
@@ -8072,3 +8063,4 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
     });
 })();
+
