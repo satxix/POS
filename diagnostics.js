@@ -337,7 +337,12 @@
     }
 
     const btn = document.getElementById('vc558-diag-btn');
-    if (btn) btn.addEventListener('click', function(){ setTimeout(function(){ vc559Run(false); }, 120); }, true);
+    if (btn && !btn.__vc559OpenBound) {
+      btn.__vc559OpenBound = true;
+      btn.addEventListener('click', function(){
+        setTimeout(function(){ vc559Run(false); }, 120);
+      }, true);
+    }
   }
 
   window.villacartDiagnostics = vc559Collect;
