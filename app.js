@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.72';
+    window.VILLACART_APP_VERSION = 'v7.2.77';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -125,6 +125,15 @@
     const QUEUE_KEY = 'saph_pos_v5_villacart_queue' + STORAGE_SUFFIX;
     const FAV_KEY = 'villacart_favorites' + STORAGE_SUFFIX;
     const ARCHIVE_KEY = 'villacart_local_archive_v710' + STORAGE_SUFFIX;
+    const FIRESTORE_SYNC_TABLES = new Set(['transactions', 'inventory', 'businessDays']);
+
+    function isFirestoreSyncTable(table) {
+        return FIRESTORE_SYNC_TABLES.has(String(table || ''));
+    }
+
+    function isArchiveOnlyRecord(data) {
+        return !!(data && (data._archiveOnly || data.archiveOnly || data.localArchiveOnly));
+    }
     
     function safeLocalJson(key, fallback, label) {
         const raw = localStorage.getItem(key);
@@ -178,6 +187,7 @@
 
     let offlineQueue = safeLocalJson(QUEUE_KEY, [], 'offline queue');
     if (!Array.isArray(offlineQueue)) offlineQueue = [];
+    offlineQueue = offlineQueue.filter(task => task && isFirestoreSyncTable(task.table) && task.data && task.data.id && !isArchiveOnlyRecord(task.data));
     // Firestore is authoritative for transaction existence. Older versions
     // stored deleted IDs indefinitely and could hide valid cloud transactions.
     try { localStorage.removeItem('villacart_deleted_transactions'); } catch (e) {}
@@ -597,7 +607,15 @@
     }
 
     function sync() { 
-        localStorage.setItem(DB_KEY, JSON.stringify(state)); 
+        const stateForStorage = { ...state };
+        // Archive data has its own local-only storage key. Keeping it out of the
+        // main operational state reduces startup/localStorage weight and makes
+        // the boundary clear: archive data is never part of Firestore sync.
+        delete stateForStorage.archiveTransactions;
+        delete stateForStorage.archiveBusinessDays;
+        delete stateForStorage.archiveMeta;
+        localStorage.setItem(DB_KEY, JSON.stringify(stateForStorage)); 
+        offlineQueue = offlineQueue.filter(task => task && isFirestoreSyncTable(task.table) && task.data && task.data.id && !isArchiveOnlyRecord(task.data));
         localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
         localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites));
         saveLocalArchive();
@@ -702,10 +720,11 @@
             pageToken = payload.nextPageToken || '';
         } while (pageToken);
 
-        return documents.map(document => ({
-            id: document.name.split('/').pop(),
-            ...Object.fromEntries(Object.entries(document.fields || {}).map(([key, value]) => [key, firestoreRestToValue(value)]))
-        }));
+        return documents.map(document => {
+            const docId = document.name.split('/').pop();
+            const data = Object.fromEntries(Object.entries(document.fields || {}).map(([key, value]) => [key, firestoreRestToValue(value)]));
+            return { ...data, id: docId };
+        });
     }
 
 
@@ -738,13 +757,17 @@
         return payload
             .map(row => row.document)
             .filter(Boolean)
-            .map(document => ({
-                id: document.name.split('/').pop(),
-                ...Object.fromEntries(Object.entries(document.fields || {}).map(([key, value]) => [key, firestoreRestToValue(value)]))
-            }));
+            .map(document => {
+                const docId = document.name.split('/').pop();
+                const data = Object.fromEntries(Object.entries(document.fields || {}).map(([key, value]) => [key, firestoreRestToValue(value)]));
+                return { ...data, id: docId };
+            });
     }
 
     async function syncTaskWithFirestoreRest(task) {
+        if (!task || !isFirestoreSyncTable(task.table) || !task.data || !task.data.id || isArchiveOnlyRecord(task.data)) {
+            throw new Error('Blocked non-operational Firestore sync task');
+        }
         const projectId = firebaseConfig.projectId;
         const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/${encodeURIComponent(task.table)}/${encodeURIComponent(task.data.id)}?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
         const options = { method: task.type === 'delete' ? 'DELETE' : 'PATCH', headers: await firestoreRestAuthHeaders() };
@@ -854,6 +877,10 @@
 
     function queueAction(type, table, data) {
         if (!data || !data.id) return; 
+        if (!isFirestoreSyncTable(table) || isArchiveOnlyRecord(data)) {
+            console.warn('Blocked non-operational sync queue item:', { type, table, id: data && data.id });
+            return;
+        }
         const task = { type, table, data, ts: Date.now() };
         // Keep exactly one pending operation per document.  Apart from avoiding
         // duplicate writes, this is important when a product is edited and then
@@ -1031,7 +1058,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.72: The older fallback keydown listener was removed.
+    // v7.2.77: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -2004,7 +2031,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v7.2.72: Do not build every product row for collapsed categories.
+        // v7.2.77: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -3627,6 +3654,9 @@ function getClosingCounts(transactions) {
 
         bd.status = 'CLOSED';
         bd.closedAt = new Date().toISOString();
+        bd.closedBy = 'POS';
+        bd.manualClosed = true;
+        bd.autoClosed = false;
         bd.summary = summary;
         state.currentBusinessDayId = null;
 
@@ -5146,7 +5176,8 @@ function getClosingCounts(transactions) {
             bdChanged = true;
         }
 
-        state.currentBusinessDayId = bd.id;
+        const openToday = state.businessDays.find(day => day && day.date === today && String(day.status || '').toUpperCase() === 'OPEN');
+        state.currentBusinessDayId = openToday ? openToday.id : null;
 
         let changedTx = false;
         todaysTx.forEach(t => {
@@ -5364,7 +5395,8 @@ function getClosingCounts(transactions) {
 
     function vc544GetBusinessDay() {
         if (typeof vc543EnsureBusinessDayFromLiveTransactions === 'function') {
-            return vc543EnsureBusinessDayFromLiveTransactions();
+            const repaired = vc543EnsureBusinessDayFromLiveTransactions();
+            if (repaired && String(repaired.status || '').toUpperCase() === 'OPEN') return repaired;
         }
         if (typeof getCurrentBusinessDay === 'function') return getCurrentBusinessDay();
         return null;
@@ -5479,6 +5511,8 @@ function getClosingCounts(transactions) {
             activeBD.closedAt = new Date().toISOString();
             activeBD.summary = metrics;
             activeBD.closedBy = 'POS';
+            activeBD.manualClosed = true;
+            activeBD.autoClosed = false;
             state.currentBusinessDayId = null;
 
             activeBD._offline = true;
@@ -5495,6 +5529,8 @@ function getClosingCounts(transactions) {
                     day.status = 'CLOSED';
                     day.closedAt = activeBD.closedAt;
                     day.closedBy = 'POS';
+                    day.manualClosed = true;
+                    day.autoClosed = false;
                     day._offline = true;
                     if (typeof queueAction === 'function') queueAction('update', 'businessDays', day);
                 }
@@ -6999,7 +7035,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v7.2.72: Do not pre-render Stock while the PIN modal is still open.
+    // v7.2.77: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7893,17 +7929,13 @@ document.addEventListener('DOMContentLoaded',()=>{
             if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
         } else {
             vc7236CanonicalizeBusinessDay(bd);
-            if (String(bd.status || '').toUpperCase() !== 'OPEN') {
-                bd.status = 'OPEN';
-                bd.closedAt = null;
-                bd.reopenedAt = new Date().toISOString();
-                bd._offline = true;
-                if (typeof queueAction === 'function') queueAction('update', 'businessDays', bd);
-            }
+            // Closed business days must remain closed. Older repair layers used
+            // to reopen them, which made the header/calendar disagree after an
+            // intentional End Day or a manual Firestore correction.
         }
         transaction.businessDayId = id;
         transaction.businessDate = date;
-        state.currentBusinessDayId = id;
+        state.currentBusinessDayId = String(bd.status || '').toUpperCase() === 'OPEN' ? id : null;
         vc7236NormalizeLocalBusinessDays();
         return transaction;
     }

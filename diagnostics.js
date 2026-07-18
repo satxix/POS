@@ -268,13 +268,79 @@
     }
   }
 
+  function vc559CompactReport(report){
+    const r = report || {};
+    const startup = r.startup || {};
+    const marks = Array.isArray(startup.marks) ? startup.marks : [];
+    const lastMark = marks.length ? marks[marks.length - 1] : null;
+    const posMark = vc559PosVisibleMark(startup);
+    const pending = Array.isArray(r.pendingQueue) ? r.pendingQueue.slice(0, 30) : [];
+    return {
+      at: r.at || new Date().toISOString(),
+      online: r.online,
+      firebaseReady: r.firebaseReady,
+      dbReady: r.dbReady,
+      firebaseProjectId: r.firebaseProjectId,
+      authReady: r.authReady,
+      authUid: r.authUid || (r.auth && r.auth.uid) || null,
+      authMode: r.auth && r.auth.mode ? r.auth.mode : null,
+      authIsAnonymous: r.auth && typeof r.auth.isAnonymous !== 'undefined' ? r.auth.isAnonymous : null,
+      deviceApproval: r.deviceApproval || null,
+      firestore: {
+        transactions: r.firestore && r.firestore.transactions ? {
+          ok: r.firestore.transactions.ok,
+          count: r.firestore.transactions.count,
+          skipped: r.firestore.transactions.skipped,
+          error: r.firestore.transactions.error || null
+        } : null,
+        inventory: r.firestore && r.firestore.inventory ? {
+          ok: r.firestore.inventory.ok,
+          count: r.firestore.inventory.count,
+          skipped: r.firestore.inventory.skipped,
+          error: r.firestore.inventory.error || null
+        } : null,
+        businessDays: r.firestore && r.firestore.businessDays ? {
+          ok: r.firestore.businessDays.ok,
+          count: r.firestore.businessDays.count,
+          skipped: r.firestore.businessDays.skipped,
+          error: r.firestore.businessDays.error || null
+        } : null
+      },
+      memory: r.memory || null,
+      offlineQueue: r.offlineQueue,
+      pendingQueue: pending,
+      pendingQueueTruncated: Array.isArray(r.pendingQueue) && r.pendingQueue.length > pending.length ? r.pendingQueue.length - pending.length : 0,
+      syncErrorMsg: r.syncErrorMsg || null,
+      lastHydrate: r.lastHydrate || null,
+      hydrateResult: r.hydrateResult || null,
+      startup: {
+        posVisibleMs: posMark ? posMark.msSinceScriptStart : null,
+        lastMark: startup.lastMark || (lastMark && lastMark.name) || null,
+        lastMarkMs: lastMark ? lastMark.msSinceScriptStart : null,
+        recentMarks: marks.slice(-12).map(m => ({ name: m.name, msSinceScriptStart: m.msSinceScriptStart, error: m.error || null }))
+      },
+      optionalLibraries: r.optionalLibraries || null,
+      serviceWorker: r.serviceWorker || null,
+      versionInfo: r.versionInfo || null,
+      scannerDebug: r.scannerDebug ? {
+        lastInputValue: r.scannerDebug.lastInputValue || '',
+        lastBarcodeAttempt: r.scannerDebug.lastBarcodeAttempt || '',
+        lastBarcodeResult: r.scannerDebug.lastBarcodeResult || '',
+        lastHandledAt: r.scannerDebug.lastHandledAt || null,
+        appVersion: r.scannerDebug.appVersion || null
+      } : null,
+      diagnosticsMode: r.diagnosticsMode || null
+    };
+  }
+
   async function vc559Copy(){
-    const text = JSON.stringify(window.__vc559LastReport || window.__vc558LastReport || {}, null, 2);
+    const report = window.__vc559LastReport || window.__vc558LastReport || {};
+    const text = JSON.stringify(vc559CompactReport(report), null, 2);
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
-        if (typeof showToast === 'function') showToast('Diagnostics copied','success');
-        else alert('Diagnostics copied');
+        if (typeof showToast === 'function') showToast('Compact diagnostics copied','success');
+        else alert('Compact diagnostics copied');
         return;
       }
       throw new Error('Clipboard API unavailable');
@@ -290,8 +356,8 @@
       try { ok = document.execCommand('copy'); } catch(err) {}
       document.body.removeChild(ta);
       if (ok) {
-        if (typeof showToast === 'function') showToast('Diagnostics copied','success');
-        else alert('Diagnostics copied');
+        if (typeof showToast === 'function') showToast('Compact diagnostics copied','success');
+        else alert('Compact diagnostics copied');
       } else {
         alert(text);
       }
