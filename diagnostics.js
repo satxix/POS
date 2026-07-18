@@ -142,6 +142,9 @@
       firebaseReady: typeof firebase !== 'undefined',
       dbReady: typeof db !== 'undefined' && !!db,
       firebaseProjectId: (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) ? firebase.app().options.projectId : null,
+      auth: window.__villacartAuthStatus || null,
+      authReady: !!(window.__villacartAuthStatus && window.__villacartAuthStatus.ready),
+      authUid: window.__villacartAuthStatus && window.__villacartAuthStatus.uid ? window.__villacartAuthStatus.uid : null,
       stateReady: vc559HasState(),
       firestore: {
         transactions,
@@ -237,6 +240,7 @@
       grid.innerHTML = [
         vc559Card('Overall', (r.online && r.dbReady && r.offlineQueue === 0) ? 'Good' : 'Check', vc559Summary(r), (r.online && r.dbReady && r.offlineQueue === 0) ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Project', r.firebaseProjectId || 'Unknown', r.dbReady ? 'Firestore connected' : 'Firestore not ready', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
+        vc559Card('Auth', r.authReady ? 'Ready' : 'Not ready', r.authUid ? ('Anonymous ' + String(r.authUid).slice(0, 8) + '...') : ((r.auth && r.auth.error) || 'No anonymous user yet'), r.authReady ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Online', r.online ? 'Yes' : 'No', r.syncErrorMsg || 'device/browser status', r.online ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('Pending Sync', r.offlineQueue === null ? 'N/A' : r.offlineQueue, r.offlineQueue > 0 ? 'will sync when possible' : 'nothing waiting', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
         vc559Card('Sales Local / Cloud', (txMem === null ? 'N/A' : txMem) + ' / ' + (cloudSkipped ? 'not checked' : (txFs === null ? 'Err' : txFs)), cloudSkipped ? 'local-only check; use Full Refresh for cloud count' : (mismatch ? 'counts do not match' : 'transactions'), mismatch ? 'vc558-warn' : 'vc558-ok'),

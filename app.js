@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.68';
+    window.VILLACART_APP_VERSION = 'v7.2.70';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -56,6 +56,31 @@
     window.VILLACART_ENV = APP_ENV;
     window.VILLACART_FIREBASE_PROJECT = firebaseConfig.projectId;
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth ? firebase.auth() : null;
+    window.__villacartAuthStatus = {
+        ready: false,
+        mode: auth ? 'anonymous' : 'unavailable',
+        uid: null,
+        error: null,
+        projectId: firebaseConfig.projectId
+    };
+    const authReadyPromise = auth ? auth.signInAnonymously()
+        .then(credential => {
+            const user = credential && credential.user ? credential.user : auth.currentUser;
+            window.__villacartAuthStatus.ready = !!user;
+            window.__villacartAuthStatus.uid = user ? user.uid : null;
+            window.__villacartAuthStatus.isAnonymous = user ? !!user.isAnonymous : null;
+            vcStartupMark('anonymous-auth-ready', { uid: user ? user.uid : null });
+            return user;
+        })
+        .catch(error => {
+            window.__villacartAuthStatus.ready = false;
+            window.__villacartAuthStatus.error = error && error.message ? error.message : String(error);
+            vcStartupMark('anonymous-auth-failed', { error: window.__villacartAuthStatus.error });
+            console.warn('Anonymous Firebase Auth failed:', error);
+            return null;
+        }) : Promise.resolve(null);
+    window.villacartAuthReady = authReadyPromise;
     const db = firebase.firestore();
 
     // Some networks/proxies allow Firestore reads but stall the realtime write
@@ -79,15 +104,39 @@
     const FAV_KEY = 'villacart_favorites' + STORAGE_SUFFIX;
     const ARCHIVE_KEY = 'villacart_local_archive_v710' + STORAGE_SUFFIX;
     
+    function safeLocalJson(key, fallback, label) {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        try {
+            const parsed = JSON.parse(raw);
+            return parsed == null ? fallback : parsed;
+        } catch (error) {
+            const recovery = {
+                key,
+                label: label || key,
+                at: new Date().toISOString(),
+                error: error && error.message ? error.message : String(error)
+            };
+            window.__villacartStorageRecovery = window.__villacartStorageRecovery || [];
+            window.__villacartStorageRecovery.push(recovery);
+            try {
+                localStorage.setItem(key + '_corrupt_' + Date.now(), raw);
+            } catch (backupError) {}
+            try { localStorage.removeItem(key); } catch (removeError) {}
+            console.warn('Recovered from corrupted local storage:', recovery);
+            return fallback;
+        }
+    }
+
     vcStartupMark('before-local-state-load');
-    let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
+    let state = safeLocalJson(DB_KEY, {
         inventory: [],
         transactions: [],
         businessDays: [],
         currentBusinessDayId: null,
         cart: [],
         favorites: new Array(8).fill(null)
-    };
+    }, 'main app state');
     
     if (!state.favorites || !Array.isArray(state.favorites)) {
         state.favorites = new Array(8).fill(null);
@@ -99,13 +148,14 @@
     state.archiveTransactions = Array.isArray(localArchive.transactions) ? localArchive.transactions : (Array.isArray(state.archiveTransactions) ? state.archiveTransactions : []);
     state.archiveBusinessDays = Array.isArray(localArchive.businessDays) ? localArchive.businessDays : (Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays : []);
     state.archiveMeta = localArchive.meta && typeof localArchive.meta === 'object' ? localArchive.meta : (state.archiveMeta && typeof state.archiveMeta === 'object' ? state.archiveMeta : {});
-    const localFavs = JSON.parse(localStorage.getItem(FAV_KEY));
+    const localFavs = safeLocalJson(FAV_KEY, null, 'favorites');
     if (localFavs && Array.isArray(localFavs)) {
         state.favorites = localFavs;
     }
     state.cartDiscount = Math.max(0, Number(state.cartDiscount) || 0);
 
-    let offlineQueue = JSON.parse(localStorage.getItem(QUEUE_KEY)) || [];
+    let offlineQueue = safeLocalJson(QUEUE_KEY, [], 'offline queue');
+    if (!Array.isArray(offlineQueue)) offlineQueue = [];
     // Firestore is authoritative for transaction existence. Older versions
     // stored deleted IDs indefinitely and could hide valid cloud transactions.
     try { localStorage.removeItem('villacart_deleted_transactions'); } catch (e) {}
@@ -601,14 +651,29 @@
         return loadOptionalScript('Chart', VC_OPTIONAL_SCRIPTS.Chart);
     }
 
+    async function firestoreRestAuthHeaders(extraHeaders = {}) {
+        const headers = { ...extraHeaders };
+        try {
+            const user = await authReadyPromise;
+            const currentUser = user || (auth && auth.currentUser);
+            if (currentUser && typeof currentUser.getIdToken === 'function') {
+                headers.Authorization = 'Bearer ' + await currentUser.getIdToken();
+            }
+        } catch (error) {
+            console.warn('Unable to attach Firebase Auth token to REST request:', error);
+        }
+        return headers;
+    }
+
     async function readCollectionWithFirestoreRest(collection) {
         const baseUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(firebaseConfig.projectId)}/databases/(default)/documents/${encodeURIComponent(collection)}?pageSize=300&key=${encodeURIComponent(firebaseConfig.apiKey)}`;
         const documents = [];
         let pageToken = '';
+        const headers = await firestoreRestAuthHeaders();
 
         do {
             const url = pageToken ? `${baseUrl}&pageToken=${encodeURIComponent(pageToken)}` : baseUrl;
-            const response = await fetch(url);
+            const response = await fetch(url, { headers });
             if (!response.ok) throw new Error(`Firestore REST ${response.status}: ${(await response.text()).slice(0, 240)}`);
             const payload = await response.json();
             documents.push(...(payload.documents || []));
@@ -643,7 +708,7 @@
         };
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await firestoreRestAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(body)
         });
         if (!response.ok) throw new Error(`Firestore query REST ${response.status}: ${(await response.text()).slice(0, 240)}`);
@@ -660,7 +725,7 @@
     async function syncTaskWithFirestoreRest(task) {
         const projectId = firebaseConfig.projectId;
         const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/${encodeURIComponent(task.table)}/${encodeURIComponent(task.data.id)}?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
-        const options = { method: task.type === 'delete' ? 'DELETE' : 'PATCH', headers: {} };
+        const options = { method: task.type === 'delete' ? 'DELETE' : 'PATCH', headers: await firestoreRestAuthHeaders() };
         if (task.type !== 'delete') {
             const data = { ...task.data };
             delete data.id;
@@ -944,7 +1009,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.68: The older fallback keydown listener was removed.
+    // v7.2.70: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1917,7 +1982,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v7.2.68: Do not build every product row for collapsed categories.
+        // v7.2.70: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -6906,7 +6971,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v7.2.68: Do not pre-render Stock while the PIN modal is still open.
+    // v7.2.70: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
