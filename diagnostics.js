@@ -136,6 +136,12 @@
       window.__vc559LastCloudSummary = { at: new Date().toISOString(), transactions, inventory, businessDays };
     }
 
+    let deviceApproval = window.__villacartDeviceApproval || null;
+    if (typeof window.villacartGetDeviceApprovalInfo === 'function') {
+      try { deviceApproval = await window.villacartGetDeviceApprovalInfo(); }
+      catch(e) { deviceApproval = { error: e && e.message ? e.message : String(e) }; }
+    }
+
     const report = {
       at: new Date().toISOString(),
       online: navigator.onLine,
@@ -145,6 +151,7 @@
       auth: window.__villacartAuthStatus || null,
       authReady: !!(window.__villacartAuthStatus && window.__villacartAuthStatus.ready),
       authUid: window.__villacartAuthStatus && window.__villacartAuthStatus.uid ? window.__villacartAuthStatus.uid : null,
+      deviceApproval,
       stateReady: vc559HasState(),
       firestore: {
         transactions,
@@ -241,6 +248,7 @@
         vc559Card('Overall', (r.online && r.dbReady && r.offlineQueue === 0) ? 'Good' : 'Check', vc559Summary(r), (r.online && r.dbReady && r.offlineQueue === 0) ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Project', r.firebaseProjectId || 'Unknown', r.dbReady ? 'Firestore connected' : 'Firestore not ready', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('Auth', r.authReady ? 'Ready' : 'Not ready', r.authUid ? ('Anonymous ' + String(r.authUid).slice(0, 8) + '...') : ((r.auth && r.auth.error) || 'No anonymous user yet'), r.authReady ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Device ID', r.deviceApproval && r.deviceApproval.ready ? 'Ready' : 'Not ready', r.deviceApproval && r.deviceApproval.uid ? ('UID ' + String(r.deviceApproval.uid).slice(0, 12) + '... / copy report for full ID') : ((r.deviceApproval && r.deviceApproval.error) || 'Run after auth is ready'), r.deviceApproval && r.deviceApproval.ready ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Online', r.online ? 'Yes' : 'No', r.syncErrorMsg || 'device/browser status', r.online ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('Pending Sync', r.offlineQueue === null ? 'N/A' : r.offlineQueue, r.offlineQueue > 0 ? 'will sync when possible' : 'nothing waiting', r.offlineQueue > 0 ? 'vc558-warn' : 'vc558-ok'),
         vc559Card('Sales Local / Cloud', (txMem === null ? 'N/A' : txMem) + ' / ' + (cloudSkipped ? 'not checked' : (txFs === null ? 'Err' : txFs)), cloudSkipped ? 'local-only check; use Full Refresh for cloud count' : (mismatch ? 'counts do not match' : 'transactions'), mismatch ? 'vc558-warn' : 'vc558-ok'),
