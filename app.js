@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.77';
+    window.VILLACART_APP_VERSION = 'v7.2.78';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1058,7 +1058,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.77: The older fallback keydown listener was removed.
+    // v7.2.78: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -2031,7 +2031,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v7.2.77: Do not build every product row for collapsed categories.
+        // v7.2.78: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -2349,11 +2349,11 @@ function switchScreen(id) {
         return l + ' '.repeat(Math.max(1, width - l.length - r.length)) + r;
     }
 
-    function thermalItemRows(name, qty, amount, width = 32) {
-        // XP210/Android print services often wrap 42-column browser text.
-        // Keep this intentionally narrow so item, qty, and price stay on one physical row.
-        const itemWidth = 16;
-        const qtyWidth = 4;
+    function thermalItemRows(name, qty, amount, width = 28) {
+        // XP210/Open ESC-POS service is safest with a narrower character layout.
+        // This prevents the right side of the receipt from being cropped.
+        const itemWidth = 13;
+        const qtyWidth = 3;
         const priceWidth = width - itemWidth - qtyWidth;
         const cleanName = thermalCleanText(name) || 'Item';
         const line = thermalFit(cleanName, itemWidth).padEnd(itemWidth) +
@@ -2363,7 +2363,7 @@ function switchScreen(id) {
     }
 
     function buildThermalReceiptText(tx) {
-        const width = 32;
+        const width = 28;
         const lines = [];
         const isSettlement = tx && tx.notes && tx.notes.includes('CR-') && tx.type === 'SA';
         const title = isSettlement ? 'CREDIT PAYMENT' : (tx && tx.type === 'EX' ? 'EXPENSE RECORD' : 'OFFICIAL RECEIPT');
@@ -2391,7 +2391,7 @@ function switchScreen(id) {
             lines.push(thermalLine(width));
             lines.push(thermalRow('TOTAL PAID:', thermalMoney(tx.total), width));
         } else if (tx && tx.items && tx.items.length) {
-            lines.push('Item'.padEnd(16) + 'Qty'.padStart(4) + 'Price'.padStart(12));
+            lines.push('Item'.padEnd(13) + 'Qty'.padStart(3) + 'Price'.padStart(12));
             lines.push(thermalLine(width));
             tx.items.forEach(item => {
                 const qty = Number(item.qty) || 0;
@@ -2441,12 +2441,12 @@ function switchScreen(id) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHTML(receiptTitle)}</title>
 <style>
-@page { size: 80mm auto; margin: 0; }
+@page { size: 58mm auto; margin: 0; }
 * { box-sizing: border-box; }
 html, body {
-    width: 80mm;
-    min-width: 80mm;
-    max-width: 80mm;
+    width: 58mm;
+    min-width: 58mm;
+    max-width: 58mm;
     margin: 0;
     padding: 0;
     background: #fff;
@@ -2459,23 +2459,23 @@ body {
     print-color-adjust: exact;
 }
 #thermal-receipt {
-    width: 62mm;
-    max-width: 62mm;
+    width: 54mm;
+    max-width: 54mm;
     margin: 0;
     padding: 2mm 2mm 5mm;
     background: #fff;
     color: #000;
     font-family: "Courier New", Courier, monospace;
-    font-size: 16px;
-    line-height: 1.22;
+    font-size: 14px;
+    line-height: 1.2;
     font-weight: 900;
     letter-spacing: 0;
     white-space: pre;
     overflow: visible;
 }
 @media print {
-    html, body { width: 80mm; margin: 0; padding: 0; overflow: visible; }
-    #thermal-receipt { width: 62mm; max-width: 62mm; margin: 0; white-space: pre; font-size: 16px; font-weight: 900; }
+    html, body { width: 58mm; margin: 0; padding: 0; overflow: visible; }
+    #thermal-receipt { width: 54mm; max-width: 54mm; margin: 0; white-space: pre; font-size: 14px; font-weight: 900; }
 }
 </style>
 </head>
@@ -7035,7 +7035,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v7.2.77: Do not pre-render Stock while the PIN modal is still open.
+    // v7.2.78: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
