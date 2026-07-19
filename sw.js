@@ -1,11 +1,11 @@
-const CACHE_NAME = 'villacart-pos-v8.0.2';
+const CACHE_NAME = 'villacart-pos-v8.0.4';
 const APP_SHELL = [
   './',
   './index.html',
-  './manifest.webmanifest?v=8.0.2',
-  './styles.css?v=8.0.2',
-  './app.js?v=8.0.2',
-  './diagnostics.js?v=8.0.2',
+  './manifest.webmanifest?v=8.0.4',
+  './styles.css?v=8.0.4',
+  './app.js?v=8.0.4',
+  './diagnostics.js?v=8.0.4',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
