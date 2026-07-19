@@ -4246,7 +4246,7 @@ body {
 }
 
 
-/* v8.0.12: Premium low-stock ticker in the spare header space. Local inventory only; no Firestore usage. */
+/* v8.0.13: Premium low-stock ticker in the spare header space. Local inventory only; no Firestore usage. */
 .vc-lowstock-ticker {
     flex: 1 1 auto;
     min-width: 180px;
@@ -4293,7 +4293,7 @@ body {
     align-items: center;
     gap: .32rem;
     min-width: 100%;
-    animation: vc-lowstock-marquee 46s linear infinite;
+    animation: vc-lowstock-marquee 78s linear infinite;
     will-change: transform;
 }
 .vc-lowstock-ticker:hover .vc-lowstock-ticker-track,
@@ -4339,8 +4339,8 @@ body {
     font-weight: 1000;
 }
 @keyframes vc-lowstock-marquee {
-    0%, 8% { transform: translateX(0); }
-    100% { transform: translateX(-55%); }
+    0%, 6% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
 }
 @media (max-width: 767px) {
     .vc-lowstock-ticker {
