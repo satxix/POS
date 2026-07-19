@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.84';
+    window.VILLACART_APP_VERSION = 'v7.2.85';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1007,7 +1007,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.84: The older fallback keydown listener was removed.
+    // v7.2.85: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1534,6 +1534,34 @@ function switchScreen(id) {
         if (document.visibilityState !== 'hidden') vc7230ResumeRepaint('visible');
     });
 
+    function vc7285HandlePrintReturn(reason) {
+        if (!window.__villacartPrintIntentAt) return;
+        if (Date.now() - window.__villacartPrintIntentAt > 120000) {
+            window.__villacartPrintIntentAt = 0;
+            return;
+        }
+        setTimeout(() => {
+            try {
+                vc7230ResumeRepaint('print-return-' + reason);
+                const visible = vc7230VisibleScreenId();
+                const screen = document.getElementById('screen-' + visible) || document.getElementById('screen-pos');
+                if (screen) screen.classList.remove('hidden');
+                if (typeof refreshActiveNavigationFromDOM === 'function') refreshActiveNavigationFromDOM();
+                if (typeof updateSyncUI === 'function') updateSyncUI();
+                if (typeof vcStartupMark === 'function') vcStartupMark('print-return-repaint', { reason, screen: visible });
+            } catch (error) {
+                console.warn('Print return repaint failed', reason, error);
+            }
+        }, 250);
+        setTimeout(() => { window.__villacartPrintIntentAt = 0; }, 1500);
+    }
+
+    window.addEventListener('focus', () => vc7285HandlePrintReturn('focus'));
+    window.addEventListener('pageshow', () => vc7285HandlePrintReturn('pageshow'));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') vc7285HandlePrintReturn('visible');
+    });
+
     function attemptInventoryAccess() { if (!document.getElementById('screen-inventory').classList.contains('hidden')) { switchScreen('inventory'); return; } openPinModal("inventory"); }
 
     function openPinModal(target) { pinBuffer = ""; updatePinDots(); const modal = document.getElementById('pin-modal'); modal.classList.replace('hidden', 'flex'); window._pinTarget = target; }
@@ -1980,7 +2008,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v7.2.84: Do not build every product row for collapsed categories.
+        // v7.2.85: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -2431,6 +2459,8 @@ pre {
         const payload = JSON.stringify([html]);
         const encoded = encodeURIComponent(await gzipBase64String(payload));
         const intentUrl = `intent://#Intent;scheme=print-intent;S.content=${encoded};end`;
+        window.__villacartPrintIntentAt = Date.now();
+        if (typeof vcStartupMark === 'function') vcStartupMark('print-intent-opened');
         window.location.href = intentUrl;
         return true;
     }
@@ -7039,7 +7069,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v7.2.84: Do not pre-render Stock while the PIN modal is still open.
+    // v7.2.85: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
