@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v8.0.4</title>
+<title>Villacart POS v8.0.5</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=8.0.4"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.0.5"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            window.VILLACART_EXPECTED_VERSION = 'v8.0.4';
+            window.VILLACART_EXPECTED_VERSION = 'v8.0.5';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.vcReloadApp = function() {
@@ -34,7 +34,7 @@
                     window.location.reload();
                 });
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js?v=8.0.4').then(function(reg) {
+                    navigator.serviceWorker.register('sw.js?v=8.0.5').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (reg.waiting) window.__villacartUpdateAvailable = true;
                         reg.addEventListener('updatefound', function() {
@@ -112,7 +112,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=8.0.4"/>
+<link rel="stylesheet" href="styles.css?v=8.0.5"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -125,7 +125,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v8.0.4</span>
+                    <span class="vc551-version">v8.0.5</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -301,12 +301,14 @@
 <input id="gcash-name" class="w-full mt-1.5 mb-2.5 px-4 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Enter Name"/>
 <label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Reference / Notes</label>
 <input id="gcash-notes" class="w-full mt-1.5 mb-3 px-4 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Reference number or note"/>
-<div class="rounded-3xl bg-primary/5 border border-primary/10 p-3 space-y-1.5 mb-3">
-<div class="flex justify-between text-sm font-bold"><span>Service fee</span><strong id="gcash-preview-fee">₱0</strong></div>
-<div class="flex justify-between text-sm font-bold"><span id="gcash-preview-main-label">Cash to release</span><strong id="gcash-preview-main">₱0</strong></div>
-<div class="flex justify-between text-xs font-black uppercase tracking-wider pt-1.5 border-t border-primary/10"><span>Drawer effect</span><strong id="gcash-preview-drawer">₱0</strong></div>
+<div class="rounded-3xl bg-primary/5 border border-primary/10 px-3 py-2 space-y-1 mb-2">
+<div class="flex justify-between text-xs font-bold"><span>Service fee</span><strong id="gcash-preview-fee">₱0</strong></div>
+<div class="flex justify-between text-xs font-bold"><span id="gcash-preview-main-label">Cash to release</span><strong id="gcash-preview-main">₱0</strong></div>
+<div class="flex justify-between text-[11px] font-black uppercase tracking-wider pt-1 border-t border-primary/10"><span>Drawer effect</span><strong id="gcash-preview-drawer">₱0</strong></div>
 </div>
+<div class="sticky bottom-2 z-20 -mx-1 pt-1 pb-1 bg-surface/95 backdrop-blur-sm rounded-3xl">
 <button class="w-full h-12 rounded-2xl bg-secondary text-white font-black uppercase tracking-wider active-scale shadow-lg" onclick="saveGcashRecord()">Save GCash Record</button>
+</div>
 </div>
 <div class="bg-surface border border-border-subtle rounded-[2rem] p-4 lg:col-start-2 lg:row-start-2 shadow-sm min-h-[300px]">
 <div class="flex items-center justify-between gap-3 mb-3">
@@ -1140,7 +1142,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=8.0.4"></script>
+<script src="app.js?v=8.0.5"></script>
 <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
 </button>
@@ -1169,7 +1171,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=8.0.4"></script>
+<script src="diagnostics.js?v=8.0.5"></script>
 
 
 
