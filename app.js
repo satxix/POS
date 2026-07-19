@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.78';
+    window.VILLACART_APP_VERSION = 'v7.2.79';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1058,7 +1058,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.78: The older fallback keydown listener was removed.
+    // v7.2.79: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -2031,7 +2031,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v7.2.78: Do not build every product row for collapsed categories.
+        // v7.2.79: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -2425,7 +2425,89 @@ function switchScreen(id) {
         return lines.join('\n');
     }
 
-    function printThermalReceipt() {
+    function isAndroidRuntime() {
+        return /Android/i.test(navigator.userAgent || '');
+    }
+
+    async function gzipBase64String(text) {
+        if (typeof CompressionStream === 'undefined') {
+            throw new Error('CompressionStream not available');
+        }
+        const stream = new Blob([text], { type: 'application/json' }).stream().pipeThrough(new CompressionStream('gzip'));
+        const buffer = await new Response(stream).arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+        }
+        return btoa(binary);
+    }
+
+    function buildOpenEscposIntentHtml(receiptText, receiptTitle) {
+        return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHTML(receiptTitle || 'Villacart Receipt')}</title>
+<style>
+@page { size: 80mm auto; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+body { width: 72mm; max-width: 72mm; }
+pre {
+  margin: 0;
+  padding: 2mm 1mm 5mm 1mm;
+  width: 70mm;
+  max-width: 70mm;
+  color: #000;
+  background: #fff;
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.18;
+  font-weight: 900;
+  white-space: pre;
+  overflow: visible;
+}
+</style>
+</head>
+<body><pre>${escapeHTML(receiptText)}</pre></body>
+</html>`;
+    }
+
+    async function printWithOpenEscposIntent(receiptText, receiptTitle) {
+        if (!isAndroidRuntime()) return false;
+        const html = buildOpenEscposIntentHtml(receiptText, receiptTitle);
+        const payload = JSON.stringify([html]);
+        const encoded = encodeURIComponent(await gzipBase64String(payload));
+        const intentUrl = `intent://#Intent;scheme=print-intent;S.content=${encoded};end`;
+        window.location.href = intentUrl;
+        return true;
+    }
+
+    async function printThermalReceipt() {
+        const tx = (state.transactions || []).find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
+        const receiptEl = document.getElementById('receipt-content');
+        if (!tx && !receiptEl) {
+            if (typeof showToast === 'function') showToast('Receipt not ready', 'error');
+            return;
+        }
+        const receiptText = tx ? buildThermalReceiptText(tx) : receiptEl.innerText;
+        const receiptTitle = lastTransactionId ? `Villacart Receipt ${lastTransactionId}` : 'Villacart Receipt';
+        try {
+            const opened = await printWithOpenEscposIntent(receiptText, receiptTitle);
+            if (opened) {
+                if (typeof showToast === 'function') showToast('Sending to ESC/POS printer...', 'info');
+                return;
+            }
+        } catch (error) {
+            console.warn('Open ESC/POS intent print failed, using browser print fallback:', error);
+        }
+        printBrowserThermalReceipt();
+    }
+
+    function printBrowserThermalReceipt() {
         const tx = (state.transactions || []).find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
         const receiptEl = document.getElementById('receipt-content');
         if (!tx && !receiptEl) {
@@ -7035,7 +7117,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v7.2.78: Do not pre-render Stock while the PIN modal is still open.
+    // v7.2.79: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
