@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v8.0.8</title>
+<title>Villacart POS v8.0.11</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=8.0.8"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.0.11"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            window.VILLACART_EXPECTED_VERSION = 'v8.0.8';
+            window.VILLACART_EXPECTED_VERSION = 'v8.0.11';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.vcReloadApp = function() {
@@ -34,7 +34,7 @@
                     window.location.reload();
                 });
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js?v=8.0.8').then(function(reg) {
+                    navigator.serviceWorker.register('sw.js?v=8.0.11').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (reg.waiting) window.__villacartUpdateAvailable = true;
                         reg.addEventListener('updatefound', function() {
@@ -112,7 +112,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=8.0.8"/>
+<link rel="stylesheet" href="styles.css?v=8.0.11"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -125,11 +125,18 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v8.0.8</span>
+                    <span class="vc551-version">v8.0.11</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
         </div>
+
+        <button class="vc-lowstock-ticker hidden" id="vc-lowstock-ticker" onclick="attemptInventoryAccess()" title="Open Stock screen for low-stock items">
+            <span class="vc-lowstock-ticker-label" id="vc-lowstock-ticker-label">Stock alert</span>
+            <span class="vc-lowstock-ticker-window">
+                <span class="vc-lowstock-ticker-track" id="vc-lowstock-ticker-track"></span>
+            </span>
+        </button>
 
         <div class="vc551-actions">
             <button class="vc551-pill" id="vc551-day-pill" onclick="showBusinessDayInfo()" title="Business Day">
@@ -344,27 +351,27 @@
 <!-- STOCK SCREEN -->
 <div class="screen-transition hidden p-4 lg:p-8 max-w-[1400px] mx-auto" id="screen-inventory">
 <div class="flex flex-col gap-6 mb-8">
-<div class="flex justify-between items-end">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
 <div>
 <h2 class="text-2xl font-black text-primary uppercase">Stock Inventory</h2>
 <p class="text-on-surface-variant text-sm font-medium">Manage your product catalog</p>
 </div>
-<div class="flex flex-wrap justify-end gap-2">
-<button id="refresh-stock-btn" class="bg-primary/10 text-primary h-12 px-4 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale border border-primary/10" onclick="refreshStockFromCloud()" title="Refresh stock from Firestore">
-<span class="material-symbols-outlined text-[20px]">sync</span>
-<span>Refresh Stock</span>
+<div class="flex flex-wrap sm:justify-end gap-2 w-full sm:w-auto">
+<button id="refresh-stock-btn" class="bg-primary/10 text-primary h-10 sm:h-12 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 active-scale border border-primary/10" onclick="refreshStockFromCloud()" title="Refresh stock from Firestore">
+<span class="material-symbols-outlined text-[17px] sm:text-[20px]">sync</span>
+<span><span class="sm:hidden">Refresh</span><span class="hidden sm:inline">Refresh Stock</span></span>
 </button>
-<button class="bg-primary text-on-primary h-12 px-6 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale shadow-lg" onclick="openProductModal()">
-<span class="material-symbols-outlined text-[20px]">add_circle</span>
-                    Add Product
-                </button>
+<button class="bg-primary text-on-primary h-10 sm:h-12 px-3 sm:px-6 rounded-xl sm:rounded-2xl font-bold text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 active-scale shadow-lg" onclick="openProductModal()">
+<span class="material-symbols-outlined text-[17px] sm:text-[20px]">add_circle</span>
+<span>Add Product</span>
+</button>
+<button class="bg-primary/10 text-primary h-10 sm:h-12 w-10 sm:w-auto sm:px-4 rounded-xl sm:rounded-2xl font-bold text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 active-scale" onclick="exportInventoryCSV()" title="Export Inventory">
+<span class="material-symbols-outlined text-[17px] sm:text-[20px]">download</span>
+</button>
+<button class="bg-primary/10 text-primary h-10 sm:h-12 w-10 sm:w-auto sm:px-4 rounded-xl sm:rounded-2xl font-bold text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 active-scale" onclick="openPinModal('change-pin')" title="Change PIN">
+<span class="material-symbols-outlined text-[17px] sm:text-[20px]">key</span>
+</button>
 </div>
-<button class="bg-primary/10 text-primary h-12 px-4 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale" onclick="exportInventoryCSV()" title="Export Inventory">
-<span class="material-symbols-outlined text-[20px]">download</span>
-</button>
-<button class="bg-primary/10 text-primary h-12 px-4 rounded-2xl font-bold text-sm flex items-center gap-2 active-scale" onclick="openPinModal('change-pin')" title="Change PIN">
-<span class="material-symbols-outlined text-[20px]">key</span>
-</button>
 </div>
 <div class="hidden bg-yellow-50 border-2 border-yellow-200 p-5 rounded-2xl flex items-center gap-4 shadow-sm" id="low-stock-alert">
 <div class="bg-yellow-100 p-2 rounded-xl">
@@ -1142,7 +1149,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=8.0.8"></script>
+<script src="app.js?v=8.0.11"></script>
 <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
 </button>
@@ -1171,7 +1178,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=8.0.8"></script>
+<script src="diagnostics.js?v=8.0.11"></script>
 
 
 

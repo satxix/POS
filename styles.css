@@ -4244,3 +4244,112 @@ body {
     gap: .32rem !important;
   }
 }
+
+
+/* v8.0.11: Premium low-stock ticker in the spare header space. Local inventory only; no Firestore usage. */
+.vc-lowstock-ticker {
+    flex: 1 1 auto;
+    min-width: 180px;
+    max-width: 620px;
+    height: 32px;
+    margin: 0 .7rem;
+    padding: 0 .42rem 0 .5rem;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    overflow: hidden;
+    border-radius: 999px;
+    border: 1px solid rgba(253, 224, 71, .18);
+    background: linear-gradient(135deg, rgba(15, 23, 42, .34), rgba(30, 58, 95, .24));
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.045), 0 8px 18px rgba(15,23,42,.12);
+    backdrop-filter: blur(10px);
+}
+.vc-lowstock-ticker.hidden {
+    display: none !important;
+}
+.vc-lowstock-ticker-label {
+    flex: 0 0 auto;
+    padding: .22rem .42rem;
+    border-radius: 999px;
+    background: rgba(245, 158, 11, .18);
+    color: #FDE68A;
+    font-size: .58rem;
+    line-height: 1;
+    font-weight: 1000;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.vc-lowstock-ticker-window {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+}
+.vc-lowstock-ticker-track {
+    display: inline-flex;
+    align-items: center;
+    gap: .32rem;
+    min-width: 100%;
+    animation: vc-lowstock-marquee 34s linear infinite;
+    will-change: transform;
+}
+.vc-lowstock-ticker:hover .vc-lowstock-ticker-track,
+.vc-lowstock-ticker:focus-visible .vc-lowstock-ticker-track {
+    animation-play-state: paused;
+}
+.vc-lowstock-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .26rem;
+    max-width: 170px;
+    padding: .22rem .48rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: .01em;
+    white-space: nowrap;
+}
+.vc-lowstock-chip.out {
+    color: #FEE2E2;
+    background: rgba(239, 68, 68, .18);
+    box-shadow: inset 0 0 0 1px rgba(248, 113, 113, .18);
+}
+.vc-lowstock-chip.low {
+    color: #FEF3C7;
+    background: rgba(245, 158, 11, .14);
+    box-shadow: inset 0 0 0 1px rgba(251, 191, 36, .12);
+}
+.vc-lowstock-chip.more {
+    color: #DBEAFE;
+    background: rgba(59, 130, 246, .14);
+    box-shadow: inset 0 0 0 1px rgba(147, 197, 253, .12);
+}
+.vc-lowstock-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.vc-lowstock-sep {
+    color: rgba(255,255,255,.38);
+    font-size: .62rem;
+    font-weight: 1000;
+}
+@keyframes vc-lowstock-marquee {
+    0%, 8% { transform: translateX(0); }
+    100% { transform: translateX(-55%); }
+}
+@media (max-width: 767px) {
+    .vc-lowstock-ticker {
+        display: none !important;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .vc-lowstock-ticker-track {
+        animation: none !important;
+        transform: none !important;
+    }
+}
