@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.85';
+    window.VILLACART_APP_VERSION = 'v8.0.2';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -125,7 +125,7 @@
     const QUEUE_KEY = 'saph_pos_v5_villacart_queue' + STORAGE_SUFFIX;
     const FAV_KEY = 'villacart_favorites' + STORAGE_SUFFIX;
     const ARCHIVE_KEY = 'villacart_local_archive_v710' + STORAGE_SUFFIX;
-    const FIRESTORE_SYNC_TABLES = new Set(['transactions', 'inventory', 'businessDays']);
+    const FIRESTORE_SYNC_TABLES = new Set(['transactions', 'inventory', 'businessDays', 'gcashRecords']);
 
     function isFirestoreSyncTable(table) {
         return FIRESTORE_SYNC_TABLES.has(String(table || ''));
@@ -164,6 +164,7 @@
         inventory: [],
         transactions: [],
         businessDays: [],
+        gcashRecords: [],
         currentBusinessDayId: null,
         cart: [],
         favorites: new Array(8).fill(null)
@@ -178,12 +179,14 @@
     })();
     state.archiveTransactions = Array.isArray(localArchive.transactions) ? localArchive.transactions : (Array.isArray(state.archiveTransactions) ? state.archiveTransactions : []);
     state.archiveBusinessDays = Array.isArray(localArchive.businessDays) ? localArchive.businessDays : (Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays : []);
+    state.archiveGcashRecords = Array.isArray(localArchive.gcashRecords) ? localArchive.gcashRecords : (Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : []);
     state.archiveMeta = localArchive.meta && typeof localArchive.meta === 'object' ? localArchive.meta : (state.archiveMeta && typeof state.archiveMeta === 'object' ? state.archiveMeta : {});
     const localFavs = safeLocalJson(FAV_KEY, null, 'favorites');
     if (localFavs && Array.isArray(localFavs)) {
         state.favorites = localFavs;
     }
     state.cartDiscount = Math.max(0, Number(state.cartDiscount) || 0);
+    if (!Array.isArray(state.gcashRecords)) state.gcashRecords = [];
 
     let offlineQueue = safeLocalJson(QUEUE_KEY, [], 'offline queue');
     if (!Array.isArray(offlineQueue)) offlineQueue = [];
@@ -549,6 +552,7 @@
             localStorage.setItem(ARCHIVE_KEY, JSON.stringify({
                 transactions: Array.isArray(state.archiveTransactions) ? state.archiveTransactions : [],
                 businessDays: Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays : [],
+                gcashRecords: Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : [],
                 meta: state.archiveMeta && typeof state.archiveMeta === 'object' ? state.archiveMeta : {},
                 savedAt: new Date().toISOString()
             }));
@@ -562,6 +566,7 @@
         // the boundary clear: archive data is never part of Firestore sync.
         delete stateForStorage.archiveTransactions;
         delete stateForStorage.archiveBusinessDays;
+        delete stateForStorage.archiveGcashRecords;
         delete stateForStorage.archiveMeta;
         localStorage.setItem(DB_KEY, JSON.stringify(stateForStorage)); 
         offlineQueue = offlineQueue.filter(task => task && isFirestoreSyncTable(task.table) && task.data && task.data.id && !isArchiveOnlyRecord(task.data));
@@ -784,6 +789,7 @@
             updateSyncUI();
             renderLedger(); 
             renderInsights();
+            if (typeof renderGcashScreen === 'function') renderGcashScreen();
         }
     }
 
@@ -792,6 +798,7 @@
         const list = task.table === 'transactions' ? state.transactions
             : task.table === 'inventory' ? state.inventory
             : task.table === 'businessDays' ? state.businessDays
+            : task.table === 'gcashRecords' ? state.gcashRecords
             : null;
         if (!Array.isArray(list)) return;
         const idx = list.findIndex(item => item && item.id === task.data.id);
@@ -814,6 +821,7 @@
         const list = table === 'transactions' ? state.transactions
             : table === 'inventory' ? state.inventory
             : table === 'businessDays' ? state.businessDays
+            : table === 'gcashRecords' ? state.gcashRecords
             : null;
         if (Array.isArray(list)) {
             const idx = list.findIndex(item => item && item.id === cleanData.id);
@@ -1007,7 +1015,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.85: The older fallback keydown listener was removed.
+    // v8.0.2: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1480,6 +1488,7 @@ function switchScreen(id) {
         if (id === 'history') switchLedgerTab(activeLedgerTab);
         if (id === 'insights') renderInsights();
         if (id === 'business' && typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
+        if (id === 'gcash' && typeof renderGcashScreen === 'function') renderGcashScreen();
         if (id === 'pos') renderFavorites();
     }
 
@@ -2008,7 +2017,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v7.2.85: Do not build every product row for collapsed categories.
+        // v8.0.2: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -2054,6 +2063,297 @@ function switchScreen(id) {
     }
 
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
+
+
+    // v8.0.2: Standalone GCash service ledger.
+    let activeGcashType = 'cashOut';
+    let activeGcashView = 'today';
+    let expandedGcashDates = new Set();
+
+    function todayDateCode() {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        return yyyy + '-' + mm + '-' + dd;
+    }
+
+    function calcGcashFee(amount) {
+        const n = Math.max(0, Number(amount) || 0);
+        return n > 0 ? Math.ceil(n / 1000) * 10 : 0;
+    }
+
+    function nextGcashId() {
+        return nextTransactionId('GC');
+    }
+
+    function gcashDrawerEffect(type, amount, fee) {
+        const amt = Number(amount) || 0;
+        const svc = Number(fee) || 0;
+        return type === 'cashIn' ? amt + svc : svc - amt;
+    }
+
+    function setGcashType(type) {
+        activeGcashType = type === 'cashIn' ? 'cashIn' : 'cashOut';
+        document.querySelectorAll('.gcash-type-btn').forEach(btn => {
+            const active = btn.id === 'gcash-type-' + activeGcashType;
+            btn.classList.toggle('bg-primary', active);
+            btn.classList.toggle('text-white', active);
+            btn.classList.toggle('bg-surface-container', !active);
+            btn.classList.toggle('text-on-surface-variant', !active);
+        });
+        updateGcashPreview();
+    }
+
+    function addGcashAmount(amountToAdd) {
+        const amountEl = document.getElementById('gcash-amount');
+        if (!amountEl) return;
+        const current = Math.max(0, Number(amountEl.value) || 0);
+        amountEl.value = current + (Number(amountToAdd) || 0);
+        updateGcashPreview();
+    }
+
+    function updateGcashPreview() {
+        const amount = Math.max(0, Number(document.getElementById('gcash-amount')?.value) || 0);
+        const fee = calcGcashFee(amount);
+        const drawer = gcashDrawerEffect(activeGcashType, amount, fee);
+        const mainLabel = document.getElementById('gcash-preview-main-label');
+        const mainValue = document.getElementById('gcash-preview-main');
+        const feeValue = document.getElementById('gcash-preview-fee');
+        const drawerValue = document.getElementById('gcash-preview-drawer');
+        if (mainLabel) mainLabel.innerText = activeGcashType === 'cashIn' ? 'Cash to receive' : 'Cash to release';
+        if (mainValue) mainValue.innerText = formatCurrency(amount);
+        if (feeValue) feeValue.innerText = formatCurrency(fee);
+        if (drawerValue) drawerValue.innerText = (drawer < 0 ? '-' : '') + formatCurrency(Math.abs(drawer));
+    }
+
+    function saveGcashRecord() {
+        const amountEl = document.getElementById('gcash-amount');
+        const nameEl = document.getElementById('gcash-name');
+        const notesEl = document.getElementById('gcash-notes');
+        const amount = Math.max(0, Number(amountEl?.value) || 0);
+        if (amount <= 0) {
+            showToast('Enter a GCash amount first', 'error');
+            return;
+        }
+        const fee = calcGcashFee(amount);
+        const now = new Date();
+        const record = {
+            id: nextGcashId(),
+            type: activeGcashType,
+            amount,
+            fee,
+            drawerEffect: gcashDrawerEffect(activeGcashType, amount, fee),
+            businessDate: todayDateCode(),
+            businessDayId: state.currentBusinessDayId || null,
+            timestamp: now.toISOString(),
+            customerName: (nameEl?.value || '').trim(),
+            referenceNotes: (notesEl?.value || '').trim(),
+            notes: (notesEl?.value || '').trim(),
+            _offline: true
+        };
+        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
+        state.gcashRecords.unshift(record);
+        queueAction('update', 'gcashRecords', record);
+        if (amountEl) amountEl.value = '';
+        if (nameEl) nameEl.value = '';
+        if (notesEl) notesEl.value = '';
+        updateGcashPreview();
+        renderGcashScreen();
+        showToast('GCash record saved', 'success');
+    }
+
+    function switchGcashView(view) {
+        activeGcashView = view === 'history' ? 'history' : 'today';
+        renderGcashScreen();
+    }
+
+    function toggleGcashDateGroup(dateKey) {
+        if (!dateKey) return;
+        if (expandedGcashDates.has(dateKey)) expandedGcashDates.delete(dateKey);
+        else expandedGcashDates.add(dateKey);
+        renderGcashScreen();
+    }
+
+    function gcashRecordDate(record) {
+        if (record && record.businessDate) return String(record.businessDate).slice(0, 10);
+        if (record && record.timestamp) return todayDateCodeFromDate(new Date(record.timestamp));
+        return '';
+    }
+
+    function todayDateCodeFromDate(date) {
+        const d = date instanceof Date && !isNaN(date) ? date : new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return yyyy + '-' + mm + '-' + dd;
+    }
+
+    function monthStartDateCode() {
+        const now = new Date();
+        return todayDateCodeFromDate(new Date(now.getFullYear(), now.getMonth(), 1));
+    }
+
+    function gcashSearchText(record) {
+        return [
+            record && record.id,
+            record && record.customerName,
+            record && record.referenceNotes,
+            record && record.notes,
+            record && record.type,
+            record && record.amount
+        ].filter(Boolean).join(' ').toLowerCase();
+    }
+
+    function gcashMatchesSearch(record, query) {
+        const q = String(query || '').trim().toLowerCase();
+        if (!q) return true;
+        return gcashSearchText(record).includes(q);
+    }
+
+    function currentGcashSearchQuery() {
+        return document.getElementById('gcash-search')?.value || '';
+    }
+
+    function clearGcashSearch() {
+        const input = document.getElementById('gcash-search');
+        if (input) input.value = '';
+        renderGcashScreen();
+    }
+
+    function renderGcashRecordCard(r) {
+        const isOut = r.type === 'cashOut';
+        const pending = isPendingSync('gcashRecords', r.id) || r._offline;
+        const when = r.timestamp ? new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const meta = [r.customerName, r.referenceNotes || r.notes].filter(Boolean).join(' - ');
+        return `<div class="bg-surface-container/40 border border-border-subtle rounded-3xl p-4 flex justify-between gap-3">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <p class="font-black text-sm ${isOut ? 'text-error' : 'text-primary'}">${escapeHTML(r.id)}</p>
+                    <span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-black ${isOut ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}">${isOut ? 'Cash Out' : 'Cash In'}</span>
+                    ${pending ? '<span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-black bg-orange-500 text-white">Pending</span>' : ''}
+                </div>
+                <p class="text-[10px] font-bold text-on-surface-variant">${escapeHTML(when)}${meta ? ' - ' + escapeHTML(meta) : ''}</p>
+                <p class="text-[10px] font-black uppercase tracking-wider text-secondary mt-1">Fee ${formatCurrency(r.fee)}</p>
+            </div>
+            <div class="text-right shrink-0">
+                <p class="text-xl font-black text-on-surface">${formatCurrency(r.amount)}</p>
+                <p class="text-[10px] font-bold text-on-surface-variant">${isOut ? 'Released' : 'Received'}</p>
+            </div>
+        </div>`;
+    }
+
+    function renderGcashHistoryGroups(records) {
+        const grouped = new Map();
+        records.forEach(r => {
+            const d = gcashRecordDate(r) || 'Unknown date';
+            if (!grouped.has(d)) grouped.set(d, []);
+            grouped.get(d).push(r);
+        });
+        return Array.from(grouped.entries()).map(([date, items]) => {
+            const fees = items.reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
+            const out = items.filter(r => r.type === 'cashOut').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+            const inn = items.filter(r => r.type === 'cashIn').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+            const label = date === 'Unknown date' ? date : new Date(date + 'T00:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            const expanded = expandedGcashDates.has(date);
+            return `<div class="bg-white border border-border-subtle rounded-[1.75rem] p-3 shadow-sm">
+                <button class="w-full flex items-start justify-between gap-3 px-1 text-left active-scale" onclick="toggleGcashDateGroup(${jsArg(date)})">
+                    <div class="flex items-start gap-2 min-w-0">
+                        <span class="material-symbols-outlined w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">${expanded ? 'expand_less' : 'expand_more'}</span>
+                        <div class="min-w-0">
+                            <h3 class="font-black text-primary text-sm">${escapeHTML(label)}</h3>
+                            <p class="text-[10px] font-bold text-on-surface-variant">${items.length} record(s) - Fees ${formatCurrency(fees)}</p>
+                        </div>
+                    </div>
+                    <div class="text-right text-[10px] font-black text-on-surface-variant shrink-0">
+                        <p>Out ${formatCurrency(out)}</p>
+                        <p>In ${formatCurrency(inn)}</p>
+                    </div>
+                </button>
+                ${expanded ? `<div class="space-y-2 mt-3">${items.map(renderGcashRecordCard).join('')}</div>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    function renderGcashScreen() {
+        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
+        const today = todayDateCode();
+        const archiveRecords = (Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : []).map(r => ({ ...r, _archiveOnly: true }));
+        const mergedRecords = new Map();
+        archiveRecords.forEach(r => { if (r && r.id) mergedRecords.set(r.id, r); });
+        (state.gcashRecords || []).forEach(r => { if (r && r.id) mergedRecords.set(r.id, r); });
+        const records = Array.from(mergedRecords.values()).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        const todays = records.filter(r => r && gcashRecordDate(r) === today);
+        const cashOut = todays.filter(r => r.type === 'cashOut').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+        const cashIn = todays.filter(r => r.type === 'cashIn').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+        const fees = todays.reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
+        const drawer = todays.reduce((sum, r) => sum + (Number(r.drawerEffect) || 0), 0);
+        const searchQuery = currentGcashSearchQuery();
+        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
+        setText('gcash-sum-out', formatCurrency(cashOut));
+        setText('gcash-sum-in', formatCurrency(cashIn));
+        setText('gcash-sum-fees', formatCurrency(fees));
+        setText('gcash-sum-drawer', (drawer < 0 ? '-' : '') + formatCurrency(Math.abs(drawer)));
+
+        const todayBtn = document.getElementById('gcash-view-today');
+        const historyBtn = document.getElementById('gcash-view-history');
+        const rangeEl = document.getElementById('gcash-history-range');
+        const subtitle = document.getElementById('gcash-list-subtitle');
+        [todayBtn, historyBtn].forEach(btn => {
+            if (!btn) return;
+            const active = (btn.id === 'gcash-view-' + activeGcashView);
+            btn.classList.toggle('bg-primary', active);
+            btn.classList.toggle('text-white', active);
+            btn.classList.toggle('bg-surface-container', !active);
+            btn.classList.toggle('text-on-surface-variant', !active);
+        });
+        if (rangeEl) rangeEl.classList.toggle('hidden', activeGcashView !== 'history');
+        if (subtitle) subtitle.innerText = activeGcashView === 'history' ? 'Grouped by date' : 'Today only';
+
+        const list = document.getElementById('gcash-record-list');
+        if (list) {
+            if (activeGcashView === 'history') {
+                const startEl = document.getElementById('gcash-range-start');
+                const endEl = document.getElementById('gcash-range-end');
+                if (startEl && !startEl.value) startEl.value = monthStartDateCode();
+                if (endEl && !endEl.value) endEl.value = today;
+                const start = startEl && startEl.value ? startEl.value : '';
+                const end = endEl && endEl.value ? endEl.value : '';
+                const filtered = records.filter(r => {
+                    const d = gcashRecordDate(r);
+                    return d && (!start || d >= start) && (!end || d <= end) && gcashMatchesSearch(r, searchQuery);
+                });
+                list.innerHTML = renderGcashHistoryGroups(filtered) || '<div class="text-center py-16 opacity-30"><span class="material-symbols-outlined text-[44px]">history</span><p class="font-black text-xs uppercase tracking-widest mt-2">No GCash history found</p></div>';
+            } else {
+                const filteredToday = todays.filter(r => gcashMatchesSearch(r, searchQuery));
+                list.innerHTML = filteredToday.map(renderGcashRecordCard).join('') || '<div class="text-center py-16 opacity-30"><span class="material-symbols-outlined text-[44px]">account_balance_wallet</span><p class="font-black text-xs uppercase tracking-widest mt-2">No GCash records found</p></div>';
+            }
+        }
+        setGcashType(activeGcashType);
+    }
+
+    async function refreshGcashRecords() {
+        if (!navigator.onLine) {
+            showToast('You are offline', 'error');
+            return;
+        }
+        try {
+            const remote = await readCollectionWithFirestoreRest('gcashRecords');
+            const merged = new Map();
+            [...(state.gcashRecords || []), ...remote].forEach(r => {
+                if (r && r.id) merged.set(r.id, { ...merged.get(r.id), ...r });
+            });
+            state.gcashRecords = Array.from(merged.values()).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            sync();
+            renderGcashScreen();
+            showToast('GCash refreshed', 'success');
+        } catch (error) {
+            syncErrorMsg = error.message || String(error);
+            updateSyncUI();
+            showToast('GCash refresh failed', 'error');
+        }
+    }
+
     function openExpenseModal() { document.getElementById('exp-desc').value = ''; document.getElementById('exp-amt').value = ''; document.getElementById('exp-category').value = 'Utilities'; document.getElementById('expense-modal').classList.replace('hidden', 'flex'); }
     function saveExpense() {
         const desc = document.getElementById('exp-desc').value; const amt = parseFloat(document.getElementById('exp-amt').value); const category = document.getElementById('exp-category').value;
@@ -7069,7 +7369,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v7.2.85: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.2: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7542,6 +7842,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const meta = state.archiveMeta || {};
         const txCount = Array.isArray(state.archiveTransactions) ? state.archiveTransactions.length : 0;
         const dayCount = Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays.length : 0;
+        const gcashCount = Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords.length : 0;
         const lastExport = archiveFormatDateTime(meta.lastExportAt);
         const lastLoad = archiveFormatDateTime(meta.lastLoadAt);
         const loadFile = meta.lastLoadFile ? ' • ' + String(meta.lastLoadFile) : '';
@@ -7557,7 +7858,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                 '<div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-bold">' +
                     '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Last export</span><strong class="text-primary">' + lastExport + '</strong><span class="block text-on-surface-variant mt-1">' + exportScope + '</span></div>' +
                     '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Last local load</span><strong class="text-primary">' + lastLoad + '</strong><span class="block text-on-surface-variant mt-1 truncate">' + (loadFile || 'No file loaded') + '</span></div>' +
-                    '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Local archive stored</span><strong class="text-primary">' + txCount + ' tx / ' + dayCount + ' day(s)</strong><span class="block text-on-surface-variant mt-1">Keep original JSON files safe</span></div>' +
+                    '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Local archive stored</span><strong class="text-primary">' + txCount + ' tx / ' + dayCount + ' day(s) / ' + gcashCount + ' GCash</strong><span class="block text-on-surface-variant mt-1">Keep original JSON files safe</span></div>' +
                 '</div>' +
                 '<div class="mt-3 flex flex-wrap items-center gap-2">' +
                     '<button type="button" onclick="clearLoadedArchiveData()" class="px-3 py-2 rounded-2xl bg-error/10 text-error text-[10px] font-black uppercase tracking-wider border border-error/10 active-scale">Delete loaded backup data</button>' +
@@ -7581,26 +7882,29 @@ document.addEventListener('DOMContentLoaded',()=>{
                 btn.classList.add('opacity-60');
                 btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Preparing';
             }
-            const [transactionsRaw, businessDaysRaw] = await Promise.all([
+            const [transactionsRaw, businessDaysRaw, gcashRaw] = await Promise.all([
                 queryOld('transactions', 'businessDate', cutoff, 5000),
-                queryOld('businessDays', 'date', cutoff, 1000)
+                queryOld('businessDays', 'date', cutoff, 1000),
+                queryOld('gcashRecords', 'businessDate', cutoff, 5000)
             ]);
             const transactions = (transactionsRaw || []).filter(t => txDate(t) && txDate(t) < cutoff);
             const businessDays = (businessDaysRaw || []).filter(d => String(d.date || '').slice(0, 10) < cutoff);
-            if (!transactions.length && !businessDays.length) {
+            const gcashRecords = (gcashRaw || []).filter(r => String(r.businessDate || '').slice(0, 10) < cutoff);
+            if (!transactions.length && !businessDays.length && !gcashRecords.length) {
                 if (typeof showToast === 'function') showToast('No old records before this month', 'info');
                 return;
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v7.2.14',
+                backupVersion: 'v8.0.2',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
                 createdAt: new Date().toISOString(),
                 note: 'Inventory is intentionally not included. Loaded backups are local archive-only and must not sync to Firestore.',
                 transactions,
-                businessDays
+                businessDays,
+                gcashRecords
             };
             const fileMonth = cutoff.slice(0, 7);
             downloadJson('Villacart_Archive_before_' + fileMonth + '.json', payload);
@@ -7609,7 +7913,8 @@ document.addEventListener('DOMContentLoaded',()=>{
                 lastArchiveBefore: cutoff,
                 lastExportFile: 'Villacart_Archive_before_' + fileMonth + '.json',
                 lastExportTransactions: transactions.length,
-                lastExportBusinessDays: businessDays.length
+                lastExportBusinessDays: businessDays.length,
+                lastExportGcashRecords: gcashRecords.length
             });
             const ok = confirm('Backup file downloaded for records before ' + cutoff + '.\n\nDelete these old transactions/business days from Firestore now?\n\nChoose Cancel if you want to verify the file first.');
             if (!ok) {
@@ -7618,8 +7923,10 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             await deleteCloudDocs('transactions', transactions);
             await deleteCloudDocs('businessDays', businessDays);
+            await deleteCloudDocs('gcashRecords', gcashRecords);
             state.transactions = (state.transactions || []).filter(t => !(txDate(t) && txDate(t) < cutoff));
             state.businessDays = (state.businessDays || []).filter(d => !(String(d.date || '').slice(0, 10) < cutoff));
+            state.gcashRecords = (state.gcashRecords || []).filter(r => !(String(r.businessDate || '').slice(0, 10) < cutoff));
             if (typeof sync === 'function') sync();
             if (typeof renderLedger === 'function') renderLedger();
             if (typeof renderInsights === 'function') renderInsights();
@@ -7646,19 +7953,23 @@ document.addEventListener('DOMContentLoaded',()=>{
                 const data = JSON.parse(String(reader.result || '{}'));
                 const tx = Array.isArray(data.transactions) ? data.transactions : [];
                 const bd = Array.isArray(data.businessDays) ? data.businessDays : [];
-                if (!tx.length && !bd.length) throw new Error('No transactions/businessDays found in backup.');
+                const gr = Array.isArray(data.gcashRecords) ? data.gcashRecords : [];
+                if (!tx.length && !bd.length && !gr.length) throw new Error('No transactions/businessDays/gcashRecords found in backup.');
                 state.archiveTransactions = vc710MergeArchiveById(state.archiveTransactions || [], tx);
                 state.archiveBusinessDays = vc710MergeArchiveById(state.archiveBusinessDays || [], bd);
+                state.archiveGcashRecords = vc710MergeArchiveById(state.archiveGcashRecords || [], gr);
                 updateArchiveMeta({
                     lastLoadAt: new Date().toISOString(),
                     lastLoadFile: file.name || 'archive.json',
                     lastLoadTransactions: tx.length,
-                    lastLoadBusinessDays: bd.length
+                    lastLoadBusinessDays: bd.length,
+                    lastLoadGcashRecords: gr.length
                 });
                 if (typeof sync === 'function') sync();
                 if (typeof renderLedger === 'function') renderLedger();
                 if (typeof renderInsights === 'function') renderInsights();
                 if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
+                if (typeof renderGcashScreen === 'function') renderGcashScreen();
                 if (typeof showToast === 'function') showToast('Backup loaded locally only', 'success');
             } catch (error) {
                 console.error('Load backup failed', error);
@@ -7673,7 +7984,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     function clearLoadedArchiveData() {
         const txCount = Array.isArray(state.archiveTransactions) ? state.archiveTransactions.length : 0;
         const dayCount = Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays.length : 0;
-        if (!txCount && !dayCount) {
+        const gcashCount = Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords.length : 0;
+        if (!txCount && !dayCount && !gcashCount) {
             if (typeof showToast === 'function') showToast('No loaded backup data to delete', 'info');
             return;
         }
@@ -7681,19 +7993,22 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (!ok) return;
         state.archiveTransactions = [];
         state.archiveBusinessDays = [];
+        state.archiveGcashRecords = [];
         state.archiveMeta = {
             ...(state.archiveMeta || {}),
             lastClearedAt: new Date().toISOString(),
             lastLoadAt: null,
             lastLoadFile: null,
             lastLoadTransactions: 0,
-            lastLoadBusinessDays: 0
+            lastLoadBusinessDays: 0,
+            lastLoadGcashRecords: 0
         };
         if (typeof saveLocalArchive === 'function') saveLocalArchive();
         renderArchiveSafety();
         if (typeof renderLedger === 'function') renderLedger();
         if (typeof renderInsights === 'function') renderInsights();
         if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
+        if (typeof renderGcashScreen === 'function') renderGcashScreen();
         if (typeof showToast === 'function') showToast('Loaded backup data deleted locally', 'success');
     }
 

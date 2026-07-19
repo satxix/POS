@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v7.2.85</title>
+<title>Villacart POS v8.0.2</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=7.2.85"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.0.2"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            window.VILLACART_EXPECTED_VERSION = 'v7.2.85';
+            window.VILLACART_EXPECTED_VERSION = 'v8.0.2';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.vcReloadApp = function() {
@@ -34,7 +34,7 @@
                     window.location.reload();
                 });
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js?v=7.2.85').then(function(reg) {
+                    navigator.serviceWorker.register('sw.js?v=8.0.2').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (reg.waiting) window.__villacartUpdateAvailable = true;
                         reg.addEventListener('updatefound', function() {
@@ -112,7 +112,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=7.2.85"/>
+<link rel="stylesheet" href="styles.css?v=8.0.2"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -125,7 +125,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v7.2.85</span>
+                    <span class="vc551-version">v8.0.2</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -189,12 +189,18 @@
 <!-- Left Column: Search & Favorites -->
 <div class="flex flex-col gap-4">
 <div class="flex flex-col gap-3">
-<div class="relative group w-full">
+<div class="flex items-stretch gap-2">
+<div class="relative group flex-1 min-w-0">
 <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[22px] group-focus-within:text-primary">search</span>
 <input class="w-full pl-12 pr-14 py-4 bg-surface border border-border-subtle rounded-2xl focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm font-medium shadow-sm" id="pos-search" oninput="handlePosSearch(this.value)" placeholder="Search or scan barcode..." type="text"/>
 <button id="clear-search-btn" class="hidden absolute right-14 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-on-surface-variant" onclick="const s=document.getElementById('pos-search');s.value='';handlePosSearch('');s.blur();this.classList.add('hidden');"><span class="material-symbols-outlined">close</span></button>
 <button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary active-scale w-10 h-10 flex items-center justify-center bg-primary-container rounded-xl" onclick="togglePosScanner()" id="pos-scan-btn" title="Scan Barcode">
 <span class="material-symbols-outlined text-[22px]">barcode_scanner</span>
+</button>
+</div>
+<button class="shrink-0 min-w-[92px] px-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-[11px] uppercase tracking-wider flex flex-col items-center justify-center gap-0.5 shadow-sm active-scale md:min-w-[112px] hover:bg-emerald-100" onclick="switchScreen('gcash')" title="Record GCash Cash In / Cash Out">
+<span class="material-symbols-outlined text-[22px] leading-none">account_balance_wallet</span>
+<span>GCash</span>
 </button>
 </div>
 <div class="hidden bg-black rounded-2xl overflow-hidden relative mt-2" id="pos-cam-area-container">
@@ -253,6 +259,85 @@
                         Process Payment
                     </button>
 </div>
+</div>
+</div>
+</div>
+<!-- GCASH SCREEN -->
+<div class="screen-transition hidden p-4 lg:p-6 max-w-[1280px] mx-auto" id="screen-gcash">
+<div class="grid grid-cols-1 xl:grid-cols-[260px_minmax(0,1fr)_52px] gap-3 mb-4 items-stretch">
+<div class="flex items-center justify-between gap-3 min-w-0">
+<div class="min-w-0">
+<p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-700/70">Service Records</p>
+<h1 class="text-3xl xl:text-4xl font-black text-primary tracking-tight leading-none">GCash</h1>
+<p class="text-on-surface-variant text-sm font-medium truncate">Cash In / Cash Out tracking</p>
+</div>
+<button class="xl:hidden w-12 h-12 rounded-2xl bg-primary-container text-primary flex items-center justify-center active-scale shrink-0" onclick="switchScreen('pos')" title="Back to Terminal">
+<span class="material-symbols-outlined">point_of_sale</span>
+</button>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-2" id="gcash-summary-cards">
+<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[92px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Cash Out Today</p><h3 class="text-xl xl:text-2xl font-black text-primary mt-1" id="gcash-sum-out">₱0</h3></div>
+<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[92px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Cash In Today</p><h3 class="text-xl xl:text-2xl font-black text-primary mt-1" id="gcash-sum-in">₱0</h3></div>
+<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[92px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Fees Earned</p><h3 class="text-xl xl:text-2xl font-black text-secondary mt-1" id="gcash-sum-fees">₱0</h3></div>
+<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[92px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Drawer Effect</p><h3 class="text-xl xl:text-2xl font-black text-on-surface mt-1" id="gcash-sum-drawer">₱0</h3></div>
+</div>
+<button class="hidden xl:flex w-12 h-full min-h-[92px] rounded-2xl bg-primary-container text-primary items-center justify-center active-scale" onclick="switchScreen('pos')" title="Back to Terminal">
+<span class="material-symbols-outlined">point_of_sale</span>
+</button>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-5">
+<div class="bg-surface border border-border-subtle rounded-[2rem] p-5 shadow-sm">
+<div class="grid grid-cols-2 gap-2 mb-4">
+<button id="gcash-type-cashOut" class="gcash-type-btn py-4 rounded-2xl bg-primary text-white font-black text-xs uppercase active-scale" onclick="setGcashType('cashOut')">Cash Out</button>
+<button id="gcash-type-cashIn" class="gcash-type-btn py-4 rounded-2xl bg-surface-container text-on-surface-variant font-black text-xs uppercase active-scale" onclick="setGcashType('cashIn')">Cash In</button>
+</div>
+<label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Amount</label>
+<input id="gcash-amount" class="w-full mt-2 mb-3 px-4 py-4 rounded-2xl border border-border-subtle bg-surface-container/50 text-3xl font-black text-primary outline-none focus:ring-2 focus:ring-primary/10" type="number" inputmode="decimal" min="1" step="1" placeholder="0" oninput="updateGcashPreview()"/>
+<div class="grid grid-cols-4 gap-2 mb-3">
+<button class="py-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(50)">₱50</button>
+<button class="py-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(100)">₱100</button>
+<button class="py-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(500)">₱500</button>
+<button class="py-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(1000)">₱1000</button>
+</div>
+<label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Customer Name</label>
+<input id="gcash-name" class="w-full mt-2 mb-3 px-4 py-3 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Optional name"/>
+<label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Reference / Notes</label>
+<input id="gcash-notes" class="w-full mt-2 mb-4 px-4 py-3 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Reference number or note"/>
+<div class="rounded-3xl bg-primary/5 border border-primary/10 p-4 space-y-2 mb-4">
+<div class="flex justify-between text-sm font-bold"><span>Service fee</span><strong id="gcash-preview-fee">₱0</strong></div>
+<div class="flex justify-between text-sm font-bold"><span id="gcash-preview-main-label">Cash to release</span><strong id="gcash-preview-main">₱0</strong></div>
+<div class="flex justify-between text-xs font-black uppercase tracking-wider pt-2 border-t border-primary/10"><span>Drawer effect</span><strong id="gcash-preview-drawer">₱0</strong></div>
+</div>
+<button class="w-full h-14 rounded-2xl bg-secondary text-white font-black uppercase tracking-wider active-scale shadow-lg" onclick="saveGcashRecord()">Save GCash Record</button>
+</div>
+<div class="bg-surface border border-border-subtle rounded-[2rem] p-5 shadow-sm min-h-[360px]">
+<div class="flex items-center justify-between gap-3 mb-4">
+<div>
+<p class="text-[10px] font-black uppercase tracking-widest text-primary/60">GCash Records</p>
+<p class="text-xs font-bold text-on-surface-variant" id="gcash-list-subtitle">Today only</p>
+</div>
+<button class="px-3 py-2 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase active-scale" onclick="refreshGcashRecords()" title="Manual Firestore pull for GCash records only">Refresh Cloud</button>
+</div>
+<div class="grid grid-cols-2 gap-2 mb-3">
+<button id="gcash-view-today" class="py-3 rounded-2xl bg-primary text-white text-xs font-black uppercase active-scale" onclick="switchGcashView('today')">Today</button>
+<button id="gcash-view-history" class="py-3 rounded-2xl bg-surface-container text-on-surface-variant text-xs font-black uppercase active-scale" onclick="switchGcashView('history')">History</button>
+</div>
+<div class="hidden grid grid-cols-2 gap-2 mb-4" id="gcash-history-range">
+<div>
+<label class="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">From</label>
+<input id="gcash-range-start" class="w-full mt-1 px-3 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-xs font-black" type="date" onchange="renderGcashScreen()"/>
+</div>
+<div>
+<label class="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">To</label>
+<input id="gcash-range-end" class="w-full mt-1 px-3 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-xs font-black" type="date" onchange="renderGcashScreen()"/>
+</div>
+</div>
+<div class="relative mb-4">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input id="gcash-search" class="w-full pl-11 pr-11 py-3 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Search name or reference..." oninput="renderGcashScreen()"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl text-on-surface-variant flex items-center justify-center active-scale" onclick="clearGcashSearch()" title="Clear search"><span class="material-symbols-outlined text-[18px]">close</span></button>
+</div>
+<div class="space-y-3" id="gcash-record-list"></div>
 </div>
 </div>
 </div>
@@ -1057,7 +1142,7 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="app.js?v=7.2.85"></script>
+<script src="app.js?v=8.0.2"></script>
 <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
 </button>
@@ -1086,7 +1171,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=7.2.85"></script>
+<script src="diagnostics.js?v=8.0.2"></script>
 
 
 
