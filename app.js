@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.13';
+    window.VILLACART_APP_VERSION = 'v8.0.25';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -125,39 +125,15 @@
     const QUEUE_KEY = 'saph_pos_v5_villacart_queue' + STORAGE_SUFFIX;
     const FAV_KEY = 'villacart_favorites' + STORAGE_SUFFIX;
     const ARCHIVE_KEY = 'villacart_local_archive_v710' + STORAGE_SUFFIX;
-    const FIRESTORE_SYNC_TABLES = new Set(['transactions', 'inventory', 'businessDays', 'gcashRecords']);
-
-    function isFirestoreSyncTable(table) {
-        return FIRESTORE_SYNC_TABLES.has(String(table || ''));
-    }
-
-    function isArchiveOnlyRecord(data) {
-        return !!(data && (data._archiveOnly || data.archiveOnly || data.localArchiveOnly));
-    }
-    
-    function safeLocalJson(key, fallback, label) {
-        const raw = localStorage.getItem(key);
-        if (!raw) return fallback;
-        try {
-            const parsed = JSON.parse(raw);
-            return parsed == null ? fallback : parsed;
-        } catch (error) {
-            const recovery = {
-                key,
-                label: label || key,
-                at: new Date().toISOString(),
-                error: error && error.message ? error.message : String(error)
-            };
-            window.__villacartStorageRecovery = window.__villacartStorageRecovery || [];
-            window.__villacartStorageRecovery.push(recovery);
-            try {
-                localStorage.setItem(key + '_corrupt_' + Date.now(), raw);
-            } catch (backupError) {}
-            try { localStorage.removeItem(key); } catch (removeError) {}
-            console.warn('Recovered from corrupted local storage:', recovery);
-            return fallback;
-        }
-    }
+    const safeLocalJson = window.VillacartUtils && window.VillacartUtils.safeLocalJson;
+    const isFirestoreSyncTable = window.VillacartUtils && window.VillacartUtils.isFirestoreSyncTable;
+    const isArchiveOnlyRecord = window.VillacartUtils && window.VillacartUtils.isArchiveOnlyRecord;
+    const {
+        buildThermalReceiptText,
+        isAndroidRuntime,
+        gzipBase64String,
+        buildOpenEscposIntentHtml
+    } = window.VillacartReceipts || {};
 
     vcStartupMark('before-local-state-load');
     let state = safeLocalJson(DB_KEY, {
@@ -259,42 +235,35 @@
     let transactionsUnsubscribe = null;
     let businessDaysUnsubscribe = null;
 
-    function titleCase(str) {
-        if (!str) return 'Unknown';
-        return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    }
-
-    function escapeHTML(value) {
-        return String(value ?? '').replace(/[&<>"']/g, ch => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        }[ch]));
-    }
-
-    function jsArg(value) {
-        return JSON.stringify(String(value ?? '')).replace(/"/g, '&quot;');
-    }
-
-    function formatCurrency(value) {
-        return `₱${(Number(value) || 0).toLocaleString()}`;
-    }
-
-    function csvEscape(value) {
-        let text = String(value ?? '');
-        if (/^[=+\-@]/.test(text)) text = "'" + text;
-        return `"${text.replace(/"/g, '""')}"`;
-    }
-
-    function isCreditSettlement(t) {
-        return !!(t && t.notes && t.notes.includes('CR-'));
-    }
-
-    function isRevenueSale(t) {
-        return !!(t && (t.type === 'SA' || t.type === 'CR') && !isCreditSettlement(t));
-    }
+    const {
+        titleCase,
+        escapeHTML,
+        jsArg,
+        formatCurrency,
+        csvEscape,
+        isCreditSettlement,
+        isRevenueSale,
+        firestoreRestValue,
+        firestoreRestToValue,
+        firestoreWriteWithTimeout,
+        loadOptionalScript,
+        ensureHtml2CanvasLoaded,
+        ensureChartLoaded,
+        canvasToPngBlob,
+        downloadBlob,
+        vc5632lDateCode,
+        vc5632lMonthBounds,
+        vc5632mTodayBounds,
+        vc5632mInDateRange,
+        todayDateCode,
+        calcGcashFee,
+        gcashDrawerEffect,
+        gcashRecordDate,
+        todayDateCodeFromDate,
+        monthStartDateCode,
+        gcashSearchText,
+        gcashMatchesSearch
+    } = window.VillacartUtils || {};
 
     function nextTransactionId(type) {
         const now = new Date();
@@ -521,32 +490,6 @@
     }
 
 
-    // v7.2.14: Auto-sync read scope.
-    // Keep automatic sync, but avoid re-reading old transaction history forever.
-    function vc5632lDateCode(value = new Date()) {
-        const d = value instanceof Date ? value : new Date(value);
-        if (Number.isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-
-    function vc5632lMonthBounds(value = new Date()) {
-        const d = value instanceof Date ? value : new Date(value);
-        const start = new Date(d.getFullYear(), d.getMonth(), 1);
-        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-        return { start: vc5632lDateCode(start), end: vc5632lDateCode(end) };
-    }
-
-    function vc5632mTodayBounds() {
-        const today = vc5632lDateCode(new Date());
-        return { start: today, end: today };
-    }
-
-    function vc5632mInDateRange(item, bounds) {
-        if (!bounds) return true;
-        const d = item && (item.businessDate || item.date || (item.timestamp ? vc5632lDateCode(item.timestamp) : ''));
-        return !!d && d >= bounds.start && d <= bounds.end;
-    }
-
     function saveLocalArchive() {
         try {
             localStorage.setItem(ARCHIVE_KEY, JSON.stringify({
@@ -574,75 +517,6 @@
         localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites));
         saveLocalArchive();
         updateQueueBadge();
-    }
-
-    function firestoreWriteWithTimeout(write, timeoutMs = 15000) {
-        let timeoutId;
-        const timeout = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error('Firestore write timed out; it will be retried.')), timeoutMs);
-        });
-        return Promise.race([write, timeout]).finally(() => clearTimeout(timeoutId));
-    }
-
-    function firestoreRestValue(value) {
-        if (value === null || value === undefined) return { nullValue: null };
-        if (value instanceof Date) return { timestampValue: value.toISOString() };
-        if (Array.isArray(value)) return { arrayValue: { values: value.map(firestoreRestValue) } };
-        if (typeof value === 'boolean') return { booleanValue: value };
-        if (typeof value === 'number') return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
-        if (typeof value === 'object') {
-            return { mapValue: { fields: Object.fromEntries(Object.entries(value).map(([key, item]) => [key, firestoreRestValue(item)])) } };
-        }
-        return { stringValue: String(value) };
-    }
-
-    function firestoreRestToValue(value) {
-        if (!value || typeof value !== 'object') return null;
-        if ('nullValue' in value) return null;
-        if ('booleanValue' in value) return value.booleanValue;
-        if ('integerValue' in value) return Number(value.integerValue);
-        if ('doubleValue' in value) return Number(value.doubleValue);
-        if ('timestampValue' in value) return value.timestampValue;
-        if ('stringValue' in value) return value.stringValue;
-        if ('referenceValue' in value) return value.referenceValue;
-        if ('arrayValue' in value) return (value.arrayValue.values || []).map(firestoreRestToValue);
-        if ('mapValue' in value) return Object.fromEntries(Object.entries(value.mapValue.fields || {}).map(([key, item]) => [key, firestoreRestToValue(item)]));
-        return null;
-    }
-
-    const VC_OPTIONAL_SCRIPTS = {
-        html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-        Chart: 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'
-    };
-    const vcOptionalScriptPromises = {};
-
-    function loadOptionalScript(globalName, src) {
-        if (window[globalName]) return Promise.resolve(window[globalName]);
-        if (vcOptionalScriptPromises[globalName]) return vcOptionalScriptPromises[globalName];
-        vcOptionalScriptPromises[globalName] = new Promise((resolve, reject) => {
-            const existing = document.querySelector(`script[data-vc-optional="${globalName}"]`);
-            if (existing) {
-                existing.addEventListener('load', () => resolve(window[globalName]), { once: true });
-                existing.addEventListener('error', () => reject(new Error(globalName + ' failed to load')), { once: true });
-                return;
-            }
-            const script = document.createElement('script');
-            script.src = src;
-            script.async = true;
-            script.dataset.vcOptional = globalName;
-            script.onload = () => resolve(window[globalName]);
-            script.onerror = () => reject(new Error(globalName + ' failed to load'));
-            document.head.appendChild(script);
-        });
-        return vcOptionalScriptPromises[globalName];
-    }
-
-    function ensureHtml2CanvasLoaded() {
-        return loadOptionalScript('html2canvas', VC_OPTIONAL_SCRIPTS.html2canvas);
-    }
-
-    function ensureChartLoaded() {
-        return loadOptionalScript('Chart', VC_OPTIONAL_SCRIPTS.Chart);
     }
 
     async function firestoreRestAuthHeaders(extraHeaders = {}) {
@@ -1015,7 +889,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.13: The older fallback keydown listener was removed.
+    // v8.0.25: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -2020,7 +1894,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.13: Do not build every product row for collapsed categories.
+        // v8.0.25: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -2068,32 +1942,13 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.13: Standalone GCash service ledger.
+    // v8.0.25: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
 
-    function todayDateCode() {
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        return yyyy + '-' + mm + '-' + dd;
-    }
-
-    function calcGcashFee(amount) {
-        const n = Math.max(0, Number(amount) || 0);
-        return n > 0 ? Math.ceil(n / 1000) * 10 : 0;
-    }
-
     function nextGcashId() {
         return nextTransactionId('GC');
-    }
-
-    function gcashDrawerEffect(type, amount, fee) {
-        const amt = Number(amount) || 0;
-        const svc = Number(fee) || 0;
-        return type === 'cashIn' ? amt + svc : svc - amt;
     }
 
     function setGcashType(type) {
@@ -2194,42 +2049,6 @@ function switchScreen(id) {
         if (expandedGcashDates.has(dateKey)) expandedGcashDates.delete(dateKey);
         else expandedGcashDates.add(dateKey);
         renderGcashScreen();
-    }
-
-    function gcashRecordDate(record) {
-        if (record && record.businessDate) return String(record.businessDate).slice(0, 10);
-        if (record && record.timestamp) return todayDateCodeFromDate(new Date(record.timestamp));
-        return '';
-    }
-
-    function todayDateCodeFromDate(date) {
-        const d = date instanceof Date && !isNaN(date) ? date : new Date();
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return yyyy + '-' + mm + '-' + dd;
-    }
-
-    function monthStartDateCode() {
-        const now = new Date();
-        return todayDateCodeFromDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    }
-
-    function gcashSearchText(record) {
-        return [
-            record && record.id,
-            record && record.customerName,
-            record && record.referenceNotes,
-            record && record.notes,
-            record && record.type,
-            record && record.amount
-        ].filter(Boolean).join(' ').toLowerCase();
-    }
-
-    function gcashMatchesSearch(record, query) {
-        const q = String(query || '').trim().toLowerCase();
-        if (!q) return true;
-        return gcashSearchText(record).includes(q);
     }
 
     function currentGcashSearchQuery() {
@@ -2584,196 +2403,6 @@ function switchScreen(id) {
                 <span class="text-xs font-black text-secondary">₱${data.revenue.toLocaleString()}</span>
             </div>`
         ).join('');
-    }
-
-    function canvasToPngBlob(canvas) {
-        return new Promise((resolve, reject) => {
-            if (!canvas || typeof canvas.toBlob !== 'function') {
-                reject(new Error('Receipt image could not be created.'));
-                return;
-            }
-            canvas.toBlob(blob => {
-                if (blob) resolve(blob);
-                else reject(new Error('Receipt image is empty.'));
-            }, 'image/png');
-        });
-    }
-
-    function downloadBlob(blob, fileName) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        link.rel = 'noopener';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-
-    function thermalMoney(value) {
-        const n = Number(value) || 0;
-        const formatted = n.toLocaleString(undefined, {
-            minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
-            maximumFractionDigits: 2
-        });
-        // Use plain P for print clarity. Some budget ESC/POS drivers render the peso sign unevenly.
-        return 'P' + formatted;
-    }
-
-    function thermalCleanText(text) {
-        return String(text || '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
-    }
-
-    function thermalFit(text, width) {
-        const clean = thermalCleanText(text);
-        if (clean.length <= width) return clean;
-        if (width <= 3) return clean.slice(0, width);
-        return clean.slice(0, width - 3) + '...';
-    }
-
-    function thermalLine(width = 32) {
-        return '-'.repeat(width);
-    }
-
-    function thermalCenter(text, width = 32) {
-        const clean = thermalFit(text, width);
-        const left = Math.max(0, Math.floor((width - clean.length) / 2));
-        return ' '.repeat(left) + clean;
-    }
-
-    function thermalRow(left, right, width = 32) {
-        const r = thermalCleanText(right);
-        const leftWidth = Math.max(1, width - r.length - 1);
-        const l = thermalFit(left, leftWidth);
-        return l + ' '.repeat(Math.max(1, width - l.length - r.length)) + r;
-    }
-
-    function thermalItemRows(name, qty, amount, width = 34) {
-        // XP210/Open ESC-POS direct intent: bigger readable text with safe columns.
-        // 34 columns keeps prices visible while making the font easier to read.
-        const itemWidth = 16;
-        const qtyWidth = 4;
-        const priceWidth = width - itemWidth - qtyWidth;
-        const cleanName = thermalCleanText(name) || 'Item';
-        const line = thermalFit(cleanName, itemWidth).padEnd(itemWidth) +
-            thermalFit(qty, qtyWidth).padStart(qtyWidth) +
-            thermalFit(amount, priceWidth).padStart(priceWidth);
-        return [line];
-    }
-
-    function buildThermalReceiptText(tx) {
-        const width = 34;
-        const lines = [];
-        const isSettlement = tx && tx.notes && tx.notes.includes('CR-') && tx.type === 'SA';
-        const title = isSettlement ? 'CREDIT PAYMENT' : (tx && tx.type === 'EX' ? 'EXPENSE RECORD' : 'OFFICIAL RECEIPT');
-        const txDate = tx && tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : new Date().toLocaleDateString();
-
-        lines.push(thermalCenter('VILLACART', width));
-        lines.push(thermalCenter('Balagtas BMA San Rafael, Bulacan', width));
-        lines.push(thermalLine(width));
-        lines.push(thermalCenter(title, width));
-        lines.push(thermalLine(width));
-        lines.push(thermalRow('Date:', txDate, width));
-        if (tx && tx.id) lines.push(thermalRow('Trans #:', tx.id, width));
-        if (tx && tx.customer) lines.push(thermalRow('Customer:', tx.customer, width));
-        lines.push(thermalLine(width));
-
-        if (isSettlement) {
-            lines.push('Settlement Breakdown');
-            if (tx.items && tx.items.length) {
-                tx.items.forEach(item => {
-                    thermalItemRows(item.name, item.qty, thermalMoney(Number(item.price) * Number(item.qty)), width).forEach(line => lines.push(line));
-                });
-            } else if (tx.notes) {
-                lines.push(thermalFit('Settled: ' + tx.notes, width));
-            }
-            lines.push(thermalLine(width));
-            lines.push(thermalRow('TOTAL PAID:', thermalMoney(tx.total), width));
-        } else if (tx && tx.items && tx.items.length) {
-            lines.push('Item'.padEnd(16) + 'Qty'.padStart(4) + 'Price'.padStart(14));
-            lines.push(thermalLine(width));
-            tx.items.forEach(item => {
-                const qty = Number(item.qty) || 0;
-                const lineTotal = Number(item.price || 0) * qty;
-                thermalItemRows(item.name, qty, thermalMoney(lineTotal), width).forEach(line => lines.push(line));
-            });
-            lines.push(thermalLine(width));
-            const discount = Number(tx.discount) || 0;
-            if (discount > 0) {
-                const subtotal = Number(tx.subtotal) || (Number(tx.total) + discount);
-                lines.push(thermalRow('Subtotal:', thermalMoney(subtotal), width));
-                lines.push(thermalRow('Discount:', '-' + thermalMoney(discount), width));
-            }
-            lines.push(thermalRow('TOTAL:', thermalMoney(tx.total), width));
-            if (tx.type === 'SA') {
-                lines.push(thermalRow('Cash Received:', thermalMoney(tx.cashReceived || 0), width));
-                lines.push(thermalRow('Change:', thermalMoney(tx.change || 0), width));
-            } else if (tx.type === 'CR') {
-                lines.push(thermalRow('Payment:', 'CREDIT', width));
-            }
-        } else {
-            lines.push(thermalFit((tx && (tx.desc || tx.notes)) || 'Transaction', width));
-            lines.push(thermalLine(width));
-            lines.push(thermalRow('TOTAL:', thermalMoney(tx ? tx.total : 0), width));
-        }
-
-        lines.push(thermalLine(width));
-        lines.push(thermalCenter('THANK YOU!', width));
-        lines.push(thermalCenter('Please come again.', width));
-        lines.push('');
-        return lines.join('\n');
-    }
-
-    function isAndroidRuntime() {
-        return /Android/i.test(navigator.userAgent || '');
-    }
-
-    async function gzipBase64String(text) {
-        if (typeof CompressionStream === 'undefined') {
-            throw new Error('CompressionStream not available');
-        }
-        const stream = new Blob([text], { type: 'application/json' }).stream().pipeThrough(new CompressionStream('gzip'));
-        const buffer = await new Response(stream).arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        const chunkSize = 0x8000;
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-        }
-        return btoa(binary);
-    }
-
-    function buildOpenEscposIntentHtml(receiptText, receiptTitle) {
-        return `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHTML(receiptTitle || 'Villacart Receipt')}</title>
-<style>
-@page { size: 80mm auto; margin: 0; }
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-body { width: 72mm; max-width: 72mm; }
-pre {
-  margin: 0;
-  padding: 2mm 1mm 5mm 1mm;
-  width: 70mm;
-  max-width: 70mm;
-  color: #000;
-  background: #fff;
-  font-family: monospace;
-  font-size: 15px;
-  line-height: 1.2;
-  font-weight: 900;
-  white-space: pre;
-  overflow: visible;
-}
-</style>
-</head>
-<body><pre>${escapeHTML(receiptText)}</pre></body>
-</html>`;
     }
 
     async function printWithOpenEscposIntent(receiptText, receiptTitle) {
@@ -7440,7 +7069,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.13: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.25: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7967,7 +7596,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.13',
+                backupVersion: 'v8.0.25',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
