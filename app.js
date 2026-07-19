@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v7.2.82';
+    window.VILLACART_APP_VERSION = 'v7.2.84';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -271,10 +271,6 @@
         }[ch]));
     }
 
-    function escapeAttr(value) {
-        return escapeHTML(value);
-    }
-
     function jsArg(value) {
         return JSON.stringify(String(value ?? '')).replace(/"/g, '&quot;');
     }
@@ -295,37 +291,6 @@
 
     function isRevenueSale(t) {
         return !!(t && (t.type === 'SA' || t.type === 'CR') && !isCreditSettlement(t));
-    }
-
-    function queueTaskIsConfirmed(task, cloudRecord) {
-        if (!task || !task.data || !task.data.id) return true;
-        if (task.type === 'delete') return !cloudRecord;
-        if (!cloudRecord) return false;
-
-        const queued = { ...task.data };
-        delete queued._offline;
-        return Object.keys(queued).every(key => JSON.stringify(cloudRecord[key]) === JSON.stringify(queued[key]));
-    }
-
-    function clearConfirmedQueueRecords(table, cloudRecords) {
-        const cloudById = new Map((cloudRecords || []).map(record => [record.id, record]));
-        const before = offlineQueue.length;
-        offlineQueue = offlineQueue.filter(task =>
-            task.table !== table || !queueTaskIsConfirmed(task, cloudById.get(task.data && task.data.id))
-        );
-        if (offlineQueue.length !== before) {
-            if (offlineQueue.length === 0) syncErrorMsg = null;
-            sync();
-            updateSyncUI();
-        }
-    }
-
-    function clearConfirmedQueueTasks(table, snapshot) {
-        // Do not treat Firestore's local cache as confirmation. Wait for a
-        // server-backed snapshot, then remove only operations whose final
-        // state is visible there.
-        if (!snapshot || snapshot.metadata.hasPendingWrites) return;
-        clearConfirmedQueueRecords(table, snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }
 
     function nextTransactionId(type) {
@@ -566,22 +531,6 @@
         const start = new Date(d.getFullYear(), d.getMonth(), 1);
         const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         return { start: vc5632lDateCode(start), end: vc5632lDateCode(end) };
-    }
-
-    function vc5632lTransactionDate(tx) {
-        return tx && (tx.businessDate || (tx.timestamp ? vc5632lDateCode(tx.timestamp) : ''));
-    }
-
-    function vc5632lInCurrentMonth(tx) {
-        const bounds = vc5632lMonthBounds();
-        const d = vc5632lTransactionDate(tx);
-        return !!d && d >= bounds.start && d <= bounds.end;
-    }
-
-    function vc5632lBusinessDayInScope(day) {
-        const bounds = vc5632lMonthBounds();
-        const d = day && (day.date || (day.openedAt ? vc5632lDateCode(day.openedAt) : ''));
-        return !!d && d >= bounds.start && d <= bounds.end;
     }
 
     function vc5632mTodayBounds() {
@@ -1058,7 +1007,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v7.2.82: The older fallback keydown listener was removed.
+    // v7.2.84: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -2031,7 +1980,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v7.2.82: Do not build every product row for collapsed categories.
+        // v7.2.84: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -4884,21 +4833,6 @@ function getClosingCounts(transactions) {
         );
     }
 
-    function vc541Kind(t) {
-        if (vc541IsSettlement(t)) return 'settlement';
-        if (t && t.type === 'CR') return 'credit';
-        if (t && t.type === 'EX') return 'expense';
-        return 'cash';
-    }
-
-    function vc541Label(kind) {
-        return ({ cash: 'SA', credit: 'CR', settlement: 'PAYMENT', expense: 'EX' })[kind] || 'TX';
-    }
-
-    function vc541Icon(kind) {
-        return ({ cash: 'payments', credit: 'schedule', settlement: 'task_alt', expense: 'remove_circle' })[kind] || 'receipt_long';
-    }
-
     function vc541Peso(v) {
         return `₱${(Number(v)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
     }
@@ -4910,18 +4844,6 @@ function getClosingCounts(transactions) {
     function vc541Clean(tx) {
         const deleted = vc541DeletedSet();
         return (tx || []).filter(t => t && t.id && !deleted.has(t.id));
-    }
-
-    function vc541PeriodTransactions() {
-        if (typeof vc531PeriodTransactions === 'function') return vc531PeriodTransactions();
-        if (typeof getPeriodTransactions === 'function') {
-            try { return getPeriodTransactions(); } catch(e) {}
-        }
-        const today = vc541DateCode(new Date());
-        return vc541Clean(state.transactions || []).filter(t => {
-            const d = t.businessDate || (t.timestamp ? vc541DateCode(t.timestamp) : '');
-            return d === today;
-        });
     }
 
     function vc541BusinessDate() {
@@ -7117,7 +7039,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v7.2.82: Do not pre-render Stock while the PIN modal is still open.
+    // v7.2.84: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
