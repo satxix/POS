@@ -157,6 +157,18 @@
         return { cashSales, creditSales, collections, totalSales, cashIn, expenses, cogs, netProfit, outstandingCredit, transactionCount: periodTx.length };
     }
 
+
+
+    function transactionTypeCounts(transactions) {
+        const tx = Array.isArray(transactions) ? transactions : [];
+        return {
+            cash: tx.filter(t => t && t.type === 'SA' && !isCreditSettlement(t)).length,
+            credit: tx.filter(t => t && t.type === 'CR' && !isCreditSettlement(t)).length,
+            collections: tx.filter(t => t && isCreditSettlement(t)).length,
+            expenses: tx.filter(t => t && t.type === 'EX').length
+        };
+    }
+
     function firestoreRestValue(value) {
         if (value === null || value === undefined) return { nullValue: null };
         if (value instanceof Date) return { timestampValue: value.toISOString() };
@@ -378,6 +390,7 @@
         inventoryCategoryNameValue,
         inventoryMatchesSearchValue,
         businessMetricsForTransactions,
+        transactionTypeCounts,
         firestoreRestValue,
         firestoreRestToValue,
         firestoreWriteWithTimeout,
