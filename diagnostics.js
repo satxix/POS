@@ -381,7 +381,16 @@
       if (!document.getElementById('vc559-reload')) {
         newRun.insertAdjacentHTML('afterend', '<button id="vc559-reload" type="button" class="vc558-action bg-white border border-border-subtle text-primary">Reload App</button>');
         const reloadBtn = document.getElementById('vc559-reload');
-        reloadBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if (typeof window.vcReloadApp === 'function') window.vcReloadApp(); else window.location.reload(); }, true);
+        reloadBtn.addEventListener('click', function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          reloadBtn.disabled = true;
+          reloadBtn.textContent = 'Reloading...';
+          reloadBtn.classList.add('opacity-70');
+          const runReload = function(){ if (typeof window.vcReloadApp === 'function') window.vcReloadApp(); else window.location.reload(); };
+          if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function(){ setTimeout(runReload, 20); });
+          else setTimeout(runReload, 20);
+        }, true);
       }
     }
     if (copyBtn) {
