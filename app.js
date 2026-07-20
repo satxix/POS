@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.34';
+    window.VILLACART_APP_VERSION = 'v8.0.38';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -848,7 +848,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.34: The older fallback keydown listener was removed.
+    // v8.0.38: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1834,7 +1834,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.34: Do not build every product row for collapsed categories.
+        // v8.0.38: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1882,7 +1882,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.34: Standalone GCash service ledger.
+    // v8.0.38: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -2024,16 +2024,8 @@ function switchScreen(id) {
     }
 
     function renderGcashHistoryGroups(records) {
-        const grouped = new Map();
-        records.forEach(r => {
-            const d = gcashRecordDate(r) || 'Unknown date';
-            if (!grouped.has(d)) grouped.set(d, []);
-            grouped.get(d).push(r);
-        });
-        return Array.from(grouped.entries()).map(([date, items]) => {
-            const fees = items.reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
-            const out = items.filter(r => r.type === 'cashOut').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-            const inn = items.filter(r => r.type === 'cashIn').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+        return Array.from(groupByKey(records, r => gcashRecordDate(r) || 'Unknown date').entries()).map(([date, items]) => {
+            const { cashOut: out, cashIn: inn, fees } = gcashDailySummary(items);
             const label = date === 'Unknown date' ? date : new Date(date + 'T00:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
             const expanded = expandedGcashDates.has(date);
             return `<div class="bg-white border border-border-subtle rounded-[1.75rem] p-3 shadow-sm">
@@ -2064,10 +2056,7 @@ function switchScreen(id) {
         (state.gcashRecords || []).forEach(r => { if (r && r.id) mergedRecords.set(r.id, r); });
         const records = Array.from(mergedRecords.values()).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
         const todays = records.filter(r => r && gcashRecordDate(r) === today);
-        const cashOut = todays.filter(r => r.type === 'cashOut').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-        const cashIn = todays.filter(r => r.type === 'cashIn').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-        const fees = todays.reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
-        const drawer = todays.reduce((sum, r) => sum + (Number(r.drawerEffect) || 0), 0);
+        const { cashOut, cashIn, fees, drawer } = gcashDailySummary(todays);
         const searchQuery = currentGcashSearchQuery();
         const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
         setText('gcash-sum-out', formatCurrency(cashOut));
@@ -6733,12 +6722,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             return '<div class="vc5629-empty"><span class="material-symbols-outlined">receipt_long</span><strong>No records</strong><p>Try another tab, date, or search.</p></div>';
         }
         const collapsed = vc5632LoadCollapsed();
-        const groups = new Map();
-        list.forEach(t => {
-            const key = vc5632DateKey(t);
-            if (!groups.has(key)) groups.set(key, []);
-            groups.get(key).push(t);
-        });
+        const groups = groupByKey(list, vc5632DateKey);
         return Array.from(groups.entries()).map(([key, items]) => {
             const total = items.reduce((sum, t) => sum + Number(t.total || 0), 0);
             const collapseKey = (activeLedgerTab || 'cash') + ':' + key;
@@ -6961,7 +6945,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.34: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.38: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7488,7 +7472,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.34',
+                backupVersion: 'v8.0.38',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,

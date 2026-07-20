@@ -131,6 +131,18 @@
             || String(product && product.category || '').toLowerCase().includes(q);
     }
 
+
+
+    function groupByKey(items, keyFn) {
+        const grouped = new Map();
+        (Array.isArray(items) ? items : []).forEach(item => {
+            const key = keyFn(item);
+            if (!grouped.has(key)) grouped.set(key, []);
+            grouped.get(key).push(item);
+        });
+        return grouped;
+    }
+
     function businessMetricsForTransactions(periodTransactions, allTransactions = periodTransactions) {
         const periodTx = Array.isArray(periodTransactions) ? periodTransactions : [];
         const allTx = Array.isArray(allTransactions) ? allTransactions : periodTx;
@@ -331,6 +343,18 @@
 
 
 
+
+
+    function gcashDailySummary(records) {
+        const rows = Array.isArray(records) ? records : [];
+        return {
+            cashOut: rows.filter(r => r && r.type === 'cashOut').reduce((sum, r) => sum + (Number(r.amount) || 0), 0),
+            cashIn: rows.filter(r => r && r.type === 'cashIn').reduce((sum, r) => sum + (Number(r.amount) || 0), 0),
+            fees: rows.reduce((sum, r) => sum + (Number(r && r.fee) || 0), 0),
+            drawer: rows.reduce((sum, r) => sum + (Number(r && r.drawerEffect) || 0), 0)
+        };
+    }
+
     function gcashSearchText(record) {
         return [
             record && record.id,
@@ -389,6 +413,7 @@
         inventoryCategoryKeyValue,
         inventoryCategoryNameValue,
         inventoryMatchesSearchValue,
+        groupByKey,
         businessMetricsForTransactions,
         transactionTypeCounts,
         firestoreRestValue,
@@ -407,6 +432,7 @@
         calcGcashFee,
         gcashDrawerEffect,
         gcashRecordDate,
+        gcashDailySummary,
         todayDateCodeFromDate,
         monthStartDateCode,
         gcashSearchText,
