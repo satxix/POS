@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.26';
+    window.VILLACART_APP_VERSION = 'v8.0.27';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -149,10 +149,7 @@
     if (!state.favorites || !Array.isArray(state.favorites)) {
         state.favorites = new Array(8).fill(null);
     }
-    const localArchive = (() => {
-        try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '{}') || {}; }
-        catch(e) { return {}; }
-    })();
+    const localArchive = safeLocalJson(ARCHIVE_KEY, {}, 'local archive');
     state.archiveTransactions = Array.isArray(localArchive.transactions) ? localArchive.transactions : (Array.isArray(state.archiveTransactions) ? state.archiveTransactions : []);
     state.archiveBusinessDays = Array.isArray(localArchive.businessDays) ? localArchive.businessDays : (Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays : []);
     state.archiveGcashRecords = Array.isArray(localArchive.gcashRecords) ? localArchive.gcashRecords : (Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : []);
@@ -221,12 +218,8 @@
         { name: 'Clay', value: '#E8C7B5' },
         { name: 'Tan', value: '#E6D1B3' }
     ];
-    let favoriteSlotColors = (() => {
-        try {
-            const saved = JSON.parse(localStorage.getItem(FAV_COLOR_KEY) || '{}');
-            return saved && typeof saved === 'object' ? saved : {};
-        } catch(e) { return {}; }
-    })();
+    let favoriteSlotColors = safeLocalJson(FAV_COLOR_KEY, {}, 'favorite colors');
+    if (!favoriteSlotColors || typeof favoriteSlotColors !== 'object' || Array.isArray(favoriteSlotColors)) favoriteSlotColors = {};
     let inventoryState = {
         collapsedCategories: {}
     };
@@ -272,7 +265,8 @@
         const yy = String(now.getFullYear()).slice(-2);
         const dateCode = dd + mm + yy;
         const counterKey = APP_ENV === 'test' ? 'dailyCounters_test' : 'dailyCounters';
-        const counters = JSON.parse(localStorage.getItem(counterKey) || '{}');
+        let counters = safeLocalJson(counterKey, {}, 'daily counters');
+        if (!counters || typeof counters !== 'object' || Array.isArray(counters)) counters = {};
         counters[dateCode] = counters[dateCode] || { SA: 0, CR: 0, EX: 0 };
         counters[dateCode][type] = (counters[dateCode][type] || 0) + 1;
         localStorage.setItem(counterKey, JSON.stringify(counters));
@@ -842,7 +836,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.26: The older fallback keydown listener was removed.
+    // v8.0.27: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1847,7 +1841,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.26: Do not build every product row for collapsed categories.
+        // v8.0.27: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1895,7 +1889,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.26: Standalone GCash service ledger.
+    // v8.0.27: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -7022,7 +7016,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.26: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.27: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7549,7 +7543,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.26',
+                backupVersion: 'v8.0.27',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
