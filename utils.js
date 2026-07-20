@@ -24,6 +24,10 @@
         return `₱${(Number(value) || 0).toLocaleString()}`;
     }
 
+    function formatPesoFixed(value) {
+        return '\u20B1' + (Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     const FIRESTORE_SYNC_TABLES = new Set(['transactions', 'inventory', 'businessDays', 'gcashRecords']);
 
     function isFirestoreSyncTable(table) {
@@ -64,6 +68,93 @@
 
     function isRevenueSale(t) {
         return !!(t && (t.type === 'SA' || t.type === 'CR') && !isCreditSettlement(t));
+    }
+
+    function cartSubtotal(cart) {
+        return (Array.isArray(cart) ? cart : []).reduce((sum, item) => sum + ((Number(item && item.price) || 0) * (Number(item && item.qty) || 0)), 0);
+    }
+
+    function cartCount(cart) {
+        return (Array.isArray(cart) ? cart : []).reduce((sum, item) => sum + (Number(item && item.qty) || 0), 0);
+    }
+
+    function cartDiscount(cart, discountValue) {
+        const subtotal = cartSubtotal(cart);
+        const discount = Math.max(0, Number(discountValue) || 0);
+        return Math.min(discount, subtotal);
+    }
+
+    function cartTotal(cart, discountValue) {
+        return Math.max(0, cartSubtotal(cart) - cartDiscount(cart, discountValue));
+    }
+
+    function cartStockIssue(cart, inventory) {
+        const totals = {};
+        (Array.isArray(cart) ? cart : []).forEach(item => {
+            if (!item || !item.id) return;
+            totals[item.id] = (totals[item.id] || 0) + ((Number(item.qty) || 0) * (Number(item.deduct) || 1));
+        });
+        const products = Array.isArray(inventory) ? inventory : [];
+        for (const [id, needed] of Object.entries(totals)) {
+            const product = products.find(p => p && p.id === id);
+            const available = product ? Number(product.stock) || 0 : 0;
+            if (!product || needed > available) {
+                return `${product ? product.name : 'A product'} needs ${needed} pcs, but only ${available} are available.`;
+            }
+        }
+        return null;
+    }
+
+    function inventoryLowStockThresholdValue(product) {
+        const threshold = Number(product && product.lowStock);
+        return Number.isFinite(threshold) ? threshold : 5;
+    }
+
+    function inventoryIsLowStock(product) {
+        return Number(product && product.stock) <= inventoryLowStockThresholdValue(product);
+    }
+
+    function inventoryCategoryKeyValue(product) {
+        return String((product && product.category) || 'Uncategorized').trim().toLowerCase() || 'uncategorized';
+    }
+
+    function inventoryCategoryNameValue(product) {
+        return titleCase((product && product.category) || 'Uncategorized');
+    }
+
+    function inventoryMatchesSearchValue(product, searchValue, normalizeBarcode = value => String(value || '').trim()) {
+        const q = String(searchValue || '').trim().toLowerCase();
+        if (!q) return true;
+        const barcode = normalizeBarcode(product && product.barcode);
+        return String(product && product.name || '').toLowerCase().includes(q)
+            || String(barcode || '').toLowerCase().includes(q)
+            || String(product && product.category || '').toLowerCase().includes(q);
+    }
+
+    function businessMetricsForTransactions(periodTransactions, allTransactions = periodTransactions) {
+        const periodTx = Array.isArray(periodTransactions) ? periodTransactions : [];
+        const allTx = Array.isArray(allTransactions) ? allTransactions : periodTx;
+        const revenueSales = periodTx.filter(isRevenueSale);
+        const cashSales = revenueSales.filter(t => t && t.type === 'SA').reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+        const creditSales = revenueSales.filter(t => t && t.type === 'CR').reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+        const collections = periodTx.filter(isCreditSettlement).reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+        const expenses = periodTx.filter(t => t && t.type === 'EX').reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+
+        let cogs = 0;
+        revenueSales.forEach(t => {
+            (Array.isArray(t && t.items) ? t.items : []).forEach(item => {
+                cogs += (Number(item && item.cost) || 0) * (Number(item && item.qty) || 0) * (Number(item && item.deduct) || 1);
+            });
+        });
+
+        const totalSales = cashSales + creditSales;
+        const cashIn = cashSales + collections;
+        const netProfit = totalSales - cogs - expenses;
+        const allCreditSales = allTx.filter(t => t && t.type === 'CR' && !isCreditSettlement(t)).reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+        const allCollections = allTx.filter(isCreditSettlement).reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+        const outstandingCredit = Math.max(0, allCreditSales - allCollections);
+
+        return { cashSales, creditSales, collections, totalSales, cashIn, expenses, cogs, netProfit, outstandingCredit, transactionCount: periodTx.length };
     }
 
     function firestoreRestValue(value) {
@@ -272,9 +363,21 @@
         escapeHTML,
         jsArg,
         formatCurrency,
+        formatPesoFixed,
         safeLocalJson,
         isCreditSettlement,
         isRevenueSale,
+        cartSubtotal,
+        cartCount,
+        cartDiscount,
+        cartTotal,
+        cartStockIssue,
+        inventoryLowStockThresholdValue,
+        inventoryIsLowStock,
+        inventoryCategoryKeyValue,
+        inventoryCategoryNameValue,
+        inventoryMatchesSearchValue,
+        businessMetricsForTransactions,
         firestoreRestValue,
         firestoreRestToValue,
         firestoreWriteWithTimeout,

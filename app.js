@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.27';
+    window.VILLACART_APP_VERSION = 'v8.0.32';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -234,6 +234,7 @@
         jsArg,
         formatCurrency,
         csvEscape,
+        formatPesoFixed,
         isCreditSettlement,
         isRevenueSale,
         firestoreRestValue,
@@ -252,6 +253,17 @@
         calcGcashFee,
         gcashDrawerEffect,
         gcashRecordDate,
+        cartSubtotal,
+        cartCount,
+        cartDiscount,
+        cartTotal,
+        cartStockIssue,
+        inventoryLowStockThresholdValue,
+        inventoryIsLowStock,
+        inventoryCategoryKeyValue,
+        inventoryCategoryNameValue,
+        inventoryMatchesSearchValue,
+        businessMetricsForTransactions,
         todayDateCodeFromDate,
         monthStartDateCode,
         gcashSearchText,
@@ -836,7 +848,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.27: The older fallback keydown listener was removed.
+    // v8.0.32: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1448,36 +1460,23 @@ function switchScreen(id) {
     }
 
     function getCartStockIssue() {
-        const totals = {};
-        state.cart.forEach(item => {
-            totals[item.id] = (totals[item.id] || 0) + (item.qty * (item.deduct || 1));
-        });
-        for (const [id, needed] of Object.entries(totals)) {
-            const product = state.inventory.find(p => p.id === id);
-            const available = product ? Number(product.stock) || 0 : 0;
-            if (!product || needed > available) {
-                return `${product ? product.name : 'A product'} needs ${needed} pcs, but only ${available} are available.`;
-            }
-        }
-        return null;
+        return cartStockIssue(state.cart || [], state.inventory || []);
     }
 
     function getCartSubtotal() {
-        return (state.cart || []).reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.qty) || 0)), 0);
+        return cartSubtotal(state.cart || []);
     }
 
     function getCartCount() {
-        return (state.cart || []).reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+        return cartCount(state.cart || []);
     }
 
     function getCartDiscount() {
-        const subtotal = getCartSubtotal();
-        const discount = Math.max(0, Number(state.cartDiscount) || 0);
-        return Math.min(discount, subtotal);
+        return cartDiscount(state.cart || [], state.cartDiscount);
     }
 
     function getCartTotal() {
-        return Math.max(0, getCartSubtotal() - getCartDiscount());
+        return cartTotal(state.cart || [], state.cartDiscount);
     }
 
     function setCartDiscount() {
@@ -1789,29 +1788,23 @@ function switchScreen(id) {
     }
 
     function inventoryLowStockThreshold(product) {
-        const threshold = Number(product && product.lowStock);
-        return Number.isFinite(threshold) ? threshold : 5;
+        return inventoryLowStockThresholdValue(product);
     }
 
     function isLowStockProduct(product) {
-        return Number(product && product.stock) <= inventoryLowStockThreshold(product);
+        return inventoryIsLowStock(product);
     }
 
     function inventoryCategoryKey(product) {
-        return String((product && product.category) || 'Uncategorized').trim().toLowerCase() || 'uncategorized';
+        return inventoryCategoryKeyValue(product);
     }
 
     function inventoryCategoryName(product) {
-        return titleCase((product && product.category) || 'Uncategorized');
+        return inventoryCategoryNameValue(product);
     }
 
     function inventoryMatchesSearch(product, searchValue) {
-        const q = String(searchValue || '').trim().toLowerCase();
-        if (!q) return true;
-        const barcode = vc7227NormalizeBarcode(product && product.barcode);
-        return String(product && product.name || '').toLowerCase().includes(q)
-            || barcode.toLowerCase().includes(q)
-            || String(product && product.category || '').toLowerCase().includes(q);
+        return inventoryMatchesSearchValue(product, searchValue, vc7227NormalizeBarcode);
     }
 
     function inventoryEmptyStateHtml(hasInventory) {
@@ -1841,7 +1834,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.27: Do not build every product row for collapsed categories.
+        // v8.0.32: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1889,7 +1882,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.27: Standalone GCash service ledger.
+    // v8.0.32: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -3118,40 +3111,14 @@ body {
     // v5.6.1 Business Dashboard calculations
     function getBusinessMetricsForPeriod(transactions) {
         const periodTx = transactions || getPeriodTransactions();
-        const revenueSales = periodTx.filter(t => isRevenueSale ? isRevenueSale(t) : ((t.type === 'SA' || t.type === 'CR') && !(t.notes && t.notes.includes('CR-'))));
-        const cashSales = revenueSales.filter(t => t.type === 'SA').reduce((sum, t) => sum + (Number(t.total) || 0), 0);
-        const creditSales = revenueSales.filter(t => t.type === 'CR').reduce((sum, t) => sum + (Number(t.total) || 0), 0);
-        const collections = periodTx.filter(t => t.notes && t.notes.includes('CR-')).reduce((sum, t) => sum + (Number(t.total) || 0), 0);
-        const expenses = periodTx.filter(t => t.type === 'EX').reduce((sum, t) => sum + (Number(t.total) || 0), 0);
-
-        let cogs = 0;
-        revenueSales.forEach(t => {
-            if (!t.items) return;
-            t.items.forEach(item => {
-                cogs += (Number(item.cost) || 0) * (Number(item.qty) || 0) * (Number(item.deduct) || 1);
-            });
-        });
-
-        const totalSales = cashSales + creditSales;
-        const cashIn = cashSales + collections;
-        const netProfit = totalSales - cogs - expenses;
-
-        const allCreditSales = state.transactions
-            .filter(t => t.type === 'CR' && !(t.notes && t.notes.includes('CR-')))
-            .reduce((sum, t) => sum + (Number(t.total) || 0), 0);
-        const allCollections = state.transactions
-            .filter(t => t.notes && t.notes.includes('CR-'))
-            .reduce((sum, t) => sum + (Number(t.total) || 0), 0);
-        const outstandingCredit = Math.max(0, allCreditSales - allCollections);
-
-        return { cashSales, creditSales, collections, totalSales, cashIn, expenses, cogs, netProfit, outstandingCredit };
+        return businessMetricsForTransactions(periodTx, state.transactions || []);
     }
 
     function updateBusinessDashboardCards() {
         const m = getBusinessMetricsForPeriod(typeof getActiveBusinessDayTransactionsOrPeriod === 'function' ? getActiveBusinessDayTransactionsOrPeriod() : undefined);
         const setText = (id, value) => {
             const el = document.getElementById(id);
-            if (el) el.innerText = `₱${(Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if (el) el.innerText = formatPesoFixed(value);
         };
         setText('biz-total-sales', m.totalSales);
         setText('biz-cash-in', m.cashIn);
@@ -3173,10 +3140,9 @@ body {
 
     // v5.6.1 Store Closing Preview Modal
     function moneyFmt(value) {
-        return `₱${(Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return formatPesoFixed(value);
     }
 
-    
     function getClosingTransactionsScope() {
         const bd = getCurrentBusinessDay ? getCurrentBusinessDay() : null;
         if (bd) return getBusinessDayTransactions(bd.id);
@@ -3300,22 +3266,7 @@ function getClosingCounts(transactions) {
 
     function getBusinessMetricsResilient(transactions) {
         const tx = transactions || getTodayTransactionsResilient();
-        const isSettlementFn = (t) => (typeof isCreditSettlement === 'function') ? isCreditSettlement(t) : !!(t.notes && t.notes.includes('CR-'));
-        const revenueSales = tx.filter(t => (t.type === 'SA' || t.type === 'CR') && !isSettlementFn(t));
-        const cashSales = revenueSales.filter(t => t.type === 'SA').reduce((s,t)=>s+(Number(t.total)||0),0);
-        const creditSales = revenueSales.filter(t => t.type === 'CR').reduce((s,t)=>s+(Number(t.total)||0),0);
-        const collections = tx.filter(t => isSettlementFn(t)).reduce((s,t)=>s+(Number(t.total)||0),0);
-        const expenses = tx.filter(t => t.type === 'EX').reduce((s,t)=>s+(Number(t.total)||0),0);
-        let cogs = 0;
-        revenueSales.forEach(t => {
-            (t.items || []).forEach(item => {
-                cogs += (Number(item.cost)||0) * (Number(item.qty)||0) * (Number(item.deduct)||1);
-            });
-        });
-        const totalSales = cashSales + creditSales;
-        const cashIn = cashSales + collections;
-        const netProfit = totalSales - cogs - expenses;
-        return { cashSales, creditSales, collections, expenses, cogs, totalSales, cashIn, netProfit, transactionCount: tx.length };
+        return businessMetricsForTransactions(tx, state.transactions || []);
     }
 
     function forceUpdateInsightsNumbersFromTransactions() {
@@ -7016,7 +6967,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.27: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.32: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7543,7 +7494,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.27',
+                backupVersion: 'v8.0.32',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
