@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.45';
+    window.VILLACART_APP_VERSION = 'v8.0.46';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -851,7 +851,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.45: The older fallback keydown listener was removed.
+    // v8.0.46: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -866,6 +866,7 @@
         const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
         if (stockSearch) stockSearch.value = code;
         if (typeof renderInventory === 'function') renderInventory(code);
+        if (typeof vc8046UpdateStockSearchClear === 'function') vc8046UpdateStockSearchClear();
         const product = vc7227FindProductByBarcode(code);
         if (typeof vc7228MarkHandled === 'function') vc7228MarkHandled(code, product ? 'stock-search:' + product.id : 'stock-search:not-found');
         if (product) showToast('Found in stock: ' + product.name, 'success');
@@ -1793,6 +1794,24 @@ function switchScreen(id) {
         const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
         return stockSearch ? String(stockSearch.value || '') : '';
     }
+    function vc8046UpdateStockSearchClear() {
+        const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
+        const clearBtn = document.getElementById('stock-search-clear');
+        if (!clearBtn) return;
+        const hasValue = !!(stockSearch && String(stockSearch.value || '').trim());
+        clearBtn.classList.toggle('hidden', !hasValue);
+    }
+
+    function clearStockSearch() {
+        const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
+        if (stockSearch) {
+            stockSearch.value = '';
+            try { stockSearch.focus({ preventScroll: true }); } catch (_) { stockSearch.focus(); }
+        }
+        renderInventory('');
+        vc8046UpdateStockSearchClear();
+    }
+
 
     function inventoryLowStockThreshold(product) {
         return inventoryLowStockThresholdValue(product);
@@ -1841,7 +1860,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.45: Do not build every product row for collapsed categories.
+        // v8.0.46: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1864,6 +1883,7 @@ function switchScreen(id) {
         if (lowStockText) lowStockText.innerText = `${lowStockItems.length} items are low on stock!`;
 
         const searchValue = String(f || '');
+        if (typeof vc8046UpdateStockSearchClear === 'function') vc8046UpdateStockSearchClear();
         const filtered = inventory.filter(product => inventoryMatchesSearch(product, searchValue));
         if (filtered.length === 0) {
             list.innerHTML = inventoryEmptyStateHtml(inventory.length > 0);
@@ -1889,7 +1909,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.45: Standalone GCash service ledger.
+    // v8.0.46: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -7011,7 +7031,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.45: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.46: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7538,7 +7558,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.45',
+                backupVersion: 'v8.0.46',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
