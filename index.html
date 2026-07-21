@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v8.0.54</title>
+<title>Villacart POS v8.0.57</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=8.0.50"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.0.57"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            window.VILLACART_EXPECTED_VERSION = 'v8.0.54';
+            window.VILLACART_EXPECTED_VERSION = 'v8.0.57';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.vcReloadApp = function() {
@@ -34,7 +34,7 @@
                     window.location.reload();
                 });
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js?v=8.0.50').then(function(reg) {
+                    navigator.serviceWorker.register('sw.js?v=8.0.57').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (reg.waiting) window.__villacartUpdateAvailable = true;
                         reg.addEventListener('updatefound', function() {
@@ -112,7 +112,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=8.0.50"/>
+<link rel="stylesheet" href="styles.css?v=8.0.57"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -125,7 +125,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v8.0.54</span>
+                    <span class="vc551-version">v8.0.57</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -1152,10 +1152,14 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="utils.js?v=8.0.50"></script>
-<script src="receipts.js?v=8.0.50"></script>
-<script src="scanner.js?v=8.0.50"></script>
-<script src="app.js?v=8.0.50"></script>
+<script src="utils.js?v=8.0.57"></script>
+<script src="credit-utils.js?v=8.0.57"></script>
+<script src="receipts.js?v=8.0.57"></script>
+<script src="scanner.js?v=8.0.57"></script>
+
+    <script src="favorites.js?v=8.0.57"></script>
+    <script src="gcash.js?v=8.0.57"></script>
+<script src="app.js?v=8.0.57"></script>
 <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
 </button>
@@ -1184,7 +1188,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=8.0.50"></script>
+<script src="diagnostics.js?v=8.0.57"></script>
 
 
 

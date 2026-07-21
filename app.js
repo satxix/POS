@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.54';
+    window.VILLACART_APP_VERSION = 'v8.0.57';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.54: The older fallback keydown listener was removed.
+    // v8.0.57: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -941,274 +941,7 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    function toggleFavoritesMode() {
-        favoritesEditMode = !favoritesEditMode;
-        favoriteDragState = null;
-        favoriteDragSuppressClick = false;
-        const btn = document.getElementById('fav-mode-btn');
-        btn.innerText = favoritesEditMode ? "Done Editing" : "Edit Slots";
-        btn.classList.toggle('text-primary', favoritesEditMode);
-        btn.classList.toggle('text-primary/40', !favoritesEditMode);
-        renderFavorites();
-    }
-
-    function addFavoriteSlot() {
-        state.favorites.push(null);
-        sync();
-        renderFavorites();
-        showToast("Slot added", "success");
-    }
-
-    function removeFavoriteSlot(index, event) {
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        state.favorites.splice(index, 1);
-        sync();
-        renderFavorites();
-        showToast("Slot removed", "info");
-    }
-
-    let favoriteDragState = null;
-    let favoriteDragSuppressClick = false;
-
-    function favoriteSlotShell(index, innerHtml) {
-        const dragAttrs = favoritesEditMode
-            ? ` data-fav-index="${index}" onpointerdown="beginFavoriteDrag(event, ${index})" onpointermove="moveFavoriteDrag(event)" onpointerup="endFavoriteDrag(event)" onpointercancel="cancelFavoriteDrag(event)"`
-            : ` data-fav-index="${index}"`;
-        const touchClass = favoritesEditMode ? 'touch-none' : 'touch-pan-y';
-        return `<div class="favorite-slot relative h-[90px] md:h-32 ${touchClass} select-none"${dragAttrs}>${innerHtml}</div>`;
-    }
-
-    function saveFavoriteColors() {
-        try { localStorage.setItem(FAV_COLOR_KEY, JSON.stringify(favoriteSlotColors || {})); } catch(e) {}
-    }
-
-    function favoriteColorValue(index) {
-        const value = favoriteSlotColors && favoriteSlotColors[String(index)] ? String(favoriteSlotColors[String(index)]) : '';
-        return favoriteColorPalette.some(color => color.value === value) ? value : '';
-    }
-
-    function favoriteColorStyle(index) {
-        const value = favoriteColorValue(index);
-        return value ? ` style="background-color: ${value};"` : '';
-    }
-
-    function favoriteSlotControls(index) {
-        if (!favoritesEditMode) return '';
-        return `${favoriteEditOverlay()}${favoriteColorButton(index)}${favoriteRemoveButton(index)}`;
-    }
-
-    function favoriteColorButton(index) {
-        if (!favoritesEditMode) return '';
-        return `<button data-fav-color="true" onclick="openFavoriteColorPicker(${index}, event)" class="absolute top-1 left-1 bg-white/90 text-primary w-6 h-6 rounded-full flex items-center justify-center shadow-md active:scale-90 z-20 border border-primary/10" title="Change color"><span class="material-symbols-outlined text-[14px]">palette</span></button>`;
-    }
-
-    function favoriteEditOverlay() {
-        if (!favoritesEditMode) return '';
-        return `<div class="absolute inset-0 bg-primary/75 flex flex-col items-center justify-center text-white gap-1 pointer-events-none">
-            <span class="material-symbols-outlined text-[22px]">drag_indicator</span>
-            <span class="text-[7px] md:text-[9px] font-black uppercase tracking-widest">Drag</span>
-        </div>`;
-    }
-
-    function favoriteRemoveButton(index) {
-        if (!favoritesEditMode) return '';
-        return `<button data-fav-remove="true" onclick="removeFavoriteSlot(${index}, event)" class="absolute top-1 right-1 bg-error text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md active:scale-90 z-20">
-            <span class="material-symbols-outlined text-[14px]">close</span>
-        </button>`;
-    }
-
-    function favoriteBaseButtonClass(kind) {
-        if (kind === 'empty') return 'w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors';
-        if (kind === 'missing') return 'w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50';
-        return 'relative w-full h-full border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-1.5 pt-2 pb-6 md:px-2 md:pt-3 md:pb-7 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all';
-    }
-
-    function favoriteStockClass(product) {
-        const stockCount = Math.max(0, Number(product.stock) || 0);
-        if (stockCount <= 0) return 'text-error bg-error/10';
-        if (stockCount <= (Number(product.lowStock) || 5)) return 'text-amber-700 bg-amber-50';
-        return 'text-primary/60 bg-primary/5';
-    }
-
-    function renderFavoriteEmptySlot(index) {
-        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="${favoriteBaseButtonClass('empty')}"${favoriteColorStyle(index)}>
-            <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary/30 group-hover:text-primary transition-colors">add</span>
-            <span class="text-[7px] md:text-[10px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
-        </button>${favoriteSlotControls(index)}`);
-    }
-
-    function renderFavoriteMissingSlot(index) {
-        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="${favoriteBaseButtonClass('missing')}"${favoriteColorStyle(index)}>
-            <span class="material-symbols-outlined">error</span>
-        </button>${favoriteSlotControls(index)}`);
-    }
-
-    function favoriteProductContent(product) {
-        const stockCount = Math.max(0, Number(product.stock) || 0);
-        return `<span class="text-[9px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
-            <span class="text-[11px] md:text-[16px] font-black text-secondary mt-1 leading-none">${formatCurrency(product.price)}</span>
-            <span class="absolute bottom-1.5 md:bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-1 md:px-2 py-0.5 rounded-full text-[6px] md:text-[8px] font-black uppercase tracking-wide ${favoriteStockClass(product)}">Stock: ${stockCount}</span>`;
-    }
-
-    function renderFavoriteProductSlot(fav, index) {
-        const product = state.inventory.find(p => p.id === fav.id);
-        if (!product) return renderFavoriteMissingSlot(index);
-        return favoriteSlotShell(index, `<button onclick="handleFavoriteClick(${index})" class="${favoriteBaseButtonClass('product')}"${favoriteColorStyle(index)}>
-            ${favoriteProductContent(product)}
-        </button>${favoriteSlotControls(index)}`);
-    }
-
-    function renderFavorites() {
-        const grid = document.getElementById('favorites-grid');
-        if (!grid) return;
-        let html = state.favorites.map((fav, index) => fav ? renderFavoriteProductSlot(fav, index) : renderFavoriteEmptySlot(index)).join('');
-        if (favoritesEditMode) {
-            html += `<button onclick="addFavoriteSlot()" class="h-[90px] md:h-32 border-2 border-primary/20 bg-primary/5 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:bg-primary/10 transition-colors">
-                <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary">add_circle</span>
-                <span class="text-[7px] md:text-[10px] font-black uppercase text-primary">Add New Slot</span>
-            </button>`;
-        }
-        grid.innerHTML = html;
-    }
-
-    function beginFavoriteDrag(event, index) {
-        if (!favoritesEditMode || event.pointerType === 'mouse' && event.button !== 0) return;
-        if (event.target && event.target.closest && event.target.closest('[data-fav-remove="true"],[data-fav-color="true"]')) return;
-        favoriteDragState = {
-            from: index,
-            startX: event.clientX,
-            startY: event.clientY,
-            dragging: false,
-            slot: event.currentTarget
-        };
-        if (favoriteDragState.slot && favoriteDragState.slot.setPointerCapture) {
-            try { favoriteDragState.slot.setPointerCapture(event.pointerId); } catch(e) {}
-        }
-    }
-
-    function moveFavoriteDrag(event) {
-        if (!favoriteDragState) return;
-        const dx = event.clientX - favoriteDragState.startX;
-        const dy = event.clientY - favoriteDragState.startY;
-        if (!favoriteDragState.dragging && Math.hypot(dx, dy) > 10) {
-            favoriteDragState.dragging = true;
-            if (favoriteDragState.slot) {
-                favoriteDragState.slot.style.opacity = '0.55';
-                favoriteDragState.slot.style.transform = 'scale(0.96)';
-                favoriteDragState.slot.style.zIndex = '30';
-            }
-        }
-        if (favoriteDragState.dragging) {
-            event.preventDefault();
-            if (favoriteDragState.slot) favoriteDragState.slot.style.transform = `translate(${dx}px, ${dy}px) scale(0.96)`;
-        }
-    }
-
-    function reorderFavoriteSlot(fromIndex, toIndex) {
-        if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= state.favorites.length || toIndex >= state.favorites.length) return false;
-        const moved = state.favorites.splice(fromIndex, 1)[0];
-        state.favorites.splice(toIndex, 0, moved);
-        sync();
-        renderFavorites();
-        return true;
-    }
-
-    function endFavoriteDrag(event) {
-        if (!favoriteDragState) return;
-        const drag = favoriteDragState;
-        favoriteDragState = null;
-        if (drag.slot) {
-            drag.slot.style.opacity = '';
-            drag.slot.style.transform = '';
-            drag.slot.style.zIndex = '';
-        }
-        if (!drag.dragging) return;
-        event.preventDefault();
-        event.stopPropagation();
-        const target = document.elementFromPoint(event.clientX, event.clientY);
-        const targetSlot = target && target.closest ? target.closest('[data-fav-index]') : null;
-        const toIndex = targetSlot ? Number(targetSlot.getAttribute('data-fav-index')) : drag.from;
-        favoriteDragSuppressClick = true;
-        const changed = reorderFavoriteSlot(drag.from, toIndex);
-        if (changed) showToast('Favorite moved', 'success');
-        setTimeout(() => { favoriteDragSuppressClick = false; }, 150);
-    }
-
-    function cancelFavoriteDrag() {
-        if (favoriteDragState && favoriteDragState.slot) {
-            favoriteDragState.slot.style.opacity = '';
-            favoriteDragState.slot.style.transform = '';
-            favoriteDragState.slot.style.zIndex = '';
-        }
-        favoriteDragState = null;
-    }
-
-    function handleFavoriteClick(index) {
-        if (favoriteDragSuppressClick) return;
-        if (favoritesEditMode) { openFavoritesPicker(index); } else {
-            const fav = state.favorites[index];
-            if (fav) {
-                const product = state.inventory.find(p => p.id === fav.id);
-                if (product && product.packPrice && product.packPrice > 0) openScanChoiceModal(product);
-                else addToCart(fav.id, 'piece');
-            }
-        }
-    }
-
-    function openFavoritesPicker(index) {
-        currentFavSlotIndex = index;
-        document.getElementById('fav-picker-search').value = '';
-        const btn = document.getElementById('fav-remove-slot-btn');
-        if (btn) btn.classList.toggle('hidden', !favoritesEditMode);
-        renderFavPickerList();
-        closeModal('fav-picker-modal');
-        document.getElementById('fav-picker-modal').classList.replace('hidden', 'flex');
-    }
-
-    function renderFavPickerList(query = '') {
-        const list = document.getElementById('fav-picker-list');
-        const filtered = state.inventory.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
-        if (filtered.length === 0) { list.innerHTML = `<div class="p-4 text-center text-xs opacity-50 font-bold uppercase">No matches</div>`; return; }
-        list.innerHTML = filtered.map(p => `<button onclick="assignFavorite(${jsArg(p.id)})" class="w-full p-4 bg-surface-container/30 border border-border-subtle rounded-2xl flex justify-between items-center active-scale hover:bg-primary-container transition-colors text-left"><div class="min-w-0 flex-1"><p class="text-xs font-black text-primary uppercase truncate">${escapeHTML(p.name)}</p><p class="text-[10px] font-bold text-on-surface-variant">${escapeHTML(p.category || 'General')}</p></div><p class="text-xs font-black text-secondary ml-2">${formatCurrency(p.price)}</p></button>`).join('');
-    }
-
-    function assignFavorite(productId) { if (currentFavSlotIndex === null) return; state.favorites[currentFavSlotIndex] = { id: productId }; sync(); renderFavorites(); closeModal('fav-picker-modal'); showToast("Slot updated", "success"); }
-    function clearFavoriteSlot() { if (currentFavSlotIndex === null) return; state.favorites[currentFavSlotIndex] = null; sync(); renderFavorites(); closeModal('fav-picker-modal'); showToast("Slot cleared", "info"); }
-    function removeFavoriteSlotAction() { if (currentFavSlotIndex === null) return; removeFavoriteSlot(currentFavSlotIndex); closeModal('fav-picker-modal'); }
-
-    function openFavoriteColorPicker(index, event) {
-        if (event) { event.preventDefault(); event.stopPropagation(); }
-        currentFavSlotIndex = index;
-        const list = document.getElementById('fav-color-palette');
-        if (!list) return;
-        const current = favoriteColorValue(index);
-        list.innerHTML = favoriteColorPalette.map(color => {
-            const selected = current === color.value;
-            const swatch = color.value || '#FFFFFF';
-            return `<button onclick="setFavoriteColor('${color.value}', ${index})" class="fav-color-chip ${selected ? 'selected' : ''}" style="--fav-chip-color:${swatch}"><span></span><small>${escapeHTML(color.name)}</small></button>`;
-        }).join('');
-        closeModal('fav-picker-modal');
-        document.getElementById('fav-color-modal').classList.replace('hidden', 'flex');
-    }
-
-    function setFavoriteColor(value, index = currentFavSlotIndex) {
-        if (index === null || index === undefined) return;
-        const key = String(index);
-        if (!value) delete favoriteSlotColors[key];
-        else favoriteSlotColors[key] = value;
-        saveFavoriteColors();
-        renderFavorites();
-        closeModal('fav-color-modal');
-        showToast(value ? 'Favorite color updated' : 'Favorite color reset', 'success');
-    }
-
-    function clearFavoriteColor() {
-        setFavoriteColor('', currentFavSlotIndex);
-    }
-
+    // v8.0.57: Favorites UI moved to favorites.js.
     function updateSyncUI() {
         const pill = document.getElementById('sync-pill');
         const dot = document.getElementById('sync-dot');
@@ -1902,7 +1635,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.54: Do not build every product row for collapsed categories.
+        // v8.0.57: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1951,291 +1684,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.54: Standalone GCash service ledger.
-    let activeGcashType = 'cashOut';
-    let activeGcashView = 'today';
-    let expandedGcashDates = new Set();
-    let editingGcashRecordId = null;
-
-    function nextGcashId() {
-        return nextTransactionId('GC');
-    }
-
-    function setGcashType(type) {
-        activeGcashType = type === 'cashIn' ? 'cashIn' : 'cashOut';
-        document.querySelectorAll('.gcash-type-btn').forEach(btn => {
-            const active = btn.id === 'gcash-type-' + activeGcashType;
-            btn.classList.toggle('bg-primary', active);
-            btn.classList.toggle('text-white', active);
-            btn.classList.toggle('bg-surface-container', !active);
-            btn.classList.toggle('text-on-surface-variant', !active);
-        });
-        updateGcashPreview();
-    }
-
-    function addGcashAmount(amountToAdd) {
-        const amountEl = document.getElementById('gcash-amount');
-        if (!amountEl) return;
-        const current = Math.max(0, Number(amountEl.value) || 0);
-        amountEl.value = current + (Number(amountToAdd) || 0);
-        updateGcashPreview();
-    }
-
-    function clearGcashAmount(showMessage = true) {
-        const amountEl = document.getElementById('gcash-amount');
-        if (amountEl) amountEl.value = '';
-        updateGcashPreview();
-        if (showMessage && typeof showToast === 'function') showToast('GCash amount cleared', 'info');
-    }
-
-    function resetGcashForm(showMessage = false) {
-        const amountEl = document.getElementById('gcash-amount');
-        const nameEl = document.getElementById('gcash-name');
-        const notesEl = document.getElementById('gcash-notes');
-        editingGcashRecordId = null;
-        if (amountEl) amountEl.value = '';
-        if (nameEl) nameEl.value = '';
-        if (notesEl) notesEl.value = '';
-        updateGcashPreview();
-        updateGcashSaveButtonState();
-        if (showMessage && typeof showToast === 'function') showToast('GCash form reset', 'info');
-    }
-
-    function updateGcashSaveButtonState() {
-        const btn = document.getElementById('gcash-save-btn');
-        if (!btn) return;
-        btn.innerHTML = editingGcashRecordId ? 'Update<br class="hidden md:block"/> GCash Record' : 'Save<br class="hidden md:block"/> GCash Record';
-        btn.classList.toggle('bg-secondary', !editingGcashRecordId);
-        btn.classList.toggle('bg-primary', !!editingGcashRecordId);
-    }
-
-    function editGcashRecord(id) {
-        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
-        const record = state.gcashRecords.find(r => r && r.id === id);
-        if (!record) {
-            showToast('Only current GCash records can be edited', 'error');
-            return;
-        }
-        editingGcashRecordId = record.id;
-        setGcashType(record.type);
-        const amountEl = document.getElementById('gcash-amount');
-        const nameEl = document.getElementById('gcash-name');
-        const notesEl = document.getElementById('gcash-notes');
-        if (amountEl) amountEl.value = Number(record.amount) || 0;
-        if (nameEl) nameEl.value = record.customerName || record.name || '';
-        if (notesEl) notesEl.value = record.referenceNotes || record.notes || '';
-        updateGcashPreview();
-        updateGcashSaveButtonState();
-        showToast('Editing GCash record', 'info');
-    }
-
-    function updateGcashPreview() {
-        const amount = Math.max(0, Number(document.getElementById('gcash-amount')?.value) || 0);
-        const fee = calcGcashFee(amount);
-        const drawer = gcashDrawerEffect(activeGcashType, amount, fee);
-        const mainLabel = document.getElementById('gcash-preview-main-label');
-        const mainValue = document.getElementById('gcash-preview-main');
-        const feeValue = document.getElementById('gcash-preview-fee');
-        const drawerValue = document.getElementById('gcash-preview-drawer');
-        if (mainLabel) mainLabel.innerText = activeGcashType === 'cashIn' ? 'Cash to receive' : 'Cash to release';
-        if (mainValue) mainValue.innerText = formatCurrency(amount);
-        if (feeValue) feeValue.innerText = formatCurrency(fee);
-        if (drawerValue) drawerValue.innerText = (drawer < 0 ? '-' : '') + formatCurrency(Math.abs(drawer));
-    }
-
-    function saveGcashRecord() {
-        const amountEl = document.getElementById('gcash-amount');
-        const nameEl = document.getElementById('gcash-name');
-        const notesEl = document.getElementById('gcash-notes');
-        const amount = Math.max(0, Number(amountEl?.value) || 0);
-        if (amount <= 0) {
-            showToast('Enter a GCash amount first', 'error');
-            return;
-        }
-        const fee = calcGcashFee(amount);
-        const now = new Date();
-        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
-        const editIndex = editingGcashRecordId ? state.gcashRecords.findIndex(r => r && r.id === editingGcashRecordId) : -1;
-        const existing = editIndex >= 0 ? state.gcashRecords[editIndex] : null;
-        if (editingGcashRecordId && !existing) {
-            showToast('GCash record no longer exists', 'error');
-            editingGcashRecordId = null;
-            updateGcashSaveButtonState();
-            return;
-        }
-        const record = {
-            ...(existing || {}),
-            id: existing?.id || nextGcashId(),
-            type: activeGcashType,
-            amount,
-            fee,
-            drawerEffect: gcashDrawerEffect(activeGcashType, amount, fee),
-            businessDate: existing?.businessDate || todayDateCode(),
-            businessDayId: existing?.businessDayId || state.currentBusinessDayId || null,
-            timestamp: existing?.timestamp || now.toISOString(),
-            updatedAt: existing ? now.toISOString() : undefined,
-            customerName: (nameEl?.value || '').trim(),
-            referenceNotes: (notesEl?.value || '').trim(),
-            notes: (notesEl?.value || '').trim(),
-            _offline: true
-        };
-        if (record.updatedAt === undefined) delete record.updatedAt;
-        if (editIndex >= 0) state.gcashRecords.splice(editIndex, 1, record);
-        else state.gcashRecords.unshift(record);
-        queueAction('update', 'gcashRecords', record);
-        resetGcashForm(false);
-        renderGcashScreen();
-        showToast(existing ? 'GCash record updated' : 'GCash record saved', 'success');
-    }
-
-    function switchGcashView(view) {
-        activeGcashView = view === 'history' ? 'history' : 'today';
-        renderGcashScreen();
-    }
-
-    function toggleGcashDateGroup(dateKey) {
-        if (!dateKey) return;
-        if (expandedGcashDates.has(dateKey)) expandedGcashDates.delete(dateKey);
-        else expandedGcashDates.add(dateKey);
-        renderGcashScreen();
-    }
-
-    function currentGcashSearchQuery() {
-        return document.getElementById('gcash-search')?.value || '';
-    }
-
-    function clearGcashSearch() {
-        const input = document.getElementById('gcash-search');
-        if (input) input.value = '';
-        renderGcashScreen();
-    }
-
-    function renderGcashRecordCard(r) {
-        const isOut = r.type === 'cashOut';
-        const pending = isPendingSync('gcashRecords', r.id) || r._offline;
-        const when = r.timestamp ? new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        const meta = [r.customerName, r.referenceNotes || r.notes].filter(Boolean).join(' - ');
-        const editButton = r._archiveOnly ? '' : `<button type="button" class="h-10 px-3 rounded-2xl bg-primary/10 text-primary font-black text-[10px] uppercase tracking-wider active-scale flex items-center gap-1" onclick="editGcashRecord(${jsArg(r.id)})"><span class="material-symbols-outlined text-[18px]">edit</span>Edit</button>`;
-        return `<div class="bg-surface-container/40 border border-border-subtle rounded-3xl p-4 flex justify-between gap-3">
-            <div class="min-w-0">
-                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                    <p class="font-black text-sm ${isOut ? 'text-error' : 'text-primary'}">${escapeHTML(r.id)}</p>
-                    <span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-black ${isOut ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}">${isOut ? 'Cash Out' : 'Cash In'}</span>
-                    ${pending ? '<span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-black bg-orange-500 text-white">Pending</span>' : ''}
-                </div>
-                <p class="text-[10px] font-bold text-on-surface-variant">${escapeHTML(when)}${meta ? ' - ' + escapeHTML(meta) : ''}</p>
-                <p class="text-[10px] font-black uppercase tracking-wider text-secondary mt-1">Fee ${formatCurrency(r.fee)}</p>
-            </div>
-            <div class="text-right shrink-0 flex flex-col items-end gap-2">
-                <div>
-                    <p class="text-xl font-black text-on-surface">${formatCurrency(r.amount)}</p>
-                    <p class="text-[10px] font-bold text-on-surface-variant">${isOut ? 'Released' : 'Received'}</p>
-                </div>
-                ${editButton}
-            </div>
-        </div>`;
-    }
-
-    function renderGcashHistoryGroups(records) {
-        return Array.from(groupByKey(records, r => gcashRecordDate(r) || 'Unknown date').entries()).map(([date, items]) => {
-            const { cashOut: out, cashIn: inn, fees } = gcashDailySummary(items);
-            const label = date === 'Unknown date' ? date : new Date(date + 'T00:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-            const expanded = expandedGcashDates.has(date);
-            return `<div class="bg-white border border-border-subtle rounded-[1.75rem] p-3 shadow-sm">
-                <button class="w-full flex items-start justify-between gap-3 px-1 text-left active-scale" onclick="toggleGcashDateGroup(${jsArg(date)})">
-                    <div class="flex items-start gap-2 min-w-0">
-                        <span class="material-symbols-outlined w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">${expanded ? 'expand_less' : 'expand_more'}</span>
-                        <div class="min-w-0">
-                            <h3 class="font-black text-primary text-sm">${escapeHTML(label)}</h3>
-                            <p class="text-[10px] font-bold text-on-surface-variant">${items.length} record(s) - Fees ${formatCurrency(fees)}</p>
-                        </div>
-                    </div>
-                    <div class="text-right text-[10px] font-black text-on-surface-variant shrink-0">
-                        <p>Out ${formatCurrency(out)}</p>
-                        <p>In ${formatCurrency(inn)}</p>
-                    </div>
-                </button>
-                ${expanded ? `<div class="space-y-2 mt-3">${items.map(renderGcashRecordCard).join('')}</div>` : ''}
-            </div>`;
-        }).join('');
-    }
-
-    function renderGcashScreen() {
-        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
-        const today = todayDateCode();
-        const archiveRecords = (Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : []).map(r => ({ ...r, _archiveOnly: true }));
-        const mergedRecords = new Map();
-        archiveRecords.forEach(r => { if (r && r.id) mergedRecords.set(r.id, r); });
-        (state.gcashRecords || []).forEach(r => { if (r && r.id) mergedRecords.set(r.id, r); });
-        const records = Array.from(mergedRecords.values()).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-        const todays = records.filter(r => r && gcashRecordDate(r) === today);
-        const { cashOut, cashIn, fees, drawer } = gcashDailySummary(todays);
-        const searchQuery = currentGcashSearchQuery();
-        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
-        setText('gcash-sum-out', formatCurrency(cashOut));
-        setText('gcash-sum-in', formatCurrency(cashIn));
-        setText('gcash-sum-fees', formatCurrency(fees));
-        setText('gcash-sum-drawer', (drawer < 0 ? '-' : '') + formatCurrency(Math.abs(drawer)));
-
-        const todayBtn = document.getElementById('gcash-view-today');
-        const historyBtn = document.getElementById('gcash-view-history');
-        const rangeEl = document.getElementById('gcash-history-range');
-        const subtitle = document.getElementById('gcash-list-subtitle');
-        [todayBtn, historyBtn].forEach(btn => {
-            if (!btn) return;
-            const active = (btn.id === 'gcash-view-' + activeGcashView);
-            btn.classList.toggle('bg-primary', active);
-            btn.classList.toggle('text-white', active);
-            btn.classList.toggle('bg-surface-container', !active);
-            btn.classList.toggle('text-on-surface-variant', !active);
-        });
-        if (rangeEl) rangeEl.classList.toggle('hidden', activeGcashView !== 'history');
-        if (subtitle) subtitle.innerText = activeGcashView === 'history' ? 'Grouped by date' : 'Today only';
-
-        const list = document.getElementById('gcash-record-list');
-        if (list) {
-            if (activeGcashView === 'history') {
-                const startEl = document.getElementById('gcash-range-start');
-                const endEl = document.getElementById('gcash-range-end');
-                if (startEl && !startEl.value) startEl.value = monthStartDateCode();
-                if (endEl && !endEl.value) endEl.value = today;
-                const start = startEl && startEl.value ? startEl.value : '';
-                const end = endEl && endEl.value ? endEl.value : '';
-                const filtered = records.filter(r => {
-                    const d = gcashRecordDate(r);
-                    return d && (!start || d >= start) && (!end || d <= end) && gcashMatchesSearch(r, searchQuery);
-                });
-                list.innerHTML = renderGcashHistoryGroups(filtered) || '<div class="text-center py-16 opacity-30"><span class="material-symbols-outlined text-[44px]">history</span><p class="font-black text-xs uppercase tracking-widest mt-2">No GCash history found</p></div>';
-            } else {
-                const filteredToday = todays.filter(r => gcashMatchesSearch(r, searchQuery));
-                list.innerHTML = filteredToday.map(renderGcashRecordCard).join('') || '<div class="text-center py-16 opacity-30"><span class="material-symbols-outlined text-[44px]">account_balance_wallet</span><p class="font-black text-xs uppercase tracking-widest mt-2">No GCash records found</p></div>';
-            }
-        }
-        setGcashType(activeGcashType);
-        updateGcashSaveButtonState();
-    }
-
-    async function refreshGcashRecords() {
-        if (!navigator.onLine) {
-            showToast('You are offline', 'error');
-            return;
-        }
-        try {
-            const remote = await readCollectionWithFirestoreRest('gcashRecords');
-            const merged = new Map();
-            [...(state.gcashRecords || []), ...remote].forEach(r => {
-                if (r && r.id) merged.set(r.id, { ...merged.get(r.id), ...r });
-            });
-            state.gcashRecords = Array.from(merged.values()).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-            sync();
-            renderGcashScreen();
-            showToast('GCash refreshed', 'success');
-        } catch (error) {
-            syncErrorMsg = error.message || String(error);
-            updateSyncUI();
-            showToast('GCash refresh failed', 'error');
-        }
-    }
+    // v8.0.57: GCash screen logic moved to gcash.js.
 
     function openExpenseModal() { document.getElementById('exp-desc').value = ''; document.getElementById('exp-amt').value = ''; document.getElementById('exp-category').value = 'Utilities'; document.getElementById('expense-modal').classList.replace('hidden', 'flex'); }
     function saveExpense() {
@@ -2854,62 +2303,14 @@ body {
         ticker.classList.remove('hidden');
     }
 
-    function notificationCreditNorm(value) {
-        return String(value || '').trim().toUpperCase();
-    }
-
-    function notificationIsSettlement(t) {
-        const notes = notificationCreditNorm(t && t.notes);
-        const id = notificationCreditNorm(t && t.id);
-        const type = notificationCreditNorm(t && t.type);
-        return !!(
-            t && (t.settlementFor || t.creditRef || t.relatedCreditId) ||
-            notes.includes('CR-') ||
-            notes.includes('PARTIAL:') ||
-            notes.includes('PAYMENT') ||
-            notes.includes('SETTLEMENT') ||
-            notes.includes('PAID CREDIT') ||
-            (type === 'SA' && notes.includes('CR-')) ||
-            (id.startsWith('SA-') && notes.includes('CR-'))
-        );
-    }
-
-    function notificationSettlementCreditIds(t) {
-        const ids = new Set();
-        ['settlementFor', 'creditRef', 'relatedCreditId'].forEach(key => {
-            if (t && t[key]) ids.add(notificationCreditNorm(t[key]));
-        });
-        const notes = notificationCreditNorm(t && t.notes);
-        const matches = notes.match(/CR-[A-Z0-9-]+/g) || [];
-        matches.forEach(id => ids.add(id));
-        return ids;
-    }
-
-    function notificationCreditIsSettled(creditTx, allTx) {
-        if (!creditTx) return false;
-        if (creditTx.paid === true || creditTx.settled === true) return true;
-        const status = notificationCreditNorm(creditTx.status);
-        if (status === 'PAID' || status === 'SETTLED') return true;
-        if (Number(creditTx.balance) === 0 || Number(creditTx.balanceDue) === 0 || Number(creditTx.remaining) === 0 || Number(creditTx.amountDue) === 0) return true;
-        const target = notificationCreditNorm(creditTx.id);
-        if (!target) return false;
-        return (Array.isArray(allTx) ? allTx : []).some(t => {
-            if (!t || t.id === creditTx.id || !notificationIsSettlement(t)) return false;
-            const notes = notificationCreditNorm(t.notes);
-            if (notes.includes('PARTIAL:')) return false;
-            return notificationSettlementCreditIds(t).has(target);
-        });
-    }
-
     function notificationOpenCredits() {
         const tx = typeof vc710AllTransactionsForLocalViews === 'function'
             ? vc710AllTransactionsForLocalViews()
             : (Array.isArray(state.transactions) ? state.transactions : []);
-        const map = new Map();
-        tx.forEach(t => {
-            if (t && t.id && t.type === 'CR') map.set(t.id, t);
-        });
-        return Array.from(map.values()).filter(t => !notificationCreditIsSettled(t, tx));
+        if (window.VillacartCreditUtils && typeof window.VillacartCreditUtils.openCredits === 'function') {
+            return window.VillacartCreditUtils.openCredits(tx);
+        }
+        return tx.filter(t => t && t.type === 'CR' && !t.paid && !t.settled);
     }
 
     function updateNotifBadge() {
@@ -6677,12 +6078,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632IsSettlement(t) {
+        if (window.VillacartCreditUtils && typeof window.VillacartCreditUtils.isCreditSettlement === 'function') {
+            return window.VillacartCreditUtils.isCreditSettlement(t);
+        }
         const notes = String(t && t.notes || '').toUpperCase();
         const id = String(t && t.id || '').toUpperCase();
         return notes.includes('CR-') || notes.includes('PARTIAL:') || notes.includes('PAYMENT') || (id.startsWith('SA-') && notes.includes('CR-'));
     }
 
     function vc5632SettlementCreditIds(t) {
+        if (window.VillacartCreditUtils && typeof window.VillacartCreditUtils.settlementCreditIds === 'function') {
+            return window.VillacartCreditUtils.settlementCreditIds(t);
+        }
         const ids = new Set();
         ['settlementFor', 'creditRef', 'relatedCreditId'].forEach(key => {
             if (t && t[key]) ids.add(String(t[key]).toUpperCase());
@@ -6694,6 +6101,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
     function vc5632CreditIsSettled(creditTx, allTx) {
+        if (window.VillacartCreditUtils && typeof window.VillacartCreditUtils.isCreditSettled === 'function') {
+            return window.VillacartCreditUtils.isCreditSettled(creditTx, allTx);
+        }
         if (!creditTx) return false;
         if (creditTx.paid === true || creditTx.settled === true) return true;
         const status = String(creditTx.status || '').trim().toUpperCase();
@@ -7208,7 +6618,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.54: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.57: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7735,7 +7145,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.54',
+                backupVersion: 'v8.0.57',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
