@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.47';
+    window.VILLACART_APP_VERSION = 'v8.0.49';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.47: The older fallback keydown listener was removed.
+    // v8.0.49: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1902,7 +1902,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.47: Do not build every product row for collapsed categories.
+        // v8.0.49: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1951,7 +1951,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.47: Standalone GCash service ledger.
+    // v8.0.49: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -2758,7 +2758,7 @@ body {
     }
     function showToast(m, t = 'info') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`; toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${escapeHTML(m)}</span>`; c.appendChild(toast); requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0')); setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500); }
     
-    function getLowStockDisplayItems(outLimit = 15, lowLimit = 15) {
+    function getLowStockDisplayItems(outLimit = 30, lowLimit = 30) {
         const inventory = Array.isArray(state.inventory) ? state.inventory : [];
         const lowStockItems = inventory
             .filter(isStockAlertVisibleProduct)
@@ -2770,9 +2770,16 @@ body {
         const lowItems = lowStockItems
             .filter(p => p.stock > 0)
             .sort((a, b) => a.stock - b.stock || byName(a, b));
-        const shownOut = outItems.slice(0, outLimit);
-        const shownLow = lowItems.slice(0, lowLimit);
-        const shown = [...shownOut, ...shownLow];
+        const totalLimit = Math.max(0, Number(outLimit || 0) + Number(lowLimit || 0));
+        const baseOutCount = Math.min(outItems.length, outLimit);
+        const baseLowCount = Math.min(lowItems.length, lowLimit);
+        const borrowedByLow = Math.max(0, outLimit - baseOutCount);
+        const borrowedByOut = Math.max(0, lowLimit - baseLowCount);
+        const shownOutCount = Math.min(outItems.length, baseOutCount + borrowedByOut);
+        const shownLowCount = Math.min(lowItems.length, baseLowCount + borrowedByLow, totalLimit - shownOutCount);
+        const shownOut = outItems.slice(0, shownOutCount);
+        const shownLow = lowItems.slice(0, shownLowCount);
+        const shown = [...shownOut, ...shownLow].slice(0, totalLimit);
         return { all: [...outItems, ...lowItems], shown, outItems, lowItems, shownOut, shownLow };
     }
 
@@ -2781,7 +2788,7 @@ body {
         const label = document.getElementById('vc-lowstock-ticker-label');
         const track = document.getElementById('vc-lowstock-ticker-track');
         if (!ticker || !label || !track) return;
-        const { all, shown } = getLowStockDisplayItems(15, 15);
+        const { all, shown } = getLowStockDisplayItems(30, 30);
         if (!all.length) {
             ticker.classList.add('hidden');
             track.innerHTML = '';
@@ -7069,7 +7076,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.47: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.49: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7596,7 +7603,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.47',
+                backupVersion: 'v8.0.49',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,

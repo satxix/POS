@@ -4293,7 +4293,7 @@ body {
     align-items: center;
     gap: .32rem;
     min-width: 100%;
-    animation: vc-lowstock-marquee 78s linear infinite;
+    animation: vc-lowstock-marquee 168s linear infinite;
     will-change: transform;
 }
 .vc-lowstock-ticker:hover .vc-lowstock-ticker-track,
