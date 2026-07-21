@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v8.1.7</title>
+<title>Villacart POS v8.1.8</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=8.1.7"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.1.8"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            window.VILLACART_EXPECTED_VERSION = 'v8.1.7';
+            window.VILLACART_EXPECTED_VERSION = 'v8.1.8';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.vcReloadApp = function() {
@@ -34,7 +34,7 @@
                     window.location.reload();
                 });
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('sw.js?v=8.1.7').then(function(reg) {
+                    navigator.serviceWorker.register('sw.js?v=8.1.8').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (reg.waiting) window.__villacartUpdateAvailable = true;
                         reg.addEventListener('updatefound', function() {
@@ -112,7 +112,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=8.1.7"/>
+<link rel="stylesheet" href="styles.css?v=8.1.8"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -125,7 +125,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v8.1.7</span>
+                    <span class="vc551-version">v8.1.8</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -163,7 +163,7 @@
     <span class="hidden" id="queue-badge">0</span>
     <span class="hidden" id="notif-bell"></span>
     <span class="hidden" id="notif-dot"></span>
-    <span class="hidden" id="sync-timestamp">Last Sync â€¢ --:--</span>
+    <span class="hidden" id="sync-timestamp">Last Sync • --:--</span>
     <span class="hidden" id="sync-error-label">Sync Error</span>
 </header>
 <!-- Navigation - Adaptive Rail/Bottom -->
@@ -249,16 +249,16 @@
 <div class="space-y-2">
 <div class="flex justify-between text-xs font-semibold text-on-surface-variant">
 <span>Subtotal</span>
-<span id="cart-subtotal">â‚±0.00</span>
+<span id="cart-subtotal">₱0.00</span>
 </div>
 <div class="hidden flex justify-between text-xs font-bold text-error" id="cart-discount-row">
 <span>Discount</span>
-<span id="cart-discount">-â‚±0.00</span>
+<span id="cart-discount">-₱0.00</span>
 </div>
 <button class="w-full h-10 rounded-xl border border-dashed border-primary/30 text-primary text-xs font-black uppercase tracking-wider active-scale" id="cart-discount-btn" onclick="setCartDiscount()">Add Discount</button>
 <div class="flex justify-between items-baseline pt-3 border-t border-border-subtle mt-2">
 <span class="font-bold text-sm uppercase text-primary">Total Amount</span>
-<span class="text-3xl font-black text-primary tracking-tighter" id="cart-total">â‚±0.00</span>
+<span class="text-3xl font-black text-primary tracking-tighter" id="cart-total">₱0.00</span>
 </div>
 </div>
 <button class="w-full bg-secondary text-on-secondary h-16 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 active-scale shadow-xl hover:bg-secondary/90 transition-all" onclick="openReview()">
@@ -283,10 +283,10 @@
 </div>
 <div class="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-4 lg:items-start">
 <div class="grid grid-cols-2 gap-2 lg:col-start-2 lg:row-start-1" id="gcash-summary-cards">
-<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[82px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Cash Out Today</p><h3 class="text-xl font-black text-primary mt-1" id="gcash-sum-out">â‚±0</h3></div>
-<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[82px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Cash In Today</p><h3 class="text-xl font-black text-primary mt-1" id="gcash-sum-in">â‚±0</h3></div>
-<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[82px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Fees Earned</p><h3 class="text-xl font-black text-secondary mt-1" id="gcash-sum-fees">â‚±0</h3></div>
-<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[82px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Drawer Effect</p><h3 class="text-xl font-black text-on-surface mt-1" id="gcash-sum-drawer">â‚±0</h3></div>
+<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[82px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Cash Out Today</p><h3 class="text-xl font-black text-primary mt-1" id="gcash-sum-out">₱0</h3></div>
+<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[82px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Cash In Today</p><h3 class="text-xl font-black text-primary mt-1" id="gcash-sum-in">₱0</h3></div>
+<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[82px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Fees Earned</p><h3 class="text-xl font-black text-secondary mt-1" id="gcash-sum-fees">₱0</h3></div>
+<div class="bg-surface border border-border-subtle rounded-3xl px-4 py-3 shadow-sm min-h-[82px] flex flex-col justify-center"><p class="text-[8px] font-black uppercase tracking-widest text-on-surface-variant">Drawer Effect</p><h3 class="text-xl font-black text-on-surface mt-1" id="gcash-sum-drawer">₱0</h3></div>
 </div>
 <div class="bg-surface border border-border-subtle rounded-[2rem] p-4 lg:col-start-1 lg:row-start-1 lg:row-span-2 shadow-sm">
 <div class="grid grid-cols-2 gap-2 mb-3">
@@ -299,10 +299,10 @@
 </div>
 <div class="grid grid-cols-1 md:grid-cols-[minmax(92px,1fr)_44px_50px_54px_62px] gap-2 mt-1 mb-2 items-stretch">
 <input id="gcash-amount" class="w-full px-3 py-2 md:py-0 md:h-11 rounded-2xl border border-border-subtle bg-surface-container/50 text-2xl md:text-xl font-black text-primary outline-none focus:ring-2 focus:ring-primary/10" type="number" inputmode="decimal" min="1" step="1" placeholder="0" oninput="updateGcashPreview()"/>
-<button class="py-2.5 md:py-0 md:h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(50)">â‚±50</button>
-<button class="py-2.5 md:py-0 md:h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(100)">â‚±100</button>
-<button class="py-2.5 md:py-0 md:h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(500)">â‚±500</button>
-<button class="py-2.5 md:py-0 md:h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(1000)">â‚±1000</button>
+<button class="py-2.5 md:py-0 md:h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(50)">₱50</button>
+<button class="py-2.5 md:py-0 md:h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(100)">₱100</button>
+<button class="py-2.5 md:py-0 md:h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(500)">₱500</button>
+<button class="py-2.5 md:py-0 md:h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black active-scale" onclick="addGcashAmount(1000)">₱1000</button>
 </div>
 <label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Customer Name</label>
 <input id="gcash-name" class="w-full mt-1.5 mb-2.5 px-4 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Enter Name"/>
@@ -310,9 +310,9 @@
 <input id="gcash-notes" class="w-full mt-1.5 mb-3 px-4 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Reference number or note"/>
 <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_150px] gap-2 items-stretch mb-1">
 <div class="rounded-3xl bg-primary/5 border border-primary/10 px-3 py-2 space-y-1">
-<div class="flex justify-between text-xs font-bold"><span>Service fee</span><strong id="gcash-preview-fee">â‚±0</strong></div>
-<div class="flex justify-between text-xs font-bold"><span id="gcash-preview-main-label">Cash to release</span><strong id="gcash-preview-main">â‚±0</strong></div>
-<div class="flex justify-between text-[11px] font-black uppercase tracking-wider pt-1 border-t border-primary/10"><span>Drawer effect</span><strong id="gcash-preview-drawer">â‚±0</strong></div>
+<div class="flex justify-between text-xs font-bold"><span>Service fee</span><strong id="gcash-preview-fee">₱0</strong></div>
+<div class="flex justify-between text-xs font-bold"><span id="gcash-preview-main-label">Cash to release</span><strong id="gcash-preview-main">₱0</strong></div>
+<div class="flex justify-between text-[11px] font-black uppercase tracking-wider pt-1 border-t border-primary/10"><span>Drawer effect</span><strong id="gcash-preview-drawer">₱0</strong></div>
 </div>
 <button id="gcash-save-btn" class="w-full min-h-[76px] md:min-h-0 md:h-full rounded-3xl bg-secondary text-white font-black uppercase tracking-wider active-scale shadow-lg leading-tight px-3" onclick="saveGcashRecord()">Save<br class="hidden md:block"/> GCash Record</button>
 </div>
@@ -459,22 +459,22 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8" id="business-dashboard-cards">
 <div class="business-card business-card-sales">
 <p class="business-label">Total Sales</p>
-<h3 class="business-value" id="biz-total-sales">â‚±0.00</h3>
+<h3 class="business-value" id="biz-total-sales">₱0.00</h3>
 <p class="business-sub">Cash + Credit Sales Today</p>
 </div>
 <div class="business-card business-card-cash">
 <p class="business-label">Cash Received Today</p>
-<h3 class="business-value" id="biz-cash-in">â‚±0.00</h3>
+<h3 class="business-value" id="biz-cash-in">₱0.00</h3>
 <p class="business-sub">Cash Sales + Credit Payments</p>
 </div>
 <div class="business-card business-card-credit">
 <p class="business-label">Credit Sales Today</p>
-<h3 class="business-value" id="biz-credit-sales">â‚±0.00</h3>
+<h3 class="business-value" id="biz-credit-sales">₱0.00</h3>
 <p class="business-sub">Sales made on credit today</p>
 </div>
 <div class="business-card business-card-outstanding">
 <p class="business-label">Outstanding Credit</p>
-<h3 class="business-value" id="biz-outstanding-credit">â‚±0.00</h3>
+<h3 class="business-value" id="biz-outstanding-credit">₱0.00</h3>
 <p class="business-sub">Amount still owed by customers</p>
 </div>
 </div>
@@ -484,11 +484,11 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
 <div class="bg-primary text-white p-7 rounded-[32px] shadow-xl lg:col-span-1">
 <p class="text-white/70 text-[11px] font-bold uppercase tracking-widest mb-1.5" id="insight-revenue-label">Gross Sales (Cash + Credit) (Today)</p>
-<h3 class="text-4xl font-black" id="daily-revenue">â‚±0.00</h3>
+<h3 class="text-4xl font-black" id="daily-revenue">₱0.00</h3>
 <div class="mt-6 pt-6 border-t border-white/10 grid grid-cols-2 gap-6">
 <div>
 <p class="text-white/60 text-[10px] font-bold uppercase">Net Profit</p>
-<p class="text-xl font-black" id="daily-profit">â‚±0.00</p>
+<p class="text-xl font-black" id="daily-profit">₱0.00</p>
 </div>
 <div class="text-right">
 <p class="text-white/60 text-[10px] font-bold uppercase">Profit Margin</p>
@@ -499,17 +499,17 @@
 <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
 <div class="bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm hover:shadow-md transition-all">
 <p class="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-1.5">Cost of Goods (COGS)</p>
-<h3 class="text-2xl font-black text-primary" id="daily-cogs">â‚±0.00</h3>
+<h3 class="text-2xl font-black text-primary" id="daily-cogs">₱0.00</h3>
 </div>
 <div class="bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm hover:shadow-md transition-all">
 <p class="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-1.5">Operating Expenses</p>
-<h3 class="text-2xl font-black text-error" id="daily-expenses">â‚±0.00</h3>
+<h3 class="text-2xl font-black text-error" id="daily-expenses">₱0.00</h3>
 </div>
 <div class="bg-surface border border-border-subtle p-6 rounded-3xl shadow-sm hover:shadow-md transition-all sm:col-span-2">
 <div class="flex justify-between items-center">
 <div>
 <p class="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-1.5">Asset Value (Stock)</p>
-<h3 class="text-2xl font-black text-primary" id="inventory-value">â‚±0</h3>
+<h3 class="text-2xl font-black text-primary" id="inventory-value">₱0</h3>
 </div>
 <div class="text-right">
 <span class="bg-primary/5 px-4 py-1.5 rounded-full text-[11px] text-primary font-black uppercase" id="inventory-count">0 items</span>
@@ -579,8 +579,8 @@
 
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="business-month-summary">
 <div class="business-stat-card"><p>Business Days</p><h3 id="month-business-days">0</h3></div>
-<div class="business-stat-card"><p>Total Sales</p><h3 id="month-total-sales">â‚±0.00</h3></div>
-<div class="business-stat-card"><p>Net Profit</p><h3 id="month-net-profit">â‚±0.00</h3></div>
+<div class="business-stat-card"><p>Total Sales</p><h3 id="month-total-sales">₱0.00</h3></div>
+<div class="business-stat-card"><p>Net Profit</p><h3 id="month-net-profit">₱0.00</h3></div>
 <div class="business-stat-card"><p>Transactions</p><h3 id="month-transactions">0</h3></div>
 </div>
 
@@ -594,17 +594,17 @@
 <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
 <div class="business-insight-card lg:col-span-1">
 <p class="business-label">Best Sales Day</p>
-<h3 id="business-best-day">â€”</h3>
+<h3 id="business-best-day">—</h3>
 <span id="business-best-day-sub">No closed business days yet</span>
 </div>
 <div class="business-insight-card lg:col-span-1">
 <p class="business-label">Average Sales / Day</p>
-<h3 id="business-average-day">â‚±0.00</h3>
+<h3 id="business-average-day">₱0.00</h3>
 <span>Based on business days this month</span>
 </div>
 <div class="business-insight-card lg:col-span-1">
 <p class="business-label">Latest Closed Day</p>
-<h3 id="business-latest-day">â€”</h3>
+<h3 id="business-latest-day">—</h3>
 <span id="business-latest-day-sub">No records yet</span>
 </div>
 </div>
@@ -630,14 +630,14 @@
 <p class="text-[9px] font-black uppercase text-on-surface-variant/60">Retail</p>
 <p class="text-base font-black text-on-surface uppercase">Add Piece</p>
 </div>
-<p class="text-lg font-black text-primary" id="scan-choice-piece-price">â‚±0</p>
+<p class="text-lg font-black text-primary" id="scan-choice-piece-price">₱0</p>
 </button>
 <button class="w-full bg-secondary/5 hover:bg-secondary/10 border-2 border-secondary/20 p-4 rounded-2xl flex items-center justify-between group transition-all active-scale" id="scan-choice-pack-btn">
 <div class="text-left">
 <p class="text-[9px] font-black uppercase text-secondary/60" id="scan-choice-pack-label">Wholesale (0 pcs)</p>
 <p class="text-base font-black text-secondary uppercase">Add Pack</p>
 </div>
-<p class="text-lg font-black text-secondary" id="scan-choice-pack-price">â‚±0</p>
+<p class="text-lg font-black text-secondary" id="scan-choice-pack-price">₱0</p>
 </button>
 </div>
 </div>
@@ -824,7 +824,7 @@
 <div class="p-5 space-y-4">
 <div class="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex justify-between items-center">
 <span class="text-[10px] font-black uppercase text-on-surface-variant tracking-wider">Subtotal</span>
-<span class="font-black text-primary text-lg" id="discount-modal-subtotal">â‚±0.00</span>
+<span class="font-black text-primary text-lg" id="discount-modal-subtotal">₱0.00</span>
 </div>
 <div>
 <label class="text-[10px] font-bold uppercase text-on-surface-variant mb-1.5 block">Discount Amount</label>
@@ -832,7 +832,7 @@
 </div>
 <div class="bg-secondary/5 border border-secondary/10 rounded-2xl p-4 flex justify-between items-center">
 <span class="text-[10px] font-black uppercase text-on-surface-variant tracking-wider">New Total</span>
-<span class="font-black text-secondary text-2xl" id="discount-modal-total">â‚±0.00</span>
+<span class="font-black text-secondary text-2xl" id="discount-modal-total">₱0.00</span>
 </div>
 <div class="grid grid-cols-2 gap-3">
 <button class="h-12 rounded-2xl bg-error/10 text-error font-black text-xs uppercase active-scale" onclick="removeCartDiscount()">Remove</button>
@@ -852,7 +852,7 @@
 <div class="p-6">
 <div class="bg-secondary/5 border-2 border-secondary/20 rounded-xl p-4 mb-4 flex justify-between items-center">
 <span class="font-bold text-xs uppercase text-on-surface-variant">Amount Payable</span>
-<span class="text-xl font-black text-secondary" id="rev-total">â‚±0.00</span>
+<span class="text-xl font-black text-secondary" id="rev-total">₱0.00</span>
 </div>
 <div class="mb-4">
 <label class="text-[10px] font-bold uppercase text-on-surface-variant mb-2 block">Payment Mode</label>
@@ -863,18 +863,18 @@
 </div>
 <div class="space-y-4" id="cash-payment-area">
 <div class="grid grid-cols-3 gap-3 sm:gap-4" id="cash-quick-amounts">
-<button class="cash-quick-btn" data-cash="50" onclick="setCash(50)">â‚±50</button>
-<button class="cash-quick-btn" data-cash="100" onclick="setCash(100)">â‚±100</button>
-<button class="cash-quick-btn" data-cash="200" onclick="setCash(200)">â‚±200</button>
-<button class="cash-quick-btn" data-cash="500" onclick="setCash(500)">â‚±500</button>
-<button class="cash-quick-btn" data-cash="1000" onclick="setCash(1000)">â‚±1K</button>
+<button class="cash-quick-btn" data-cash="50" onclick="setCash(50)">₱50</button>
+<button class="cash-quick-btn" data-cash="100" onclick="setCash(100)">₱100</button>
+<button class="cash-quick-btn" data-cash="200" onclick="setCash(200)">₱200</button>
+<button class="cash-quick-btn" data-cash="500" onclick="setCash(500)">₱500</button>
+<button class="cash-quick-btn" data-cash="1000" onclick="setCash(1000)">₱1K</button>
 <button class="cash-quick-btn cash-exact-btn" data-cash="exact" onclick="setExact()">EXACT</button>
 </div>
 <input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-black text-lg text-secondary" id="cash-input" oninput="calculateChange()" placeholder="Cash Received" type="number" inputmode="decimal"/>
 <div class="hidden change-hero-card" id="change-display">
 <div class="flex flex-col gap-1">
 <span class="change-hero-label" id="change-status-label">Change to Give</span>
-<span class="change-hero-amount" id="change-amount">â‚±0.00</span>
+<span class="change-hero-amount" id="change-amount">₱0.00</span>
 </div>
 </div>
 </div>
@@ -905,21 +905,21 @@
 <div class="p-5 overflow-y-auto custom-scrollbar space-y-4">
 <div class="closing-hero">
 <p class="closing-label">Total Sales</p>
-<h2 id="business-detail-total-sales">â‚±0.00</h2>
+<h2 id="business-detail-total-sales">₱0.00</h2>
 <p class="closing-sub" id="business-detail-status">Closed Business Day</p>
 </div>
 <div class="grid grid-cols-2 gap-3">
-<div class="closing-mini"><span>Cash Sales</span><strong id="business-detail-cash-sales">â‚±0.00</strong></div>
-<div class="closing-mini"><span>Credit Sales</span><strong id="business-detail-credit-sales">â‚±0.00</strong></div>
-<div class="closing-mini"><span>Collections</span><strong id="business-detail-collections">â‚±0.00</strong></div>
-<div class="closing-mini"><span>Expenses</span><strong id="business-detail-expenses">â‚±0.00</strong></div>
+<div class="closing-mini"><span>Cash Sales</span><strong id="business-detail-cash-sales">₱0.00</strong></div>
+<div class="closing-mini"><span>Credit Sales</span><strong id="business-detail-credit-sales">₱0.00</strong></div>
+<div class="closing-mini"><span>Collections</span><strong id="business-detail-collections">₱0.00</strong></div>
+<div class="closing-mini"><span>Expenses</span><strong id="business-detail-expenses">₱0.00</strong></div>
 </div>
 <div class="closing-section">
-<div class="closing-row"><span>COGS</span><strong id="business-detail-cogs">â‚±0.00</strong></div>
-<div class="closing-row"><span>Net Profit</span><strong id="business-detail-net-profit">â‚±0.00</strong></div>
+<div class="closing-row"><span>COGS</span><strong id="business-detail-cogs">₱0.00</strong></div>
+<div class="closing-row"><span>Net Profit</span><strong id="business-detail-net-profit">₱0.00</strong></div>
 <div class="closing-row"><span>Transactions</span><strong id="business-detail-transactions">0</strong></div>
-<div class="closing-row"><span>Opened</span><strong id="business-detail-opened">â€”</strong></div>
-<div class="closing-row"><span>Closed</span><strong id="business-detail-closed">â€”</strong></div>
+<div class="closing-row"><span>Opened</span><strong id="business-detail-opened">—</strong></div>
+<div class="closing-row"><span>Closed</span><strong id="business-detail-closed">—</strong></div>
 </div>
 </div>
 </div>
@@ -966,20 +966,20 @@
 <div class="p-5 overflow-y-auto custom-scrollbar space-y-4">
 <div class="closing-hero">
 <p class="closing-label">Cash In Drawer</p>
-<h2 id="closing-cash-in">â‚±0.00</h2>
+<h2 id="closing-cash-in">₱0.00</h2>
 <p class="closing-sub">Cash Sales + Credit Collections</p>
 </div>
 <div class="grid grid-cols-2 gap-3">
-<div class="closing-mini"><span>Cash Sales</span><strong id="closing-cash-sales">â‚±0.00</strong></div>
-<div class="closing-mini"><span>Credit Sales</span><strong id="closing-credit-sales">â‚±0.00</strong></div>
-<div class="closing-mini"><span>Collections</span><strong id="closing-collections">â‚±0.00</strong></div>
-<div class="closing-mini"><span>Expenses</span><strong id="closing-expenses">â‚±0.00</strong></div>
+<div class="closing-mini"><span>Cash Sales</span><strong id="closing-cash-sales">₱0.00</strong></div>
+<div class="closing-mini"><span>Credit Sales</span><strong id="closing-credit-sales">₱0.00</strong></div>
+<div class="closing-mini"><span>Collections</span><strong id="closing-collections">₱0.00</strong></div>
+<div class="closing-mini"><span>Expenses</span><strong id="closing-expenses">₱0.00</strong></div>
 </div>
 <div class="closing-section">
-<div class="closing-row"><span>Total Sales</span><strong id="closing-total-sales">â‚±0.00</strong></div>
-<div class="closing-row"><span>COGS</span><strong id="closing-cogs">â‚±0.00</strong></div>
-<div class="closing-row"><span>Net Profit</span><strong id="closing-net-profit">â‚±0.00</strong></div>
-<div class="closing-row"><span>Outstanding Credit</span><strong id="closing-outstanding">â‚±0.00</strong></div>
+<div class="closing-row"><span>Total Sales</span><strong id="closing-total-sales">₱0.00</strong></div>
+<div class="closing-row"><span>COGS</span><strong id="closing-cogs">₱0.00</strong></div>
+<div class="closing-row"><span>Net Profit</span><strong id="closing-net-profit">₱0.00</strong></div>
+<div class="closing-row"><span>Outstanding Credit</span><strong id="closing-outstanding">₱0.00</strong></div>
 </div>
 <div class="closing-section">
 <p class="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-3">Transaction Count</p>
@@ -1025,7 +1025,7 @@
 <input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-desc" placeholder="e.g. Meralco bill" type="text"/>
 </div>
 <div>
-<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Amount (â‚±)</label>
+<label class="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Amount (₱)</label>
 <input class="w-full px-4 py-3 bg-surface-container border border-border-subtle rounded-xl font-bold" id="exp-amt" type="number"/>
 </div>
 <div class="flex gap-2 pt-2">
@@ -1098,15 +1098,15 @@
 <div class="border-t border-black pt-2 space-y-1">
 <div class="flex justify-between font-bold text-sm">
 <span id="rec-label-total">TOTAL:</span>
-<span id="rec-total">â‚±0.00</span>
+<span id="rec-total">₱0.00</span>
 </div>
 <div class="flex justify-between" id="rec-cash-row">
 <span>Cash Received:</span>
-<span id="rec-cash">â‚±0.00</span>
+<span id="rec-cash">₱0.00</span>
 </div>
 <div class="flex justify-between" id="rec-change-row">
 <span>Change:</span>
-<span id="rec-change">â‚±0.00</span>
+<span id="rec-change">₱0.00</span>
 </div>
 <div class="flex justify-between hidden" id="rec-customer-row">
 <span>Customer:</span>
@@ -1152,31 +1152,31 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="utils.js?v=8.1.7"></script>
-<script src="credit-utils.js?v=8.1.7"></script>
-<script src="receipts.js?v=8.1.7"></script>
+<script src="utils.js?v=8.1.8"></script>
+<script src="credit-utils.js?v=8.1.8"></script>
+<script src="receipts.js?v=8.1.8"></script>
 
-    <script src="receipt-ui.js?v=8.1.7"></script>
-    <script src="scanner.js?v=8.1.7"></script>
-
-    
-    <script src="cart.js?v=8.1.7"></script>
-    <script src="favorites.js?v=8.1.7"></script>
-    
-    <script src="notifications.js?v=8.1.7"></script>
-    
-    <script src="stock-ui.js?v=8.1.7"></script>
-    <script src="gcash.js?v=8.1.7"></script>
-
-    <script src="expenses.js?v=8.1.7"></script>
-    <script src="app.js?v=8.1.7"></script>
-
-    <script src="business-ui.js?v=8.1.7"></script>
+    <script src="receipt-ui.js?v=8.1.8"></script>
+    <script src="scanner.js?v=8.1.8"></script>
 
     
-    <script src="ui-core.js?v=8.1.7"></script>
-    <script src="product.js?v=8.1.7"></script>
-    <script src="settings.js?v=8.1.7"></script>
+    <script src="cart.js?v=8.1.8"></script>
+    <script src="favorites.js?v=8.1.8"></script>
+    
+    <script src="notifications.js?v=8.1.8"></script>
+    
+    <script src="stock-ui.js?v=8.1.8"></script>
+    <script src="gcash.js?v=8.1.8"></script>
+
+    <script src="expenses.js?v=8.1.8"></script>
+    <script src="app.js?v=8.1.8"></script>
+
+    <script src="business-ui.js?v=8.1.8"></script>
+
+    
+    <script src="ui-core.js?v=8.1.8"></script>
+    <script src="product.js?v=8.1.8"></script>
+    <script src="settings.js?v=8.1.8"></script>
 
     <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
@@ -1206,7 +1206,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=8.1.7"></script>
+<script src="diagnostics.js?v=8.1.8"></script>
 
 
 

@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.1.7';
+    window.VILLACART_APP_VERSION = 'v8.1.8';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.1.7: The older fallback keydown listener was removed.
+    // v8.1.8: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -941,7 +941,7 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    // v8.1.7: Favorites UI moved to favorites.js.
+    // v8.1.8: Favorites UI moved to favorites.js.
     function updateSyncUI() {
         const pill = document.getElementById('sync-pill');
         const dot = document.getElementById('sync-dot');
@@ -1150,8 +1150,8 @@ function switchScreen(id) {
         if (document.visibilityState === 'visible') vc7285HandlePrintReturn('visible');
     });
 
-    // v8.1.7: PIN modal helpers moved to ui-core.js.
-    // v8.1.7: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
+    // v8.1.8: PIN modal helpers moved to ui-core.js.
+    // v8.1.8: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
     function confirmSale() {
         if (document.activeElement) document.activeElement.blur();
         const subtotal = getCartSubtotal();
@@ -1191,15 +1191,15 @@ function switchScreen(id) {
         lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
 
-    // v8.1.7: Product add/edit/delete helpers moved to product.js.
+    // v8.1.8: Product add/edit/delete helpers moved to product.js.
 
-    // v8.1.7: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
+    // v8.1.8: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.1.7: GCash screen logic moved to gcash.js.
+    // v8.1.8: GCash screen logic moved to gcash.js.
 
-    // v8.1.7: Expense modal/save logic moved to expenses.js.
+    // v8.1.8: Expense modal/save logic moved to expenses.js.
     function renderLedger() {
         const container = document.getElementById('ledger-content'); const summary = document.getElementById('ledger-summary-container');
         if (!container || !summary) return;
@@ -1402,7 +1402,7 @@ function switchScreen(id) {
         ).join('');
     }
 
-    // v8.1.7: Receipt print/share UI moved to receipt-ui.js.
+    // v8.1.8: Receipt print/share UI moved to receipt-ui.js.
     function exportSalesCSV() {
         const trans = getPeriodTransactions(); if (trans.length === 0) return;
         const csvContent = ["Date,ID,Type,Customer,Subtotal,Discount,Total,Notes", ...trans.map(t => [
@@ -1429,7 +1429,7 @@ function switchScreen(id) {
         document.getElementById('txdetail').innerHTML = html; closeModal('mod-tx'); document.getElementById('mod-tx').classList.replace('hidden', 'flex');
     }
 
-    // v8.1.7: Receipt transaction print shortcut moved to receipt-ui.js.
+    // v8.1.8: Receipt transaction print shortcut moved to receipt-ui.js.
     function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
     
     async function deleteTransaction(id) {
@@ -1447,11 +1447,11 @@ function switchScreen(id) {
         sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
     }
 
-    // v8.1.7: Receipt modal rendering moved to receipt-ui.js.
+    // v8.1.8: Receipt modal rendering moved to receipt-ui.js.
     function closeSuccessAndNewSale() { closeModal('mod-success'); }
-    // v8.1.7: Modal/toast/pack UI helpers moved to ui-core.js.
+    // v8.1.8: Modal/toast/pack UI helpers moved to ui-core.js.
     
-    // v8.1.7: Notifications UI moved to notifications.js.
+    // v8.1.8: Notifications UI moved to notifications.js.
     // --- Inventory Export ---
     let posScannerRunning = false;
 
@@ -1519,7 +1519,7 @@ function switchScreen(id) {
         label && label.classList.add('hidden');
     }
 
-    // v8.1.7: Change PIN helpers moved to settings.js.
+    // v8.1.8: Change PIN helpers moved to settings.js.
 
     // --- Stock Adjustment ---
     function openStockAdjust(id) {
@@ -5676,7 +5676,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.1.7: Do not pre-render Stock while the PIN modal is still open.
+    // v8.1.8: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -6130,7 +6130,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
 
-    // v8.1.7: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
+    // v8.1.8: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
     async function backupOldCalendarData() {
         if (!navigator.onLine) {
             if (typeof showToast === 'function') showToast('Go online before backup', 'error');
@@ -6159,7 +6159,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.1.7',
+                backupVersion: 'v8.1.8',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
