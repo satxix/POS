@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.1.8';
+    window.VILLACART_APP_VERSION = 'v8.2.3';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.1.8: The older fallback keydown listener was removed.
+    // v8.2.3: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -941,111 +941,9 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    // v8.1.8: Favorites UI moved to favorites.js.
-    function updateSyncUI() {
-        const pill = document.getElementById('sync-pill');
-        const dot = document.getElementById('sync-dot');
-        const text = document.getElementById('sync-text');
-        const spinner = document.getElementById('sync-spinner');
-        const errLabel = document.getElementById('sync-error-label');
-        if (!pill) return;
-        
-        if (syncErrorMsg) {
-            errLabel.classList.remove('hidden');
-            errLabel.innerText = syncErrorMsg;
-            pill.classList.add('ring-2', 'ring-red-500/50');
-        } else {
-            errLabel.classList.add('hidden');
-            pill.classList.remove('ring-2', 'ring-red-500/50');
-        }
+    // v8.2.3: Favorites UI moved to favorites.js.
+    // v8.2.3: Status/nav UI helpers moved to status-ui.js.
 
-        if (!navigator.onLine) {
-            pill.classList.replace('bg-white/10', 'bg-red-500/20'); pill.classList.replace('border-white/20', 'border-red-500/40');
-            dot.classList.replace('bg-green-400', 'bg-red-500'); text.innerText = "Offline"; spinner.classList.add('hidden'); return;
-        }
-        if (isSyncing) { 
-            dot.classList.add('hidden'); 
-            spinner.classList.remove('hidden'); 
-            spinner.classList.add('animate-spin-custom'); 
-            text.innerText = "Syncing..."; 
-        }
-        else { 
-            pill.classList.remove('bg-red-500/20', 'border-red-500/40'); 
-            pill.classList.add('bg-white/10', 'border-white/20'); 
-            dot.classList.remove('hidden'); 
-            dot.classList.replace('bg-red-500', 'bg-green-400'); 
-            spinner.classList.add('hidden'); 
-            text.innerText = "Online"; 
-        }
-        updateQueueBadge();
-    }
-
-    function updateQueueBadge() {
-        const badge = document.getElementById('queue-badge');
-        if (badge) { if (offlineQueue.length > 0) { badge.innerText = offlineQueue.length; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); } }
-    }
-
-    function isPendingSync(table, id) {
-        return Array.isArray(offlineQueue) && offlineQueue.some(task => task && task.table === table && task.data && task.data.id === id);
-    }
-
-    window.addEventListener('online', () => { updateSyncUI(); syncNow(); });
-    window.addEventListener('offline', () => { updateSyncUI(); });
-
-    
-    // v5.6.1 UI Polish helpers
-    function updateActiveNavigation(screen) {
-        document.querySelectorAll('.nav-item').forEach(btn => {
-            const isActive = btn.dataset.screen === screen;
-            btn.classList.toggle('nav-active', isActive);
-            btn.classList.toggle('text-primary', isActive);
-            btn.classList.toggle('text-on-surface-variant', !isActive);
-            btn.setAttribute('aria-current', isActive ? 'page' : 'false');
-        });
-    }
-
-    function updateTodayBadge() {
-        const syncPill = document.getElementById('sync-pill');
-        const syncTimestamp = document.getElementById('sync-timestamp');
-        const now = new Date();
-        const dateText = now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        if (syncPill && !syncPill.dataset.vcPolished) {
-            syncPill.dataset.vcPolished = 'true';
-            syncPill.title = `Today • ${dateText}`;
-        }
-        if (syncTimestamp && !syncTimestamp.dataset.vcDateAdded) {
-            syncTimestamp.dataset.vcDateAdded = 'true';
-            syncTimestamp.innerText = `Today • ${dateText} • Last Synced: --:--`;
-        }
-    }
-
-    function applyUIPolish() {
-        updateTodayBadge();
-        document.querySelectorAll('button').forEach(btn => btn.classList.add('vc-touch-polish'));
-        const active = document.querySelector('.screen-transition:not(.hidden)');
-        if (active && active.id && active.id.startsWith('screen-')) {
-            updateActiveNavigation(active.id.replace('screen-', ''));
-        } else {
-            updateActiveNavigation('pos');
-        }
-    }
-
-
-    // v5.6.1 UI Polish Fix: keep active nav synced on mobile/tablet
-    function refreshActiveNavigationFromDOM() {
-        const visibleScreen = Array.from(document.querySelectorAll('[id^="screen-"]'))
-            .find(el => !el.classList.contains('hidden'));
-        if (visibleScreen && visibleScreen.id) {
-            updateActiveNavigation(visibleScreen.id.replace('screen-', ''));
-        }
-    }
-
-    document.addEventListener('click', (event) => {
-        const navBtn = event.target.closest('.nav-item[data-screen]');
-        if (!navBtn) return;
-        updateActiveNavigation(navBtn.dataset.screen);
-        setTimeout(refreshActiveNavigationFromDOM, 80);
-    });
 
 function switchScreen(id) {
         const previousScreen = Array.from(document.querySelectorAll('.screen-transition[id^="screen-"]')).find(s => !s.classList.contains('hidden'));
@@ -1150,8 +1048,8 @@ function switchScreen(id) {
         if (document.visibilityState === 'visible') vc7285HandlePrintReturn('visible');
     });
 
-    // v8.1.8: PIN modal helpers moved to ui-core.js.
-    // v8.1.8: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
+    // v8.2.3: PIN modal helpers moved to ui-core.js.
+    // v8.2.3: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
     function confirmSale() {
         if (document.activeElement) document.activeElement.blur();
         const subtotal = getCartSubtotal();
@@ -1191,15 +1089,15 @@ function switchScreen(id) {
         lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
 
-    // v8.1.8: Product add/edit/delete helpers moved to product.js.
+    // v8.2.3: Product add/edit/delete helpers moved to product.js.
 
-    // v8.1.8: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
+    // v8.2.3: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.1.8: GCash screen logic moved to gcash.js.
+    // v8.2.3: GCash screen logic moved to gcash.js.
 
-    // v8.1.8: Expense modal/save logic moved to expenses.js.
+    // v8.2.3: Expense modal/save logic moved to expenses.js.
     function renderLedger() {
         const container = document.getElementById('ledger-content'); const summary = document.getElementById('ledger-summary-container');
         if (!container || !summary) return;
@@ -1402,34 +1300,12 @@ function switchScreen(id) {
         ).join('');
     }
 
-    // v8.1.8: Receipt print/share UI moved to receipt-ui.js.
-    function exportSalesCSV() {
-        const trans = getPeriodTransactions(); if (trans.length === 0) return;
-        const csvContent = ["Date,ID,Type,Customer,Subtotal,Discount,Total,Notes", ...trans.map(t => [
-            new Date(t.timestamp).toLocaleDateString(),
-            t.id,
-            t.type,
-            t.customer || 'N/A',
-            t.subtotal || t.total || 0,
-            t.discount || 0,
-            t.total,
-            t.notes || ''
-        ].map(csvEscape).join(","))].join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv' }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `Villacart_Sales.csv`; link.click(); showToast("Exported", "success");
-    }
+    // v8.2.3: Receipt print/share UI moved to receipt-ui.js.
+    // v8.2.3: Sales CSV export moved to sales-export.js.
 
-    function viewTxDetails(id) {
-        const tx = (state.transactions || []).find(t => t.id === id) || (state.archiveTransactions || []).find(t => t.id === id);
-        if (!tx) return; lastTransactionId = id;
-        document.getElementById('txmtitle').innerText = tx.id;
-        let html = `<div class="p-4 bg-primary/5 rounded-2xl border border-primary/10 mb-5"><div class="flex justify-between text-xs mb-1.5"><span class="font-bold opacity-60">Date</span><span class="font-black">${escapeHTML(new Date(tx.timestamp).toLocaleString())}</span></div><div class="flex justify-between text-xs mb-1.5"><span class="font-bold opacity-60">Type</span><span class="font-black uppercase">${escapeHTML((tx.notes && tx.notes.includes('CR-')) ? 'Settlement' : tx.type)}</span></div>${tx.customer ? `<div class="flex justify-between text-xs"><span class="font-bold opacity-60">Customer</span><span class="font-black">${escapeHTML(tx.customer)}</span></div>` : ''}</div>`;
-        if (tx.items && tx.items.length > 0) html += `<div class="space-y-2 mb-5">${tx.items.map(item => `<div class="flex justify-between text-xs border-b border-border-subtle pb-2"><span>${escapeHTML(item.name)} x${escapeHTML(item.qty)}</span><span class="font-black">${formatCurrency(item.price * item.qty)}</span></div>`).join('')}</div>`;
-        else if (tx.notes && tx.notes.includes('CR-')) html += `<div class="p-3 bg-surface-container/50 rounded-xl mb-5"><p class="text-[10px] font-bold text-on-surface-variant uppercase mb-1">Settled Tickets</p><p class="text-xs font-black text-primary">${escapeHTML(tx.notes)}</p></div>`;
-        html += `<div class="flex justify-between items-center p-4 ${tx.type === 'EX' ? 'bg-error/10 text-error' : 'bg-secondary/10 text-secondary'} rounded-2xl"><span class="text-xs font-black">TOTAL</span><span class="text-2xl font-black">${formatCurrency(tx.total)}</span></div>`;
-        document.getElementById('txdetail').innerHTML = html; closeModal('mod-tx'); document.getElementById('mod-tx').classList.replace('hidden', 'flex');
-    }
+    // v8.2.3: Transaction detail modal moved to transaction-detail.js.
 
-    // v8.1.8: Receipt transaction print shortcut moved to receipt-ui.js.
+    // v8.2.3: Receipt transaction print shortcut moved to receipt-ui.js.
     function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
     
     async function deleteTransaction(id) {
@@ -1447,11 +1323,11 @@ function switchScreen(id) {
         sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
     }
 
-    // v8.1.8: Receipt modal rendering moved to receipt-ui.js.
+    // v8.2.3: Receipt modal rendering moved to receipt-ui.js.
     function closeSuccessAndNewSale() { closeModal('mod-success'); }
-    // v8.1.8: Modal/toast/pack UI helpers moved to ui-core.js.
+    // v8.2.3: Modal/toast/pack UI helpers moved to ui-core.js.
     
-    // v8.1.8: Notifications UI moved to notifications.js.
+    // v8.2.3: Notifications UI moved to notifications.js.
     // --- Inventory Export ---
     let posScannerRunning = false;
 
@@ -1519,35 +1395,9 @@ function switchScreen(id) {
         label && label.classList.add('hidden');
     }
 
-    // v8.1.8: Change PIN helpers moved to settings.js.
+    // v8.2.3: Change PIN helpers moved to settings.js.
 
-    // --- Stock Adjustment ---
-    function openStockAdjust(id) {
-        const p = state.inventory.find(i => i.id === id);
-        if (!p) return;
-        const qty = prompt(`Adjust stock for "${p.name}"\nCurrent stock: ${p.stock}\n\nEnter amount to ADD (positive) or DEDUCT (negative):`);
-        if (qty === null || qty === '') return;
-        const delta = parseInt(qty);
-        if (isNaN(delta)) { showToast('Invalid quantity', 'error'); return; }
-        p.stock = Math.max(0, p.stock + delta);
-        p._offline = true;
-        queueAction('update', 'inventory', p);
-        sync(); renderInventory();
-        if (typeof renderFavorites === 'function') renderFavorites();
-        showToast(`Stock ${delta >= 0 ? 'added' : 'deducted'}: ${Math.abs(delta)} pcs`, 'success');
-    }
-
-    // --- Inventory CSV Export ---
-    function exportInventoryCSV() {
-        if (state.inventory.length === 0) { showToast('No inventory to export', 'error'); return; }
-        const rows = ["Name,Barcode,Category,Cost,Price,Stock,PackSize,PackPrice",
-            ...state.inventory.map(p => `"${p.name}",${p.barcode || ''},${p.category || ''},${p.cost || 0},${p.price || 0},${p.stock || 0},${p.packSize || ''},${p.packPrice || ''}`)
-        ];
-        const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-        const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-        link.download = 'Villacart_Inventory.csv'; link.click();
-        showToast('Inventory exported', 'success');
-    }
+    // v8.2.3: Inventory stock adjustment/export moved to inventory-actions.js.
 
     let invScannerRunning = false;
 
@@ -5676,7 +5526,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.1.8: Do not pre-render Stock while the PIN modal is still open.
+    // v8.2.3: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -6130,7 +5980,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
 
-    // v8.1.8: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
+    // v8.2.3: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
     async function backupOldCalendarData() {
         if (!navigator.onLine) {
             if (typeof showToast === 'function') showToast('Go online before backup', 'error');
@@ -6159,7 +6009,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.1.8',
+                backupVersion: 'v8.2.3',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,

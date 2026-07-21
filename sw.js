@@ -1,34 +1,38 @@
-const CACHE_NAME = 'villacart-pos-v8.1.8';
+const CACHE_NAME = 'villacart-pos-v8.2.3';
 const APP_SHELL = [
   './',
   './index.html',
-  './manifest.webmanifest?v=8.1.8',
-  './styles.css?v=8.1.8',
-  './utils.js?v=8.1.8',
-  './credit-utils.js?v=8.1.8',
-  './receipts.js?v=8.1.8',
+  './manifest.webmanifest?v=8.2.3',
+  './styles.css?v=8.2.3',
+  './utils.js?v=8.2.3',
+  './credit-utils.js?v=8.2.3',
+  './receipts.js?v=8.2.3',
   
-    './receipt-ui.js?v=8.1.8',
-    './scanner.js?v=8.1.8',
+    './receipt-ui.js?v=8.2.3',
+    './scanner.js?v=8.2.3',
   
     
-    './cart.js?v=8.1.8',
-    './favorites.js?v=8.1.8',
+    './cart.js?v=8.2.3',
+    './favorites.js?v=8.2.3',
     
-    './notifications.js?v=8.1.8',
+    './notifications.js?v=8.2.3',
     
-    './stock-ui.js?v=8.1.8',
-    './gcash.js?v=8.1.8',
+    './stock-ui.js?v=8.2.3',
+    './gcash.js?v=8.2.3',
   
-    './expenses.js?v=8.1.8',
-    './app.js?v=8.1.8',
+    './expenses.js?v=8.2.3',
+    './status-ui.js?v=8.2.3',
+    './app.js?v=8.2.3',
   
-    './business-ui.js?v=8.1.8',
+    './business-ui.js?v=8.2.3',
     
-    './ui-core.js?v=8.1.8',
-    './product.js?v=8.1.8',
-    './settings.js?v=8.1.8',
-    './diagnostics.js?v=8.1.8',
+    './ui-core.js?v=8.2.3',
+    './product.js?v=8.2.3',
+    './settings.js?v=8.2.3',
+    './inventory-actions.js?v=8.2.3',
+    './sales-export.js?v=8.2.3',
+    './transaction-detail.js?v=8.2.3',
+    './diagnostics.js?v=8.2.3',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
