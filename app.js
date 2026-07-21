@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.50';
+    window.VILLACART_APP_VERSION = 'v8.0.51';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.50: The older fallback keydown listener was removed.
+    // v8.0.51: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1902,7 +1902,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.50: Do not build every product row for collapsed categories.
+        // v8.0.51: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1951,10 +1951,11 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.50: Standalone GCash service ledger.
+    // v8.0.51: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
+    let editingGcashRecordId = null;
 
     function nextGcashId() {
         return nextTransactionId('GC');
@@ -1991,11 +1992,41 @@ function switchScreen(id) {
         const amountEl = document.getElementById('gcash-amount');
         const nameEl = document.getElementById('gcash-name');
         const notesEl = document.getElementById('gcash-notes');
+        editingGcashRecordId = null;
         if (amountEl) amountEl.value = '';
         if (nameEl) nameEl.value = '';
         if (notesEl) notesEl.value = '';
         updateGcashPreview();
+        updateGcashSaveButtonState();
         if (showMessage && typeof showToast === 'function') showToast('GCash form reset', 'info');
+    }
+
+    function updateGcashSaveButtonState() {
+        const btn = document.getElementById('gcash-save-btn');
+        if (!btn) return;
+        btn.innerHTML = editingGcashRecordId ? 'Update<br class="hidden md:block"/> GCash Record' : 'Save<br class="hidden md:block"/> GCash Record';
+        btn.classList.toggle('bg-secondary', !editingGcashRecordId);
+        btn.classList.toggle('bg-primary', !!editingGcashRecordId);
+    }
+
+    function editGcashRecord(id) {
+        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
+        const record = state.gcashRecords.find(r => r && r.id === id);
+        if (!record) {
+            showToast('Only current GCash records can be edited', 'error');
+            return;
+        }
+        editingGcashRecordId = record.id;
+        setGcashType(record.type);
+        const amountEl = document.getElementById('gcash-amount');
+        const nameEl = document.getElementById('gcash-name');
+        const notesEl = document.getElementById('gcash-notes');
+        if (amountEl) amountEl.value = Number(record.amount) || 0;
+        if (nameEl) nameEl.value = record.customerName || record.name || '';
+        if (notesEl) notesEl.value = record.referenceNotes || record.notes || '';
+        updateGcashPreview();
+        updateGcashSaveButtonState();
+        showToast('Editing GCash record', 'info');
     }
 
     function updateGcashPreview() {
@@ -2023,29 +2054,38 @@ function switchScreen(id) {
         }
         const fee = calcGcashFee(amount);
         const now = new Date();
+        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
+        const editIndex = editingGcashRecordId ? state.gcashRecords.findIndex(r => r && r.id === editingGcashRecordId) : -1;
+        const existing = editIndex >= 0 ? state.gcashRecords[editIndex] : null;
+        if (editingGcashRecordId && !existing) {
+            showToast('GCash record no longer exists', 'error');
+            editingGcashRecordId = null;
+            updateGcashSaveButtonState();
+            return;
+        }
         const record = {
-            id: nextGcashId(),
+            ...(existing || {}),
+            id: existing?.id || nextGcashId(),
             type: activeGcashType,
             amount,
             fee,
             drawerEffect: gcashDrawerEffect(activeGcashType, amount, fee),
-            businessDate: todayDateCode(),
-            businessDayId: state.currentBusinessDayId || null,
-            timestamp: now.toISOString(),
+            businessDate: existing?.businessDate || todayDateCode(),
+            businessDayId: existing?.businessDayId || state.currentBusinessDayId || null,
+            timestamp: existing?.timestamp || now.toISOString(),
+            updatedAt: existing ? now.toISOString() : undefined,
             customerName: (nameEl?.value || '').trim(),
             referenceNotes: (notesEl?.value || '').trim(),
             notes: (notesEl?.value || '').trim(),
             _offline: true
         };
-        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
-        state.gcashRecords.unshift(record);
+        if (record.updatedAt === undefined) delete record.updatedAt;
+        if (editIndex >= 0) state.gcashRecords.splice(editIndex, 1, record);
+        else state.gcashRecords.unshift(record);
         queueAction('update', 'gcashRecords', record);
-        if (amountEl) amountEl.value = '';
-        if (nameEl) nameEl.value = '';
-        if (notesEl) notesEl.value = '';
-        updateGcashPreview();
+        resetGcashForm(false);
         renderGcashScreen();
-        showToast('GCash record saved', 'success');
+        showToast(existing ? 'GCash record updated' : 'GCash record saved', 'success');
     }
 
     function switchGcashView(view) {
@@ -2075,9 +2115,10 @@ function switchScreen(id) {
         const pending = isPendingSync('gcashRecords', r.id) || r._offline;
         const when = r.timestamp ? new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         const meta = [r.customerName, r.referenceNotes || r.notes].filter(Boolean).join(' - ');
+        const editButton = r._archiveOnly ? '' : `<button type="button" class="h-10 px-3 rounded-2xl bg-primary/10 text-primary font-black text-[10px] uppercase tracking-wider active-scale flex items-center gap-1" onclick="editGcashRecord(${jsArg(r.id)})"><span class="material-symbols-outlined text-[18px]">edit</span>Edit</button>`;
         return `<div class="bg-surface-container/40 border border-border-subtle rounded-3xl p-4 flex justify-between gap-3">
             <div class="min-w-0">
-                <div class="flex items-center gap-2 mb-1">
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
                     <p class="font-black text-sm ${isOut ? 'text-error' : 'text-primary'}">${escapeHTML(r.id)}</p>
                     <span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-black ${isOut ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}">${isOut ? 'Cash Out' : 'Cash In'}</span>
                     ${pending ? '<span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-black bg-orange-500 text-white">Pending</span>' : ''}
@@ -2085,9 +2126,12 @@ function switchScreen(id) {
                 <p class="text-[10px] font-bold text-on-surface-variant">${escapeHTML(when)}${meta ? ' - ' + escapeHTML(meta) : ''}</p>
                 <p class="text-[10px] font-black uppercase tracking-wider text-secondary mt-1">Fee ${formatCurrency(r.fee)}</p>
             </div>
-            <div class="text-right shrink-0">
-                <p class="text-xl font-black text-on-surface">${formatCurrency(r.amount)}</p>
-                <p class="text-[10px] font-bold text-on-surface-variant">${isOut ? 'Released' : 'Received'}</p>
+            <div class="text-right shrink-0 flex flex-col items-end gap-2">
+                <div>
+                    <p class="text-xl font-black text-on-surface">${formatCurrency(r.amount)}</p>
+                    <p class="text-[10px] font-bold text-on-surface-variant">${isOut ? 'Released' : 'Received'}</p>
+                </div>
+                ${editButton}
             </div>
         </div>`;
     }
@@ -2168,6 +2212,7 @@ function switchScreen(id) {
             }
         }
         setGcashType(activeGcashType);
+        updateGcashSaveButtonState();
     }
 
     async function refreshGcashRecords() {
@@ -7102,7 +7147,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.50: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.51: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7629,7 +7674,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.50',
+                backupVersion: 'v8.0.51',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
