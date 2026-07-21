@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.2.4';
+    window.VILLACART_APP_VERSION = 'v8.2.6';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.2.4: The older fallback keydown listener was removed.
+    // v8.2.6: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -941,8 +941,8 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    // v8.2.4: Favorites UI moved to favorites.js.
-    // v8.2.4: Status/nav UI helpers moved to status-ui.js.
+    // v8.2.6: Favorites UI moved to favorites.js.
+    // v8.2.6: Status/nav UI helpers moved to status-ui.js.
 
 
 function switchScreen(id) {
@@ -969,10 +969,10 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v8.2.4: PWA resume/print-return repaint helpers moved to pwa-lifecycle.js.
+    // v8.2.6: PWA resume/print-return repaint helpers moved to pwa-lifecycle.js.
 
-    // v8.2.4: PIN modal helpers moved to ui-core.js.
-    // v8.2.4: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
+    // v8.2.6: PIN modal helpers moved to ui-core.js.
+    // v8.2.6: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
     function confirmSale() {
         if (document.activeElement) document.activeElement.blur();
         const subtotal = getCartSubtotal();
@@ -1012,15 +1012,15 @@ function switchScreen(id) {
         lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
 
-    // v8.2.4: Product add/edit/delete helpers moved to product.js.
+    // v8.2.6: Product add/edit/delete helpers moved to product.js.
 
-    // v8.2.4: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
+    // v8.2.6: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.2.4: GCash screen logic moved to gcash.js.
+    // v8.2.6: GCash screen logic moved to gcash.js.
 
-    // v8.2.4: Expense modal/save logic moved to expenses.js.
+    // v8.2.6: Expense modal/save logic moved to expenses.js.
     function renderLedger() {
         const container = document.getElementById('ledger-content'); const summary = document.getElementById('ledger-summary-container');
         if (!container || !summary) return;
@@ -1223,12 +1223,12 @@ function switchScreen(id) {
         ).join('');
     }
 
-    // v8.2.4: Receipt print/share UI moved to receipt-ui.js.
-    // v8.2.4: Sales CSV export moved to sales-export.js.
+    // v8.2.6: Receipt print/share UI moved to receipt-ui.js.
+    // v8.2.6: Sales CSV export moved to sales-export.js.
 
-    // v8.2.4: Transaction detail modal moved to transaction-detail.js.
+    // v8.2.6: Transaction detail modal moved to transaction-detail.js.
 
-    // v8.2.4: Receipt transaction print shortcut moved to receipt-ui.js.
+    // v8.2.6: Receipt transaction print shortcut moved to receipt-ui.js.
     function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
     
     async function deleteTransaction(id) {
@@ -1246,164 +1246,14 @@ function switchScreen(id) {
         sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
     }
 
-    // v8.2.4: Receipt modal rendering moved to receipt-ui.js.
+    // v8.2.6: Receipt modal rendering moved to receipt-ui.js.
     function closeSuccessAndNewSale() { closeModal('mod-success'); }
-    // v8.2.4: Modal/toast/pack UI helpers moved to ui-core.js.
+    // v8.2.6: Modal/toast/pack UI helpers moved to ui-core.js.
     
-    // v8.2.4: Notifications UI moved to notifications.js.
+    // v8.2.6: Notifications UI moved to notifications.js.
     // --- Inventory Export ---
-    let posScannerRunning = false;
+    // v8.2.6: Stock camera scanner helper moved to camera-scanner.js. Terminal camera scanner removed; physical scanner remains.
 
-    function togglePosScanner() {
-        if (posScannerRunning) { stopPosScanner(); return; }
-        startPosScanner();
-    }
-
-    function startPosScanner() {
-        const container = document.getElementById('pos-cam-area-container');
-        const camArea = document.getElementById('pos-cam-area');
-        const label = document.getElementById('pos-scanner-active-label');
-        if (!container || !camArea) return;
-        if (typeof Quagga === 'undefined') {
-            showToast('Scanner library is still loading. Try again in a moment.', 'error');
-            return;
-        }
-        container.classList.remove('hidden');
-        camArea.innerHTML = '';
-        if (posScannerRunning) return;
-        try { Quagga.offDetected(); } catch(e) {}
-        try { Quagga.stop(); } catch(e) {}
-        posScannerRunning = true;
-        label && label.classList.remove('hidden');
-
-        Quagga.init({
-            inputStream: { type: 'LiveStream', target: camArea, constraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 480 } } },
-            locator: { patchSize: 'medium', halfSample: true },
-            numOfWorkers: navigator.hardwareConcurrency || 2,
-            decoder: { readers: ['ean_reader','ean_8_reader','code_128_reader','code_39_reader','upc_reader','upc_e_reader','codabar_reader','i2of5_reader'] },
-            locate: true
-        }, function(err) {
-            if (err) {
-                posScannerRunning = false;
-                container.classList.add('hidden');
-                label && label.classList.add('hidden');
-                showToast(err.name === 'NotAllowedError' ? 'Camera permission denied' : 'Camera error', 'error');
-                return;
-            }
-            Quagga.start();
-            showToast('Aim camera at barcode', 'info');
-        });
-
-        let lastCode = '', lastTime = 0;
-        Quagga.onDetected(function(result) {
-            const code = result && result.codeResult && result.codeResult.code ? String(result.codeResult.code).trim() : '';
-            if (!vc7226LooksLikeBarcode(code)) return;
-            const now = Date.now();
-            if (code === lastCode && now - lastTime < 2000) return;
-            lastCode = code; lastTime = now;
-            stopPosScanner();
-            handlePhysicalScan(code);
-        });
-    }
-
-    function stopPosScanner() {
-        if (!posScannerRunning) return;
-        try { Quagga.stop(); } catch(e) {}
-        posScannerRunning = false;
-        const container = document.getElementById('pos-cam-area-container');
-        const camArea = document.getElementById('pos-cam-area');
-        const label = document.getElementById('pos-scanner-active-label');
-        if (container) container.classList.add('hidden');
-        if (camArea) camArea.innerHTML = '';
-        label && label.classList.add('hidden');
-    }
-
-    // v8.2.4: Change PIN helpers moved to settings.js.
-
-    // v8.2.4: Inventory stock adjustment/export moved to inventory-actions.js.
-
-    let invScannerRunning = false;
-
-    function startInvScanner() {
-        const container = document.getElementById('scanner-preview-container');
-        const camArea = document.getElementById('inv-cam-area');
-        if (!container || !camArea) return;
-
-        // Show the preview container
-        container.classList.remove('hidden');
-        camArea.innerHTML = '';
-
-        if (invScannerRunning) return;
-        invScannerRunning = true;
-
-        Quagga.init({
-            inputStream: {
-                type: 'LiveStream',
-                target: camArea,
-                constraints: {
-                    facingMode: 'environment',
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                }
-            },
-            locator: { patchSize: 'medium', halfSample: true },
-            numOfWorkers: navigator.hardwareConcurrency || 2,
-            decoder: {
-                readers: [
-                    'ean_reader', 'ean_8_reader', 'code_128_reader',
-                    'code_39_reader', 'upc_reader', 'upc_e_reader',
-                    'codabar_reader', 'i2of5_reader'
-                ]
-            },
-            locate: true
-        }, function(err) {
-            if (err) {
-                invScannerRunning = false;
-                container.classList.add('hidden');
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    showToast('Camera permission denied', 'error');
-                } else if (err.name === 'NotFoundError') {
-                    showToast('No camera found', 'error');
-                } else {
-                    showToast('Camera error: ' + (err.message || err), 'error');
-                }
-                return;
-            }
-            Quagga.start();
-            showToast('Scanner active — aim at barcode', 'success');
-        });
-
-        let lastScanned = '';
-        let lastScannedTime = 0;
-
-        Quagga.onDetected(function(result) {
-            const code = result.codeResult.code;
-            const now = Date.now();
-            // Debounce: ignore same code within 2 seconds
-            if (code === lastScanned && now - lastScannedTime < 2000) return;
-            lastScanned = code;
-            lastScannedTime = now;
-
-            const barcodeField = document.getElementById('p-barcode');
-            if (barcodeField) {
-                barcodeField.value = code;
-                showToast('Barcode scanned: ' + code, 'success');
-            }
-            stopInvScanner();
-        });
-    }
-
-    function stopInvScanner() {
-        if (!invScannerRunning) return;
-        try { Quagga.stop(); } catch(e) {}
-        invScannerRunning = false;
-        const container = document.getElementById('scanner-preview-container');
-        const camArea = document.getElementById('inv-cam-area');
-        if (container) container.classList.add('hidden');
-        if (camArea) camArea.innerHTML = '';
-    }
-
-    
     // v5.6.1 Inventory PIN navigation polish
     let pendingNavScreen = null;
 
@@ -5449,7 +5299,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.2.4: Do not pre-render Stock while the PIN modal is still open.
+    // v8.2.6: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -5903,7 +5753,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
 
-    // v8.2.4: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
+    // v8.2.6: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
     async function backupOldCalendarData() {
         if (!navigator.onLine) {
             if (typeof showToast === 'function') showToast('Go online before backup', 'error');
@@ -5932,7 +5782,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.2.4',
+                backupVersion: 'v8.2.6',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
