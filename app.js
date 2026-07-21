@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.53';
+    window.VILLACART_APP_VERSION = 'v8.0.54';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.53: The older fallback keydown listener was removed.
+    // v8.0.54: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1902,7 +1902,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.53: Do not build every product row for collapsed categories.
+        // v8.0.54: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1951,7 +1951,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.53: Standalone GCash service ledger.
+    // v8.0.54: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -2854,17 +2854,62 @@ body {
         ticker.classList.remove('hidden');
     }
 
-    function notificationOpenCredits() {
-        const tx = Array.isArray(state.transactions) ? state.transactions : [];
-        return tx.filter(t => {
-            if (!t || t.type !== 'CR') return false;
-            if (typeof window.vc5632CreditIsSettled === 'function') return !window.vc5632CreditIsSettled(t, tx);
-            if (t.paid === true || t.settled === true) return false;
-            const status = String(t.status || '').trim().toUpperCase();
-            if (status === 'PAID' || status === 'SETTLED') return false;
-            if (Number(t.balance) === 0 || Number(t.balanceDue) === 0 || Number(t.remaining) === 0 || Number(t.amountDue) === 0) return false;
-            return true;
+    function notificationCreditNorm(value) {
+        return String(value || '').trim().toUpperCase();
+    }
+
+    function notificationIsSettlement(t) {
+        const notes = notificationCreditNorm(t && t.notes);
+        const id = notificationCreditNorm(t && t.id);
+        const type = notificationCreditNorm(t && t.type);
+        return !!(
+            t && (t.settlementFor || t.creditRef || t.relatedCreditId) ||
+            notes.includes('CR-') ||
+            notes.includes('PARTIAL:') ||
+            notes.includes('PAYMENT') ||
+            notes.includes('SETTLEMENT') ||
+            notes.includes('PAID CREDIT') ||
+            (type === 'SA' && notes.includes('CR-')) ||
+            (id.startsWith('SA-') && notes.includes('CR-'))
+        );
+    }
+
+    function notificationSettlementCreditIds(t) {
+        const ids = new Set();
+        ['settlementFor', 'creditRef', 'relatedCreditId'].forEach(key => {
+            if (t && t[key]) ids.add(notificationCreditNorm(t[key]));
         });
+        const notes = notificationCreditNorm(t && t.notes);
+        const matches = notes.match(/CR-[A-Z0-9-]+/g) || [];
+        matches.forEach(id => ids.add(id));
+        return ids;
+    }
+
+    function notificationCreditIsSettled(creditTx, allTx) {
+        if (!creditTx) return false;
+        if (creditTx.paid === true || creditTx.settled === true) return true;
+        const status = notificationCreditNorm(creditTx.status);
+        if (status === 'PAID' || status === 'SETTLED') return true;
+        if (Number(creditTx.balance) === 0 || Number(creditTx.balanceDue) === 0 || Number(creditTx.remaining) === 0 || Number(creditTx.amountDue) === 0) return true;
+        const target = notificationCreditNorm(creditTx.id);
+        if (!target) return false;
+        return (Array.isArray(allTx) ? allTx : []).some(t => {
+            if (!t || t.id === creditTx.id || !notificationIsSettlement(t)) return false;
+            const notes = notificationCreditNorm(t.notes);
+            if (notes.includes('PARTIAL:')) return false;
+            return notificationSettlementCreditIds(t).has(target);
+        });
+    }
+
+    function notificationOpenCredits() {
+        const tx = typeof vc710AllTransactionsForLocalViews === 'function'
+            ? vc710AllTransactionsForLocalViews()
+            : (Array.isArray(state.transactions) ? state.transactions : []);
+        const map = new Map();
+        tx.forEach(t => {
+            if (t && t.id && t.type === 'CR') map.set(t.id, t);
+        });
+        return Array.from(map.values()).filter(t => !notificationCreditIsSettled(t, tx));
     }
 
     function updateNotifBadge() {
@@ -7163,7 +7208,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.53: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.54: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7690,7 +7735,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.53',
+                backupVersion: 'v8.0.54',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
