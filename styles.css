@@ -4353,3 +4353,66 @@ body {
         transform: none !important;
     }
 }
+
+
+/* v8.0.50: Ledger card item preview + phone containment. */
+.vc8050-tx-preview {
+    margin: 0;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #334155;
+    font-size: .78rem;
+    font-weight: 950;
+}
+
+@media (max-width: 640px) {
+    .vc5629-tx-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: .85rem;
+        overflow: hidden;
+    }
+    .vc5629-tx-main,
+    .vc5629-tx-top,
+    .vc5629-pills,
+    .vc5629-meta,
+    .vc8050-tx-preview {
+        min-width: 0;
+        max-width: 100%;
+    }
+    .vc5629-tx-top {
+        align-items: flex-start;
+    }
+    .vc5629-tx-top h3 {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 1rem;
+    }
+    .vc5629-tx-side {
+        width: 100%;
+        min-width: 0;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .vc5629-tx-side strong {
+        min-width: 0;
+        max-width: calc(100% - 116px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 1.35rem;
+        letter-spacing: -.04em;
+    }
+    .vc5632-actions {
+        flex: 0 0 auto;
+    }
+    .vc5629-meta,
+    .vc8050-tx-preview {
+        white-space: nowrap;
+    }
+}

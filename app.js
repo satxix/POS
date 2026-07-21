@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.49';
+    window.VILLACART_APP_VERSION = 'v8.0.50';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.49: The older fallback keydown listener was removed.
+    // v8.0.50: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1902,7 +1902,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.49: Do not build every product row for collapsed categories.
+        // v8.0.50: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1951,7 +1951,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.49: Standalone GCash service ledger.
+    // v8.0.50: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -6817,15 +6817,41 @@ document.addEventListener('DOMContentLoaded',()=>{
         return pills.join('');
     }
 
+    function vc8050TxPreview(t, kind) {
+        const items = Array.isArray(t && t.items) ? t.items.filter(Boolean) : [];
+        if (items.length) {
+            const first = items[0] || {};
+            const firstName = String(first.name || first.productName || 'Item').trim() || 'Item';
+            const qty = Number(first.qty || first.quantity || 0);
+            const qtyText = qty ? ' x' + qty : '';
+            const more = items.length > 1 ? ' +' + (items.length - 1) + ' more' : '';
+            return '<p class="vc8050-tx-preview">Item: ' + vc5632Safe(firstName + qtyText + more) + '</p>';
+        }
+        if (vc5632IsSettlement(t) || kind === 'credit-settled') {
+            const ids = Array.from(vc5632SettlementCreditIds(t || {}));
+            if (ids.length) {
+                const first = ids[0];
+                const more = ids.length > 1 ? ' +' + (ids.length - 1) + ' more' : '';
+                return '<p class="vc8050-tx-preview">Paid: ' + vc5632Safe(first + more) + '</p>';
+            }
+        }
+        if (kind === 'expense') {
+            const cat = String((t && (t.category || t.desc || t.notes)) || 'Expense').trim();
+            return '<p class="vc8050-tx-preview">Expense: ' + vc5632Safe(cat || 'Expense') + '</p>';
+        }
+        return '';
+    }
+
     function vc5632TxCard(t, kind) {
         const note = t.desc || t.notes || '';
         const customer = t.customer ? '<p class="vc5629-meta">Customer: ' + vc5632Safe(t.customer) + '</p>' : '';
+        const preview = vc8050TxPreview(t, kind);
         const isSettledCredit = kind === 'credit-settled' || !!(t && t._vcCreditSettled);
         const cardKind = kind === 'credit-settled' ? 'credit' : kind;
         const payButton = kind === 'credit' && !isSettledCredit ? '<button type="button" class="vc5632-mini-pay" onclick="payIndividualTicket(\'' + vc5632Js(t.id) + '\')">Pay</button>' : '';
         return '<article class="vc5629-tx-card vc5629-' + cardKind + (isSettledCredit ? ' vc5632-settled-credit-card' : '') + '">' +
             '<div class="vc5629-tx-main"><div class="vc5629-tx-top"><h3>' + vc5632Safe(t.id || 'Transaction') + '</h3><div class="vc5629-pills">' + vc5632Pills(t, kind) + '</div></div>' +
-            '<p class="vc5629-time">' + vc5632Safe(vc5632Time(t)) + '</p>' + customer +
+            '<p class="vc5629-time">' + vc5632Safe(vc5632Time(t)) + '</p>' + customer + preview +
             (note ? '<p class="vc5629-meta">' + vc5632Safe(note) + '</p>' : '') + '</div>' +
             '<div class="vc5629-tx-side"><strong class="' + (kind === 'expense' ? 'vc5629-amount-red' : '') + '">' + vc5632Peso(t.total) + '</strong><div class="vc5632-actions">' + payButton +
             '<button type="button" onclick="viewTxDetails(\'' + vc5632Js(t.id) + '\')" aria-label="View transaction ' + vc5632Safe(t.id) + '"><span class="material-symbols-outlined">visibility</span></button></div></div></article>';
@@ -7076,7 +7102,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.49: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.50: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7603,7 +7629,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.49',
+                backupVersion: 'v8.0.50',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
