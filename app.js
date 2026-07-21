@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.51';
+    window.VILLACART_APP_VERSION = 'v8.0.52';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.51: The older fallback keydown listener was removed.
+    // v8.0.52: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1902,7 +1902,7 @@ function switchScreen(id) {
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.51: Do not build every product row for collapsed categories.
+        // v8.0.52: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1951,7 +1951,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.51: Standalone GCash service ledger.
+    // v8.0.52: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -2854,10 +2854,24 @@ body {
         ticker.classList.remove('hidden');
     }
 
+    function notificationOpenCredits() {
+        const tx = Array.isArray(state.transactions) ? state.transactions : [];
+        return tx.filter(t => {
+            if (!t || t.type !== 'CR') return false;
+            if (typeof vc5632CreditIsSettled === 'function') return !vc5632CreditIsSettled(t, tx);
+            if (t.paid === true || t.settled === true) return false;
+            const status = String(t.status || '').trim().toUpperCase();
+            if (status === 'PAID' || status === 'SETTLED') return false;
+            if (Number(t.balance) === 0 || Number(t.balanceDue) === 0 || Number(t.remaining) === 0 || Number(t.amountDue) === 0) return false;
+            return true;
+        });
+    }
+
     function updateNotifBadge() {
         const lowStockItems = state.inventory.filter(isStockAlertVisibleProduct);
+        const openCredits = notificationOpenCredits();
         const dot = document.getElementById('notif-dot');
-        if (dot) dot.classList.toggle('hidden', lowStockItems.length === 0);
+        if (dot) dot.classList.toggle('hidden', lowStockItems.length === 0 && openCredits.length === 0);
         renderHeaderLowStockTicker();
     }
 
@@ -2865,16 +2879,16 @@ body {
         const lowStockItems = state.inventory
             .filter(isStockAlertVisibleProduct)
             .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base', numeric: true }));
-        const pendingCredits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
+        const pendingCredits = notificationOpenCredits();
         const list = document.getElementById('notif-list');
         let html = '';
         if (lowStockItems.length > 0) {
             html += `<div class="p-3 bg-yellow-50"><p class="text-[9px] font-black uppercase text-yellow-700 mb-2 tracking-wider">Low Stock (${lowStockItems.length})</p>` +
-                lowStockItems.map(p => `<div class="flex justify-between items-center py-1.5"><span class="text-xs font-bold truncate">${p.name}</span><span class="text-[10px] font-black text-error ml-2">${p.stock} left</span></div>`).join('') + '</div>';
+                lowStockItems.map(p => `<div class="flex justify-between items-center py-1.5"><span class="text-xs font-bold truncate">${escapeHTML(p.name || 'Unnamed')}</span><span class="text-[10px] font-black text-error ml-2">${escapeHTML(p.stock)} left</span></div>`).join('') + '</div>';
         }
         if (pendingCredits.length > 0) {
-            const total = pendingCredits.reduce((a, b) => a + b.total, 0);
-            html += `<div class="p-3"><p class="text-[9px] font-black uppercase text-orange-600 mb-2 tracking-wider">Pending Credits (${pendingCredits.length})</p><p class="text-xs font-black text-on-surface">Total outstanding: ₱${total.toLocaleString()}</p></div>`;
+            const total = pendingCredits.reduce((a, b) => a + (Number(b.total) || 0), 0);
+            html += `<div class="p-3"><p class="text-[9px] font-black uppercase text-orange-600 mb-2 tracking-wider">Pending Credits (${pendingCredits.length})</p><p class="text-xs font-black text-on-surface">Total outstanding: ${formatCurrency(total)}</p></div>`;
         }
         if (!html) html = '<div class="p-6 text-center text-xs opacity-40 font-bold uppercase">All clear — nothing to report!</div>';
         list.innerHTML = html;
@@ -7147,7 +7161,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.51: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.52: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7674,7 +7688,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.51',
+                backupVersion: 'v8.0.52',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,

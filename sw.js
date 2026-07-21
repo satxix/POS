@@ -1,4 +1,4 @@
-const CACHE_NAME = 'villacart-pos-v8.0.51';
+const CACHE_NAME = 'villacart-pos-v8.0.52';
 const APP_SHELL = [
   './',
   './index.html',
