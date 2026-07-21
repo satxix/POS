@@ -1,7 +1,7 @@
 ﻿// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.0.46';
+    window.VILLACART_APP_VERSION = 'v8.0.47';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -190,6 +190,7 @@
     let favoritesEditMode = false;
     let currentFavSlotIndex = null;
     const FAV_COLOR_KEY = 'villacart_favorite_colors_v1';
+    const STOCK_ALERT_HIDE_KEY = 'villacart_stock_alert_hidden_v1' + STORAGE_SUFFIX;
     const favoriteColorPalette = [
         { name: 'White', value: '' },
         { name: 'Cream', value: '#FFF7D6' },
@@ -220,6 +221,7 @@
     ];
     let favoriteSlotColors = safeLocalJson(FAV_COLOR_KEY, {}, 'favorite colors');
     if (!favoriteSlotColors || typeof favoriteSlotColors !== 'object' || Array.isArray(favoriteSlotColors)) favoriteSlotColors = {};
+    let mutedStockAlertIds = new Set(Array.isArray(safeLocalJson(STOCK_ALERT_HIDE_KEY, [], 'stock alert mutes')) ? safeLocalJson(STOCK_ALERT_HIDE_KEY, [], 'stock alert mutes').map(String) : []);
     let inventoryState = {
         collapsedCategories: {}
     };
@@ -851,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.0.46: The older fallback keydown listener was removed.
+    // v8.0.47: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -1820,6 +1822,40 @@ function switchScreen(id) {
     function isLowStockProduct(product) {
         return inventoryIsLowStock(product);
     }
+    function saveMutedStockAlertIds() {
+        try { localStorage.setItem(STOCK_ALERT_HIDE_KEY, JSON.stringify(Array.from(mutedStockAlertIds))); } catch (e) {}
+    }
+
+    function isStockAlertMuted(productOrId) {
+        const id = typeof productOrId === 'object' && productOrId ? productOrId.id : productOrId;
+        return !!(id && mutedStockAlertIds.has(String(id)));
+    }
+
+    function isStockAlertVisibleProduct(product) {
+        return isLowStockProduct(product) && !isStockAlertMuted(product);
+    }
+
+    function toggleStockAlertMute(id) {
+        const key = String(id || '');
+        if (!key) return;
+        const product = (state.inventory || []).find(p => String(p.id) === key);
+        if (mutedStockAlertIds.has(key)) {
+            mutedStockAlertIds.delete(key);
+            showToast(product ? `Alerts restored for ${product.name}` : 'Stock alerts restored', 'success');
+        } else {
+            mutedStockAlertIds.add(key);
+            showToast(product ? `Hidden from alerts: ${product.name}` : 'Hidden from stock alerts', 'info');
+        }
+        saveMutedStockAlertIds();
+        renderInventory(getInventorySearchValue());
+        if (typeof renderHeaderLowStockTicker === 'function') renderHeaderLowStockTicker();
+        if (typeof updateNotifBadge === 'function') updateNotifBadge();
+        if (typeof renderInsights === 'function') {
+            const insights = document.getElementById('screen-insights');
+            if (insights && !insights.classList.contains('hidden')) renderInsights();
+        }
+    }
+
 
     function inventoryCategoryKey(product) {
         return inventoryCategoryKeyValue(product);
@@ -1846,21 +1882,27 @@ function switchScreen(id) {
 
     function renderInventoryProductRow(product) {
         const isLow = isLowStockProduct(product);
+        const isMuted = isStockAlertMuted(product);
+        const isVisibleAlert = isLow && !isMuted;
         const marginVal = Number(product.price) > 0 ? (((Number(product.price) - Number(product.cost || 0)) / Number(product.price)) * 100).toFixed(1) : 0;
         const stockValue = `${escapeHTML(product.stock)} pcs`;
         const metrics = [
-            inventoryMetricCard('Stock', stockValue, 'bg-surface-container/60', isLow ? 'text-error' : 'text-primary'),
+            inventoryMetricCard('Stock', stockValue, 'bg-surface-container/60', isVisibleAlert ? 'text-error' : (isMuted ? 'text-on-surface-variant' : 'text-primary')),
             inventoryMetricCard('Cost', formatCurrency(product.cost), 'bg-surface-container/60', 'text-on-surface'),
             inventoryMetricCard('Retail', formatCurrency(product.price), 'bg-surface-container/60', 'text-primary'),
             inventoryMetricCard('Margin', `${marginVal}%`, 'bg-secondary/5 border border-secondary/10', 'text-secondary')
         ].join('');
+        const muteTitle = isMuted ? 'Show this item in stock alerts' : 'Hide this item from stock alerts';
+        const muteIcon = isMuted ? 'notifications_off' : 'notifications';
+        const muteClass = isMuted ? 'bg-surface-container text-on-surface-variant' : 'bg-yellow-50 text-yellow-700';
+        const mutedBadge = isMuted ? '<span class="ml-2 px-2 py-0.5 rounded-full bg-surface-container text-[8px] font-black text-on-surface-variant uppercase align-middle">Alerts off</span>' : '';
 
-        return `<div class="p-4 flex gap-3 ${isLow ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate uppercase">${escapeHTML(product.name)}</h4><p class="text-[10px] font-medium opacity-50 mb-3 tracking-tight">#${escapeHTML(product.barcode || '---')}</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-2">${metrics}</div></div><div class="flex flex-col gap-1.5 border-l pl-3 justify-center"><button onclick="openStockAdjust(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-secondary/10 text-secondary rounded-xl active-scale transition-all" title="Adjust Stock"><span class="material-symbols-outlined text-[20px]">move_item</span></button><button onclick="openProductModal(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="deleteProduct(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`;
+        return `<div class="p-4 flex gap-3 ${isVisibleAlert ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate uppercase">${escapeHTML(product.name)}${mutedBadge}</h4><p class="text-[10px] font-medium opacity-50 mb-3 tracking-tight">#${escapeHTML(product.barcode || '---')}</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-2">${metrics}</div></div><div class="flex flex-col gap-1.5 border-l pl-3 justify-center"><button onclick="openStockAdjust(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-secondary/10 text-secondary rounded-xl active-scale transition-all" title="Adjust Stock"><span class="material-symbols-outlined text-[20px]">move_item</span></button><button onclick="openProductModal(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all" title="Edit Product"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="toggleStockAlertMute(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center ${muteClass} rounded-xl active-scale transition-all" title="${muteTitle}"><span class="material-symbols-outlined text-[20px]">${muteIcon}</span></button><button onclick="deleteProduct(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all" title="Delete Product"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`;
     }
 
     function renderInventoryCategory(catKey, group, searchValue) {
         const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.0.46: Do not build every product row for collapsed categories.
+        // v8.0.47: Do not build every product row for collapsed categories.
         // This keeps Stock opening fast after PIN while preserving search/expanded views.
         const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
         return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
@@ -1876,7 +1918,7 @@ function switchScreen(id) {
         if (!list) return;
 
         const inventory = Array.isArray(state.inventory) ? state.inventory : [];
-        const lowStockItems = inventory.filter(isLowStockProduct);
+        const lowStockItems = inventory.filter(isStockAlertVisibleProduct);
         const lowStockAlert = document.getElementById('low-stock-alert');
         const lowStockText = document.getElementById('low-stock-alert-text');
         if (lowStockAlert) lowStockAlert.classList.toggle('hidden', lowStockItems.length === 0);
@@ -1909,7 +1951,7 @@ function switchScreen(id) {
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.0.46: Standalone GCash service ledger.
+    // v8.0.47: Standalone GCash service ledger.
     let activeGcashType = 'cashOut';
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
@@ -2255,7 +2297,7 @@ function switchScreen(id) {
 
     function renderInsights() {
         const lowStockItems = state.inventory
-            .filter(p => p.stock <= (p.lowStock !== undefined ? p.lowStock : 5))
+            .filter(isStockAlertVisibleProduct)
             .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base', numeric: true }));
         const alertDiv = document.getElementById('restock-alerts-container');
         if (alertDiv) alertDiv.classList.toggle('hidden', lowStockItems.length === 0);
@@ -2719,7 +2761,7 @@ body {
     function getLowStockDisplayItems(outLimit = 15, lowLimit = 15) {
         const inventory = Array.isArray(state.inventory) ? state.inventory : [];
         const lowStockItems = inventory
-            .filter(p => Number(p && p.stock) <= (p && p.lowStock !== undefined ? Number(p.lowStock) : 5))
+            .filter(isStockAlertVisibleProduct)
             .map(p => ({ ...p, stock: Number(p.stock) || 0 }));
         const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base', numeric: true });
         const outItems = lowStockItems
@@ -2761,7 +2803,7 @@ body {
     }
 
     function updateNotifBadge() {
-        const lowStockItems = state.inventory.filter(p => p.stock <= (p.lowStock !== undefined ? p.lowStock : 5));
+        const lowStockItems = state.inventory.filter(isStockAlertVisibleProduct);
         const dot = document.getElementById('notif-dot');
         if (dot) dot.classList.toggle('hidden', lowStockItems.length === 0);
         renderHeaderLowStockTicker();
@@ -2769,7 +2811,7 @@ body {
 
     function showNotifications() {
         const lowStockItems = state.inventory
-            .filter(p => p.stock <= (p.lowStock !== undefined ? p.lowStock : 5))
+            .filter(isStockAlertVisibleProduct)
             .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base', numeric: true }));
         const pendingCredits = state.transactions.filter(t => t.type === 'CR' && !t.paid);
         const list = document.getElementById('notif-list');
@@ -5839,11 +5881,7 @@ function getClosingCounts(transactions) {
         }));
 
         const topProducts = Object.values(productMap).sort((a, b) => b.qty - a.qty || b.revenue - a.revenue);
-        const lowStock = (state.inventory || []).filter(p => {
-            const stock = Number(p.stock) || 0;
-            const low = Number(p.lowStock);
-            return !Number.isNaN(low) && low >= 0 && stock <= low;
-        });
+        const lowStock = (state.inventory || []).filter(isStockAlertVisibleProduct);
 
         return { clean, revenue, totalSales, avgSale, topProducts, topProduct: topProducts[0] || null, lowStock };
     }
@@ -7031,7 +7069,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.0.46: Do not pre-render Stock while the PIN modal is still open.
+    // v8.0.47: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -7558,7 +7596,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.0.46',
+                backupVersion: 'v8.0.47',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
