@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.2.6';
+    window.VILLACART_APP_VERSION = 'v8.2.8';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.2.6: The older fallback keydown listener was removed.
+    // v8.2.8: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -941,8 +941,8 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    // v8.2.6: Favorites UI moved to favorites.js.
-    // v8.2.6: Status/nav UI helpers moved to status-ui.js.
+    // v8.2.8: Favorites UI moved to favorites.js.
+    // v8.2.8: Status/nav UI helpers moved to status-ui.js.
 
 
 function switchScreen(id) {
@@ -969,10 +969,10 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v8.2.6: PWA resume/print-return repaint helpers moved to pwa-lifecycle.js.
+    // v8.2.8: PWA resume/print-return repaint helpers moved to pwa-lifecycle.js.
 
-    // v8.2.6: PIN modal helpers moved to ui-core.js.
-    // v8.2.6: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
+    // v8.2.8: PIN modal helpers moved to ui-core.js.
+    // v8.2.8: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
     function confirmSale() {
         if (document.activeElement) document.activeElement.blur();
         const subtotal = getCartSubtotal();
@@ -1012,15 +1012,15 @@ function switchScreen(id) {
         lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
 
-    // v8.2.6: Product add/edit/delete helpers moved to product.js.
+    // v8.2.8: Product add/edit/delete helpers moved to product.js.
 
-    // v8.2.6: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
+    // v8.2.8: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.2.6: GCash screen logic moved to gcash.js.
+    // v8.2.8: GCash screen logic moved to gcash.js.
 
-    // v8.2.6: Expense modal/save logic moved to expenses.js.
+    // v8.2.8: Expense modal/save logic moved to expenses.js.
     function renderLedger() {
         const container = document.getElementById('ledger-content'); const summary = document.getElementById('ledger-summary-container');
         if (!container || !summary) return;
@@ -1223,12 +1223,12 @@ function switchScreen(id) {
         ).join('');
     }
 
-    // v8.2.6: Receipt print/share UI moved to receipt-ui.js.
-    // v8.2.6: Sales CSV export moved to sales-export.js.
+    // v8.2.8: Receipt print/share UI moved to receipt-ui.js.
+    // v8.2.8: Sales CSV export moved to sales-export.js.
 
-    // v8.2.6: Transaction detail modal moved to transaction-detail.js.
+    // v8.2.8: Transaction detail modal moved to transaction-detail.js.
 
-    // v8.2.6: Receipt transaction print shortcut moved to receipt-ui.js.
+    // v8.2.8: Receipt transaction print shortcut moved to receipt-ui.js.
     function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
     
     async function deleteTransaction(id) {
@@ -1246,13 +1246,13 @@ function switchScreen(id) {
         sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
     }
 
-    // v8.2.6: Receipt modal rendering moved to receipt-ui.js.
-    function closeSuccessAndNewSale() { closeModal('mod-success'); }
-    // v8.2.6: Modal/toast/pack UI helpers moved to ui-core.js.
+    // v8.2.8: Receipt modal rendering moved to receipt-ui.js.
+    // v8.2.8: Success modal close helper moved to receipt-ui.js.
+    // v8.2.8: Modal/toast/pack UI helpers moved to ui-core.js.
     
-    // v8.2.6: Notifications UI moved to notifications.js.
+    // v8.2.8: Notifications UI moved to notifications.js.
     // --- Inventory Export ---
-    // v8.2.6: Stock camera scanner helper moved to camera-scanner.js. Terminal camera scanner removed; physical scanner remains.
+    // v8.2.8: Stock camera scanner helper moved to camera-scanner.js. Terminal camera scanner removed; physical scanner remains.
 
     // v5.6.1 Inventory PIN navigation polish
     let pendingNavScreen = null;
@@ -1290,111 +1290,7 @@ function switchScreen(id) {
     }
 
 
-    // v5.6.1 Cash amount selection polish
-    function markCashQuickAmount(value) {
-        document.querySelectorAll('.cash-quick-btn').forEach(btn => {
-            const isSelected = String(btn.dataset.cash) === String(value);
-            btn.classList.toggle('cash-selected', isSelected);
-            btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-        });
-        const cashInput = document.getElementById('cash-input');
-        if (cashInput) cashInput.classList.toggle('cash-input-highlight', !!value);
-    }
-
-    const vcOriginalSetCash = typeof setCash === 'function' ? setCash : null;
-    if (vcOriginalSetCash && !window.__vcSetCashPatched) {
-        window.__vcSetCashPatched = true;
-        setCash = function(amount) {
-            vcOriginalSetCash(amount);
-            markCashQuickAmount(amount);
-        };
-    }
-
-    const vcOriginalSetExact = typeof setExact === 'function' ? setExact : null;
-    if (vcOriginalSetExact && !window.__vcSetExactPatched) {
-        window.__vcSetExactPatched = true;
-        setExact = function() {
-            vcOriginalSetExact();
-            markCashQuickAmount('exact');
-        };
-    }
-
-    document.addEventListener('input', (event) => {
-        if (event.target && event.target.id === 'cash-input') {
-            document.querySelectorAll('.cash-quick-btn').forEach(btn => {
-                btn.classList.remove('cash-selected');
-                btn.setAttribute('aria-pressed', 'false');
-            });
-            event.target.classList.toggle('cash-input-highlight', event.target.value !== '');
-        }
-    });
-
-
-    // v5.6.1 Change display polish
-    function polishChangeDisplay() {
-        const totalEl = document.getElementById('rev-total');
-        const cashEl = document.getElementById('cash-input');
-        const changeDisplay = document.getElementById('change-display');
-        const changeAmount = document.getElementById('change-amount');
-        const statusLabel = document.getElementById('change-status-label');
-        const confirmBtn = document.getElementById('confirm-checkout');
-        if (!cashEl || !changeDisplay || !changeAmount) return;
-
-        const payableText = totalEl ? totalEl.innerText.replace(/[₱,\s]/g, '') : '0';
-        const total = parseFloat(payableText) || 0;
-        const cash = parseFloat(cashEl.value) || 0;
-        const diff = cash - total;
-
-        changeDisplay.classList.remove('change-ok', 'change-short', 'change-pulse');
-        void changeDisplay.offsetWidth;
-        changeDisplay.classList.add('change-pulse');
-
-        if (!cashEl.value) {
-            if (statusLabel) statusLabel.innerText = 'Waiting for Payment';
-            changeAmount.innerText = '₱0.00';
-            if (confirmBtn) {
-                confirmBtn.classList.remove('bg-secondary');
-                confirmBtn.querySelector('span:last-child').innerText = 'Confirm Transaction';
-            }
-            return;
-        }
-
-        if (diff >= 0) {
-            changeDisplay.classList.add('change-ok');
-            if (statusLabel) statusLabel.innerText = 'Change to Give';
-            changeAmount.innerText = `₱${diff.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            if (confirmBtn) {
-                confirmBtn.classList.add('bg-secondary');
-                const label = confirmBtn.querySelector('span:last-child');
-                if (label) label.innerText = 'Complete Sale';
-            }
-        } else {
-            changeDisplay.classList.add('change-short');
-            if (statusLabel) statusLabel.innerText = 'Balance Remaining';
-            changeAmount.innerText = `₱${Math.abs(diff).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            if (confirmBtn) {
-                confirmBtn.classList.remove('bg-secondary');
-                const label = confirmBtn.querySelector('span:last-child');
-                if (label) label.innerText = 'Confirm Transaction';
-            }
-        }
-    }
-
-    const vcOriginalCalculateChange = typeof calculateChange === 'function' ? calculateChange : null;
-    if (vcOriginalCalculateChange && !window.__vcCalculateChangePatched) {
-        window.__vcCalculateChangePatched = true;
-        calculateChange = function() {
-            vcOriginalCalculateChange();
-            polishChangeDisplay();
-        };
-    }
-
-    document.addEventListener('input', (event) => {
-        if (event.target && event.target.id === 'cash-input') {
-            setTimeout(polishChangeDisplay, 0);
-        }
-    });
-
+    // v8.2.8: Payment modal UI polish moved to payment-ui.js.
 
     // v5.6.1 Business Dashboard calculations
     function getBusinessMetricsForPeriod(transactions) {
@@ -5299,7 +5195,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.2.6: Do not pre-render Stock while the PIN modal is still open.
+    // v8.2.8: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -5753,7 +5649,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
 
-    // v8.2.6: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
+    // v8.2.8: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
     async function backupOldCalendarData() {
         if (!navigator.onLine) {
             if (typeof showToast === 'function') showToast('Go online before backup', 'error');
@@ -5782,7 +5678,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.2.6',
+                backupVersion: 'v8.2.8',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
