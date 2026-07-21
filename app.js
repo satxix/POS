@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.2.3';
+    window.VILLACART_APP_VERSION = 'v8.2.4';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.2.3: The older fallback keydown listener was removed.
+    // v8.2.4: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -941,8 +941,8 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    // v8.2.3: Favorites UI moved to favorites.js.
-    // v8.2.3: Status/nav UI helpers moved to status-ui.js.
+    // v8.2.4: Favorites UI moved to favorites.js.
+    // v8.2.4: Status/nav UI helpers moved to status-ui.js.
 
 
 function switchScreen(id) {
@@ -969,87 +969,10 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v7.2.37: Android/PWA resume repaint guard.
-    // Some WebView/TWA sessions return from background as a black compositor
-    // frame until the user taps/back-navigates. This local-only repaint nudges
-    // the browser to redraw the visible screen without doing Firestore reads.
-    let vc7230LastResumeRepaintAt = 0;
-    function vc7230VisibleScreenId() {
-        const visible = Array.from(document.querySelectorAll('.screen-transition[id^="screen-"]'))
-            .find(el => !el.classList.contains('hidden'));
-        return visible && visible.id ? visible.id.replace('screen-', '') : 'pos';
-    }
+    // v8.2.4: PWA resume/print-return repaint helpers moved to pwa-lifecycle.js.
 
-    function vc7230ResumeRepaint(reason) {
-        const now = Date.now();
-        if (now - vc7230LastResumeRepaintAt < 700) return;
-        vc7230LastResumeRepaintAt = now;
-        try {
-            const id = vc7230VisibleScreenId();
-            document.documentElement.classList.add('vc-pwa-resume-repaint');
-            document.body.classList.add('vc-pwa-resume-repaint');
-
-            requestAnimationFrame(() => {
-                try {
-                    const screen = document.getElementById('screen-' + id) || document.getElementById('screen-pos');
-                    if (screen) screen.classList.remove('hidden');
-                    refreshActiveNavigationFromDOM();
-                    updateTodayBadge();
-                    if (typeof updateSyncUI === 'function') updateSyncUI();
-                    if (id === 'pos') {
-                        if (typeof renderFavorites === 'function') renderFavorites();
-                        if (typeof updateCartUI === 'function') updateCartUI();
-                    }
-                    if (typeof vcStartupMark === 'function') vcStartupMark('pwa-resume-repaint', { reason, screen: id });
-                } catch(e) {
-                    console.warn('PWA resume repaint inner failed', reason, e);
-                }
-                setTimeout(() => {
-                    document.documentElement.classList.remove('vc-pwa-resume-repaint');
-                    document.body.classList.remove('vc-pwa-resume-repaint');
-                }, 180);
-            });
-        } catch(e) {
-            console.warn('PWA resume repaint failed', reason, e);
-        }
-    }
-
-    window.addEventListener('pageshow', () => vc7230ResumeRepaint('pageshow'));
-    window.addEventListener('focus', () => vc7230ResumeRepaint('focus'));
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState !== 'hidden') vc7230ResumeRepaint('visible');
-    });
-
-    function vc7285HandlePrintReturn(reason) {
-        if (!window.__villacartPrintIntentAt) return;
-        if (Date.now() - window.__villacartPrintIntentAt > 120000) {
-            window.__villacartPrintIntentAt = 0;
-            return;
-        }
-        setTimeout(() => {
-            try {
-                vc7230ResumeRepaint('print-return-' + reason);
-                const visible = vc7230VisibleScreenId();
-                const screen = document.getElementById('screen-' + visible) || document.getElementById('screen-pos');
-                if (screen) screen.classList.remove('hidden');
-                if (typeof refreshActiveNavigationFromDOM === 'function') refreshActiveNavigationFromDOM();
-                if (typeof updateSyncUI === 'function') updateSyncUI();
-                if (typeof vcStartupMark === 'function') vcStartupMark('print-return-repaint', { reason, screen: visible });
-            } catch (error) {
-                console.warn('Print return repaint failed', reason, error);
-            }
-        }, 250);
-        setTimeout(() => { window.__villacartPrintIntentAt = 0; }, 1500);
-    }
-
-    window.addEventListener('focus', () => vc7285HandlePrintReturn('focus'));
-    window.addEventListener('pageshow', () => vc7285HandlePrintReturn('pageshow'));
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') vc7285HandlePrintReturn('visible');
-    });
-
-    // v8.2.3: PIN modal helpers moved to ui-core.js.
-    // v8.2.3: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
+    // v8.2.4: PIN modal helpers moved to ui-core.js.
+    // v8.2.4: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
     function confirmSale() {
         if (document.activeElement) document.activeElement.blur();
         const subtotal = getCartSubtotal();
@@ -1089,15 +1012,15 @@ function switchScreen(id) {
         lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
 
-    // v8.2.3: Product add/edit/delete helpers moved to product.js.
+    // v8.2.4: Product add/edit/delete helpers moved to product.js.
 
-    // v8.2.3: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
+    // v8.2.4: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.2.3: GCash screen logic moved to gcash.js.
+    // v8.2.4: GCash screen logic moved to gcash.js.
 
-    // v8.2.3: Expense modal/save logic moved to expenses.js.
+    // v8.2.4: Expense modal/save logic moved to expenses.js.
     function renderLedger() {
         const container = document.getElementById('ledger-content'); const summary = document.getElementById('ledger-summary-container');
         if (!container || !summary) return;
@@ -1300,12 +1223,12 @@ function switchScreen(id) {
         ).join('');
     }
 
-    // v8.2.3: Receipt print/share UI moved to receipt-ui.js.
-    // v8.2.3: Sales CSV export moved to sales-export.js.
+    // v8.2.4: Receipt print/share UI moved to receipt-ui.js.
+    // v8.2.4: Sales CSV export moved to sales-export.js.
 
-    // v8.2.3: Transaction detail modal moved to transaction-detail.js.
+    // v8.2.4: Transaction detail modal moved to transaction-detail.js.
 
-    // v8.2.3: Receipt transaction print shortcut moved to receipt-ui.js.
+    // v8.2.4: Receipt transaction print shortcut moved to receipt-ui.js.
     function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
     
     async function deleteTransaction(id) {
@@ -1323,11 +1246,11 @@ function switchScreen(id) {
         sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
     }
 
-    // v8.2.3: Receipt modal rendering moved to receipt-ui.js.
+    // v8.2.4: Receipt modal rendering moved to receipt-ui.js.
     function closeSuccessAndNewSale() { closeModal('mod-success'); }
-    // v8.2.3: Modal/toast/pack UI helpers moved to ui-core.js.
+    // v8.2.4: Modal/toast/pack UI helpers moved to ui-core.js.
     
-    // v8.2.3: Notifications UI moved to notifications.js.
+    // v8.2.4: Notifications UI moved to notifications.js.
     // --- Inventory Export ---
     let posScannerRunning = false;
 
@@ -1395,9 +1318,9 @@ function switchScreen(id) {
         label && label.classList.add('hidden');
     }
 
-    // v8.2.3: Change PIN helpers moved to settings.js.
+    // v8.2.4: Change PIN helpers moved to settings.js.
 
-    // v8.2.3: Inventory stock adjustment/export moved to inventory-actions.js.
+    // v8.2.4: Inventory stock adjustment/export moved to inventory-actions.js.
 
     let invScannerRunning = false;
 
@@ -5526,7 +5449,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.2.3: Do not pre-render Stock while the PIN modal is still open.
+    // v8.2.4: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -5980,7 +5903,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
 
-    // v8.2.3: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
+    // v8.2.4: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
     async function backupOldCalendarData() {
         if (!navigator.onLine) {
             if (typeof showToast === 'function') showToast('Go online before backup', 'error');
@@ -6009,7 +5932,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.2.3',
+                backupVersion: 'v8.2.4',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
