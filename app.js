@@ -1,7 +1,7 @@
-﻿// --- Firebase Configuration ---
+// --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.1.0';
+    window.VILLACART_APP_VERSION = 'v8.1.7';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -853,7 +853,7 @@
         vc7228ScannerDebug('paste', { target: e.target && e.target.id ? e.target.id : '', value: String(text || '').slice(0, 120) });
     }, true);
 
-    // v8.1.0: The older fallback keydown listener was removed.
+    // v8.1.7: The older fallback keydown listener was removed.
     // The capture-phase scanner listener above now handles focused inputs,
     // unfocused physical scans, Enter/Tab suffixes, and duplicate protection.
 
@@ -941,7 +941,7 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    // v8.1.0: Favorites UI moved to favorites.js.
+    // v8.1.7: Favorites UI moved to favorites.js.
     function updateSyncUI() {
         const pill = document.getElementById('sync-pill');
         const dot = document.getElementById('sync-dot');
@@ -1150,30 +1150,8 @@ function switchScreen(id) {
         if (document.visibilityState === 'visible') vc7285HandlePrintReturn('visible');
     });
 
-    function attemptInventoryAccess() { if (!document.getElementById('screen-inventory').classList.contains('hidden')) { switchScreen('inventory'); return; } openPinModal("inventory"); }
-
-    function openPinModal(target) { pinBuffer = ""; updatePinDots(); const modal = document.getElementById('pin-modal'); modal.classList.replace('hidden', 'flex'); window._pinTarget = target; }
-    function pressPin(num) { if (pinBuffer.length < 4) { pinBuffer += num; updatePinDots(); if (pinBuffer.length === 4) setTimeout(validatePin, 150); } }
-    function updatePinDots() { for (let i = 0; i < 4; i++) { const dot = document.getElementById(`dot-${i}`); if (dot) dot.classList.toggle('bg-primary', i < pinBuffer.length); } }
-    function validatePin() { 
-        hashPin(pinBuffer).then(hash => {
-            if (hash === STORED_PIN_HASH) { 
-                const target = window._pinTarget; 
-                closeModal('pin-modal'); 
-                if (target === 'inventory') switchScreen('inventory'); 
-                else if (target === 'change-pin') openChangePinModal();
-                else if (target && target.action === 'delete') deleteTransaction(target.id); 
-                showToast('Verified', 'success'); 
-            } else { 
-                showToast('Incorrect PIN', 'error'); 
-                pinBuffer = ""; 
-                updatePinDots(); 
-            }
-        });
-    }
-    function clearPin() { pinBuffer = ""; updatePinDots(); }
-
-    // v8.1.0: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
+    // v8.1.7: PIN modal helpers moved to ui-core.js.
+    // v8.1.7: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
     function confirmSale() {
         if (document.activeElement) document.activeElement.blur();
         const subtotal = getCartSubtotal();
@@ -1213,256 +1191,15 @@ function switchScreen(id) {
         lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
     }
 
-    function createProductId() {
-        // Always create a fresh product id. A previous build accidentally
-        // froze this value, which could make new stock items overwrite each other.
-        let id = '';
-        do {
-            const random = Math.random().toString(36).slice(2, 8);
-            id = `${Date.now()}-${random}`;
-        } while ((state.inventory || []).some(item => item && item.id === id));
-        return id;
-    }
+    // v8.1.7: Product add/edit/delete helpers moved to product.js.
 
-    function openProductModal(id = null) {
-        window._editId = id; const p = id ? state.inventory.find(i => i.id === id) : null;
-        document.getElementById('p-barcode').value = p ? p.barcode : ''; document.getElementById('p-name').value = p ? p.name : '';
-        document.getElementById('p-category').value = p ? p.category : ''; document.getElementById('p-cost').value = p ? p.cost : '';
-        document.getElementById('p-price').value = p ? p.price : ''; document.getElementById('p-stock').value = p ? p.stock : '';
-        document.getElementById('p-low-stock').value = p ? (p.lowStock !== undefined ? p.lowStock : 5) : 5;
-        document.getElementById('p-has-pack').checked = p && !!p.packPrice; document.getElementById('p-pack-size').value = p ? p.packSize : '';
-        document.getElementById('p-pack-price').value = p ? p.packPrice : ''; togglePackFields();
-        document.getElementById('product-modal-title').innerText = id ? "Edit Product" : "Add New Product";
-        document.getElementById('product-modal').classList.replace('hidden', 'flex');
-    }
-
-    function saveProduct() {
-        const name = document.getElementById('p-name').value; if (!name) { showToast('Product name is required', 'error'); return; }
-        const barcodeValue = vc7227NormalizeBarcode(document.getElementById('p-barcode').value || '');
-        if (barcodeValue) {
-            const duplicate = state.inventory.find(p => p && p.id !== window._editId && vc7227NormalizeBarcode(p.barcode || '') === barcodeValue);
-            if (duplicate) {
-                const message = 'Barcode ' + barcodeValue + ' is already used by "' + (duplicate.name || 'another product') + '". Save anyway?';
-                if (!window.confirm(message)) {
-                    showToast('Product not saved: duplicate barcode', 'error');
-                    return;
-                }
-            }
-        }
-        const hasPack = document.getElementById('p-has-pack').checked;
-        const cost = parseFloat(document.getElementById('p-cost').value) || 0;
-        const price = parseFloat(document.getElementById('p-price').value) || 0;
-        const stock = parseInt(document.getElementById('p-stock').value) || 0;
-        const lowStock = parseInt(document.getElementById('p-low-stock').value) || 5;
-        const packPrice = hasPack ? parseFloat(document.getElementById('p-pack-price').value) : null;
-        const packSize = hasPack ? parseInt(document.getElementById('p-pack-size').value) : null;
-        if (cost < 0 || price < 0 || stock < 0 || lowStock < 0 || (hasPack && ((packPrice || 0) <= 0 || (packSize || 0) <= 1))) {
-            showToast('Check product prices, stock, and pack values', 'error');
-            return;
-        }
-        const productId = window._editId || createProductId();
-        const data = { id: productId, barcode: barcodeValue, name: name.trim(), category: document.getElementById('p-category').value.trim(), cost, price, stock, lowStock, packPrice, packSize, _offline: true };
-
-        // Save locally first and let the persistent queue deliver it.  Waiting
-        // for a direct Firestore request here made the button look broken when
-        // a request was pending (or the browser was briefly offline).
-        if (window._editId) {
-            const idx = state.inventory.findIndex(i => i.id === window._editId);
-            if (idx !== -1) state.inventory[idx] = data;
-            else state.inventory.push(data);
-        } else {
-            state.inventory.push(data);
-        }
-        queueAction('update', 'inventory', data);
-        sync();
-        renderInventory();
-        if (typeof renderFavorites === 'function') renderFavorites();
-        closeModal('product-modal');
-        showToast(navigator.onLine ? 'Product Saved' : 'Product saved locally; waiting to sync', 'success');
-    }
-
-    function deleteProduct(id) { 
-        const p = state.inventory.find(i => i.id === id);
-        if (!p) return;
-        const txCount = state.transactions.filter(t => t.items && t.items.some(item => item.id === id)).length;
-        const warning = txCount > 0 ? `\n\nWarning: This product appears in ${txCount} past transaction(s). Those records will show missing item names.` : '';
-        if (confirm(`Delete "${p.name}"?${warning}`)) { 
-            state.inventory = state.inventory.filter(i => i.id !== id); 
-            queueAction('delete', 'inventory', { id }); 
-            sync(); renderInventory(); if (typeof renderFavorites === 'function') renderFavorites(); showToast('Product Deleted', 'info'); 
-        } 
-    }
-
-    function getInventorySearchValue() {
-        const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
-        return stockSearch ? String(stockSearch.value || '') : '';
-    }
-    function vc8046UpdateStockSearchClear() {
-        const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
-        const clearBtn = document.getElementById('stock-search-clear');
-        if (!clearBtn) return;
-        const hasValue = !!(stockSearch && String(stockSearch.value || '').trim());
-        clearBtn.classList.toggle('hidden', !hasValue);
-    }
-
-    function clearStockSearch() {
-        const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
-        if (stockSearch) {
-            stockSearch.value = '';
-            try { stockSearch.focus({ preventScroll: true }); } catch (_) { stockSearch.focus(); }
-        }
-        renderInventory('');
-        vc8046UpdateStockSearchClear();
-    }
-
-
-    function inventoryLowStockThreshold(product) {
-        return inventoryLowStockThresholdValue(product);
-    }
-
-    function isLowStockProduct(product) {
-        return inventoryIsLowStock(product);
-    }
-    function saveMutedStockAlertIds() {
-        try { localStorage.setItem(STOCK_ALERT_HIDE_KEY, JSON.stringify(Array.from(mutedStockAlertIds))); } catch (e) {}
-    }
-
-    function isStockAlertMuted(productOrId) {
-        const id = typeof productOrId === 'object' && productOrId ? productOrId.id : productOrId;
-        return !!(id && mutedStockAlertIds.has(String(id)));
-    }
-
-    function isStockAlertVisibleProduct(product) {
-        return isLowStockProduct(product) && !isStockAlertMuted(product);
-    }
-
-    function toggleStockAlertMute(id) {
-        const key = String(id || '');
-        if (!key) return;
-        const product = (state.inventory || []).find(p => String(p.id) === key);
-        if (mutedStockAlertIds.has(key)) {
-            mutedStockAlertIds.delete(key);
-            showToast(product ? `Alerts restored for ${product.name}` : 'Stock alerts restored', 'success');
-        } else {
-            mutedStockAlertIds.add(key);
-            showToast(product ? `Hidden from alerts: ${product.name}` : 'Hidden from stock alerts', 'info');
-        }
-        saveMutedStockAlertIds();
-        renderInventory(getInventorySearchValue());
-        if (typeof renderHeaderLowStockTicker === 'function') renderHeaderLowStockTicker();
-        if (typeof updateNotifBadge === 'function') updateNotifBadge();
-        if (typeof renderInsights === 'function') {
-            const insights = document.getElementById('screen-insights');
-            if (insights && !insights.classList.contains('hidden')) renderInsights();
-        }
-    }
-
-
-    function inventoryCategoryKey(product) {
-        return inventoryCategoryKeyValue(product);
-    }
-
-    function inventoryCategoryName(product) {
-        return inventoryCategoryNameValue(product);
-    }
-
-    function inventoryMatchesSearch(product, searchValue) {
-        return inventoryMatchesSearchValue(product, searchValue, vc7227NormalizeBarcode);
-    }
-
-    function inventoryEmptyStateHtml(hasInventory) {
-        if (!hasInventory) {
-            return '<div class="col-span-full flex flex-col items-center justify-center py-24 opacity-50"><span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">inventory_2</span><p class="font-black text-sm uppercase text-primary/40 tracking-widest mb-2">No Products Yet</p><p class="text-xs text-on-surface-variant font-bold">Tap "Add Product" to get started</p></div>';
-        }
-        return '<div class="col-span-full flex flex-col items-center justify-center py-24 opacity-50"><span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">search_off</span><p class="font-black text-sm uppercase text-primary/40 tracking-widest">No matching products</p></div>';
-    }
-
-    function inventoryMetricCard(label, value, extraClass = 'bg-surface-container/60', valueClass = 'text-on-surface') {
-        return `<div class="${extraClass} rounded-xl p-2"><p class="text-[8px] font-black uppercase opacity-60">${label}</p><p class="text-xs font-black ${valueClass}">${value}</p></div>`;
-    }
-
-    function renderInventoryProductRow(product) {
-        const isLow = isLowStockProduct(product);
-        const isMuted = isStockAlertMuted(product);
-        const isVisibleAlert = isLow && !isMuted;
-        const marginVal = Number(product.price) > 0 ? (((Number(product.price) - Number(product.cost || 0)) / Number(product.price)) * 100).toFixed(1) : 0;
-        const stockValue = `${escapeHTML(product.stock)} pcs`;
-        const metrics = [
-            inventoryMetricCard('Stock', stockValue, 'bg-surface-container/60', isVisibleAlert ? 'text-error' : (isMuted ? 'text-on-surface-variant' : 'text-primary')),
-            inventoryMetricCard('Cost', formatCurrency(product.cost), 'bg-surface-container/60', 'text-on-surface'),
-            inventoryMetricCard('Retail', formatCurrency(product.price), 'bg-surface-container/60', 'text-primary'),
-            inventoryMetricCard('Margin', `${marginVal}%`, 'bg-secondary/5 border border-secondary/10', 'text-secondary')
-        ].join('');
-        const muteTitle = isMuted ? 'Show this item in stock alerts' : 'Hide this item from stock alerts';
-        const muteIcon = isMuted ? 'notifications_off' : 'notifications';
-        const muteClass = isMuted ? 'bg-surface-container text-on-surface-variant' : 'bg-yellow-50 text-yellow-700';
-        const mutedBadge = isMuted ? '<span class="ml-2 px-2 py-0.5 rounded-full bg-surface-container text-[8px] font-black text-on-surface-variant uppercase align-middle">Alerts off</span>' : '';
-
-        return `<div class="p-4 flex gap-3 ${isVisibleAlert ? 'low-stock-row' : ''}"><div class="flex-1 min-w-0"><h4 class="font-bold text-sm truncate uppercase">${escapeHTML(product.name)}${mutedBadge}</h4><p class="text-[10px] font-medium opacity-50 mb-3 tracking-tight">#${escapeHTML(product.barcode || '---')}</p><div class="grid grid-cols-2 sm:grid-cols-4 gap-2">${metrics}</div></div><div class="flex flex-col gap-1.5 border-l pl-3 justify-center"><button onclick="openStockAdjust(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-secondary/10 text-secondary rounded-xl active-scale transition-all" title="Adjust Stock"><span class="material-symbols-outlined text-[20px]">move_item</span></button><button onclick="openProductModal(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-primary-container text-primary rounded-xl active-scale transition-all" title="Edit Product"><span class="material-symbols-outlined text-[20px]">edit</span></button><button onclick="toggleStockAlertMute(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center ${muteClass} rounded-xl active-scale transition-all" title="${muteTitle}"><span class="material-symbols-outlined text-[20px]">${muteIcon}</span></button><button onclick="deleteProduct(${jsArg(product.id)})" class="w-9 h-9 flex items-center justify-center bg-error/10 text-error rounded-xl active-scale transition-all" title="Delete Product"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></div>`;
-    }
-
-    function renderInventoryCategory(catKey, group, searchValue) {
-        const isCollapsed = inventoryState.collapsedCategories[catKey] === true && String(searchValue || '').length === 0;
-        // v8.1.0: Do not build every product row for collapsed categories.
-        // This keeps Stock opening fast after PIN while preserving search/expanded views.
-        const itemsHtml = isCollapsed ? '' : group.items.map(renderInventoryProductRow).join('');
-        return `<div class="category-folder bg-surface border border-border-subtle rounded-3xl overflow-hidden shadow-sm h-fit ${isCollapsed ? 'collapsed' : ''}"><button onclick="toggleCategory(${jsArg(catKey)})" class="w-full px-5 py-4 bg-surface-container/50 flex justify-between items-center hover:bg-primary-container transition-colors"><div class="flex items-center gap-3 text-left"><span class="material-symbols-outlined text-primary/60 folder-icon">expand_more</span><div><h3 class="font-black text-xs text-primary uppercase tracking-wider">${escapeHTML(group.name)}</h3><p class="text-[9px] font-bold text-on-surface-variant/60 uppercase">${group.items.length} items</p></div></div></button><div class="category-content divide-y divide-border-subtle">${itemsHtml}</div></div>`;
-    }
-
-    function toggleCategory(cat) {
-        inventoryState.collapsedCategories[cat] = !inventoryState.collapsedCategories[cat];
-        renderInventory(getInventorySearchValue());
-    }
-
-    function renderInventory(f = '') {
-        const list = document.getElementById('inventory-list');
-        if (!list) return;
-
-        const inventory = Array.isArray(state.inventory) ? state.inventory : [];
-        const lowStockItems = inventory.filter(isStockAlertVisibleProduct);
-        const lowStockAlert = document.getElementById('low-stock-alert');
-        const lowStockText = document.getElementById('low-stock-alert-text');
-        if (lowStockAlert) lowStockAlert.classList.toggle('hidden', lowStockItems.length === 0);
-        if (lowStockText) lowStockText.innerText = `${lowStockItems.length} items are low on stock!`;
-
-        const searchValue = String(f || '');
-        if (typeof vc8046UpdateStockSearchClear === 'function') vc8046UpdateStockSearchClear();
-        const filtered = inventory.filter(product => inventoryMatchesSearch(product, searchValue));
-        if (filtered.length === 0) {
-            list.innerHTML = inventoryEmptyStateHtml(inventory.length > 0);
-            updateNotifBadge();
-            return;
-        }
-
-        const groups = {};
-        filtered.forEach(product => {
-            const cat = inventoryCategoryKey(product);
-            if (!groups[cat]) groups[cat] = { name: inventoryCategoryName(product), items: [] };
-            groups[cat].items.push(product);
-            if (inventoryState.collapsedCategories[cat] === undefined) inventoryState.collapsedCategories[cat] = true;
-        });
-
-        list.innerHTML = Object.keys(groups)
-            .sort()
-            .map(catKey => renderInventoryCategory(catKey, groups[catKey], searchValue))
-            .join('');
-        updateNotifBadge();
-    }
-
+    // v8.1.7: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
     function switchLedgerTab(tab) { activeLedgerTab = tab; document.querySelectorAll('[id^="tab-"]').forEach(btn => { const isActive = btn.id === 'tab-' + tab; btn.classList.toggle('ledger-tab-active', isActive); btn.classList.toggle('text-on-surface-variant', !isActive); }); renderLedger(); }
 
 
-    // v8.1.0: GCash screen logic moved to gcash.js.
+    // v8.1.7: GCash screen logic moved to gcash.js.
 
-    function openExpenseModal() { document.getElementById('exp-desc').value = ''; document.getElementById('exp-amt').value = ''; document.getElementById('exp-category').value = 'Utilities'; document.getElementById('expense-modal').classList.replace('hidden', 'flex'); }
-    function saveExpense() {
-        const desc = document.getElementById('exp-desc').value; const amt = parseFloat(document.getElementById('exp-amt').value); const category = document.getElementById('exp-category').value;
-        if (!desc || isNaN(amt)) { showToast("Required fields missing", "error"); return; }
-        const expenseTrans = { id: nextTransactionId('EX'), type: 'EX', desc, category, total: amt, timestamp: new Date().toISOString(), notes: "" };
-        if (typeof attachBusinessDayToTransaction === 'function') attachBusinessDayToTransaction(expenseTrans);
-        queueTransaction(expenseTrans); closeModal('expense-modal'); showToast('Expense Saved', 'success'); if (activeLedgerTab === 'expense') renderLedger(); renderInsights();
-    }
-
+    // v8.1.7: Expense modal/save logic moved to expenses.js.
     function renderLedger() {
         const container = document.getElementById('ledger-content'); const summary = document.getElementById('ledger-summary-container');
         if (!container || !summary) return;
@@ -1665,203 +1402,7 @@ function switchScreen(id) {
         ).join('');
     }
 
-    let vc8044ReceiptPrintBusy = false;
-    let vc8044ReceiptPrintResetTimer = null;
-
-    function vc8044SetReceiptPrintBusy(isBusy) {
-        vc8044ReceiptPrintBusy = !!isBusy;
-        const buttons = document.querySelectorAll('button[onclick="printThermalReceipt()"]');
-        buttons.forEach(btn => {
-            if (!btn.dataset.originalPrintHtml) btn.dataset.originalPrintHtml = btn.innerHTML;
-            btn.disabled = vc8044ReceiptPrintBusy;
-            btn.classList.toggle('opacity-70', vc8044ReceiptPrintBusy);
-            btn.classList.toggle('pointer-events-none', vc8044ReceiptPrintBusy);
-            btn.innerHTML = vc8044ReceiptPrintBusy
-                ? '<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Preparing...'
-                : btn.dataset.originalPrintHtml;
-        });
-    }
-
-    function vc8044ScheduleReceiptPrintReset(delay = 4500) {
-        if (vc8044ReceiptPrintResetTimer) clearTimeout(vc8044ReceiptPrintResetTimer);
-        vc8044ReceiptPrintResetTimer = setTimeout(() => {
-            vc8044ReceiptPrintResetTimer = null;
-            vc8044SetReceiptPrintBusy(false);
-        }, delay);
-    }
-
-    async function printWithOpenEscposIntent(receiptText, receiptTitle) {
-        if (!isAndroidRuntime()) return false;
-        const html = buildOpenEscposIntentHtml(receiptText, receiptTitle);
-        const payload = JSON.stringify([html]);
-        const encoded = encodeURIComponent(await gzipBase64String(payload));
-        const intentUrl = `intent://#Intent;scheme=print-intent;S.content=${encoded};end`;
-        window.__villacartPrintIntentAt = Date.now();
-        if (typeof vcStartupMark === 'function') vcStartupMark('print-intent-opened');
-        window.location.href = intentUrl;
-        return true;
-    }
-
-    async function printThermalReceipt() {
-        if (vc8044ReceiptPrintBusy) {
-            if (typeof showToast === 'function') showToast('Print is already preparing...', 'info');
-            return;
-        }
-        vc8044SetReceiptPrintBusy(true);
-        vc8044ScheduleReceiptPrintReset();
-        const tx = (state.transactions || []).find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
-        const receiptEl = document.getElementById('receipt-content');
-        if (!tx && !receiptEl) {
-            vc8044SetReceiptPrintBusy(false);
-            if (typeof showToast === 'function') showToast('Receipt not ready', 'error');
-            return;
-        }
-        const receiptText = tx ? buildThermalReceiptText(tx) : receiptEl.innerText;
-        const receiptTitle = lastTransactionId ? `Villacart Receipt ${lastTransactionId}` : 'Villacart Receipt';
-        try {
-            const opened = await printWithOpenEscposIntent(receiptText, receiptTitle);
-            if (opened) {
-                if (typeof showToast === 'function') showToast('Sending to ESC/POS printer...', 'info');
-                vc8044ScheduleReceiptPrintReset(6500);
-                return;
-            }
-        } catch (error) {
-            console.warn('Open ESC/POS intent print failed, using browser print fallback:', error);
-        }
-        try {
-            printBrowserThermalReceipt();
-        } finally {
-            vc8044ScheduleReceiptPrintReset(3000);
-        }
-    }
-
-    function printBrowserThermalReceipt() {
-        const tx = (state.transactions || []).find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
-        const receiptEl = document.getElementById('receipt-content');
-        if (!tx && !receiptEl) {
-            if (typeof showToast === 'function') showToast('Receipt not ready', 'error');
-            return;
-        }
-        const receiptText = tx ? buildThermalReceiptText(tx) : receiptEl.innerText;
-        const receiptTitle = lastTransactionId ? `Villacart Receipt ${lastTransactionId}` : 'Villacart Receipt';
-        const printHTML = `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHTML(receiptTitle)}</title>
-<style>
-@page { size: 58mm auto; margin: 0; }
-* { box-sizing: border-box; }
-html, body {
-    width: 58mm;
-    min-width: 58mm;
-    max-width: 58mm;
-    margin: 0;
-    padding: 0;
-    background: #fff;
-    color: #000;
-    overflow: visible;
-}
-body {
-    display: block;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-}
-#thermal-receipt {
-    width: 54mm;
-    max-width: 54mm;
-    margin: 0;
-    padding: 2mm 2mm 5mm;
-    background: #fff;
-    color: #000;
-    font-family: "Courier New", Courier, monospace;
-    font-size: 14px;
-    line-height: 1.2;
-    font-weight: 900;
-    letter-spacing: 0;
-    white-space: pre;
-    overflow: visible;
-}
-@media print {
-    html, body { width: 58mm; margin: 0; padding: 0; overflow: visible; }
-    #thermal-receipt { width: 54mm; max-width: 54mm; margin: 0; white-space: pre; font-size: 14px; font-weight: 900; }
-}
-</style>
-</head>
-<body><pre id="thermal-receipt">${escapeHTML(receiptText)}</pre></body>
-</html>`;
-
-        const printWin = window.open('', '_blank', 'popup,width=420,height=640');
-        if (!printWin) {
-            if (typeof showToast === 'function') showToast('Popup blocked. Using normal print.', 'info');
-            window.print();
-            return;
-        }
-        printWin.document.open();
-        printWin.document.write(printHTML);
-        printWin.document.close();
-        printWin.focus();
-        setTimeout(() => {
-            try { printWin.print(); }
-            catch (error) {
-                console.error('Thermal print failed:', error);
-                if (typeof showToast === 'function') showToast('Print window opened', 'info');
-            }
-        }, 350);
-    }
-
-    async function shareReceipt() {
-        const tx = state.transactions.find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
-        if (!tx) { showToast('Receipt not found', 'error'); return; }
-        const receiptEl = document.getElementById('receipt-content');
-        if (!receiptEl) { showToast('Receipt not ready', 'error'); return; }
-        const shareBtn = document.getElementById('share-receipt-btn');
-        const originalBtnHtml = shareBtn ? shareBtn.innerHTML : '';
-        if (shareBtn) {
-            shareBtn.disabled = true;
-            shareBtn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Processing...`;
-        }
-        try {
-            await ensureHtml2CanvasLoaded();
-            if (typeof html2canvas !== 'function') throw new Error('Image tool not loaded.');
-            const canvas = await html2canvas(receiptEl, {
-                scale: Math.min(2, window.devicePixelRatio || 2),
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                logging: false
-            });
-            const blob = await canvasToPngBlob(canvas);
-            const fileName = `Villacart_Receipt_${tx.id}.png`;
-            const canShareFile = typeof File === 'function' && navigator.share && navigator.canShare;
-            if (canShareFile) {
-                const file = new File([blob], fileName, { type: 'image/png' });
-                if (navigator.canShare({ files: [file] })) {
-                    try {
-                        await navigator.share({ files: [file], title: `Receipt ${tx.id}`, text: `Villacart receipt ${tx.id}` });
-                        showToast('Shared', 'success');
-                        return;
-                    } catch (shareError) {
-                        if (shareError && shareError.name === 'AbortError') {
-                            showToast('Share cancelled', 'info');
-                            return;
-                        }
-                    }
-                }
-            }
-            downloadBlob(blob, fileName);
-            showToast('Receipt image downloaded', 'success');
-        } catch (error) {
-            console.error('Share receipt failed:', error);
-            showToast('Could not create image', 'error');
-        } finally {
-            if (shareBtn) {
-                shareBtn.disabled = false;
-                shareBtn.innerHTML = originalBtnHtml;
-            }
-        }
-    }
-
+    // v8.1.7: Receipt print/share UI moved to receipt-ui.js.
     function exportSalesCSV() {
         const trans = getPeriodTransactions(); if (trans.length === 0) return;
         const csvContent = ["Date,ID,Type,Customer,Subtotal,Discount,Total,Notes", ...trans.map(t => [
@@ -1888,7 +1429,7 @@ body {
         document.getElementById('txdetail').innerHTML = html; closeModal('mod-tx'); document.getElementById('mod-tx').classList.replace('hidden', 'flex');
     }
 
-    function printTx() { if (!lastTransactionId) return; viewReceipt(lastTransactionId); closeModal('mod-tx'); }
+    // v8.1.7: Receipt transaction print shortcut moved to receipt-ui.js.
     function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
     
     async function deleteTransaction(id) {
@@ -1906,121 +1447,11 @@ body {
         sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
     }
 
-    function findReceiptTransaction(id) {
-        return (state.transactions || []).find(t => t.id === id)
-            || (state.archiveTransactions || []).find(t => t.id === id)
-            || null;
-    }
-
-    function resetReceiptModalScroll() {
-        requestAnimationFrame(() => {
-            const modal = document.getElementById('receipt-modal');
-            const content = document.getElementById('receipt-content');
-            if (modal) modal.scrollTop = 0;
-            if (content) content.scrollTop = 0;
-        });
-    }
-
-    function resetReceiptFields() {
-        const byId = id => document.getElementById(id);
-        if (byId('rec-items-list')) byId('rec-items-list').innerHTML = '';
-        if (byId('rec-label-total')) byId('rec-label-total').innerText = 'TOTAL:';
-        if (byId('rec-cash')) byId('rec-cash').innerText = formatCurrency(0);
-        if (byId('rec-change')) byId('rec-change').innerText = formatCurrency(0);
-        if (byId('rec-customer')) byId('rec-customer').innerText = 'N/A';
-        if (byId('rec-set-customer')) byId('rec-set-customer').innerText = 'N/A';
-    }
-
-    function showReceiptModal() {
-        const modal = document.getElementById('receipt-modal');
-        if (modal) modal.classList.replace('hidden', 'flex');
-        resetReceiptModalScroll();
-    }
-
-    function renderReceiptItems(items) {
-        if (!items || !items.length) return '';
-        return items.map(i => `<div class="flex justify-between gap-2 py-0.5"><span class="w-1/2 min-w-0 break-words">${escapeHTML(i.name)}</span><span class="w-1/4 text-center">${escapeHTML(i.qty)}</span><span class="w-1/4 text-right whitespace-nowrap">${formatCurrency((Number(i.price) || 0) * (Number(i.qty) || 0))}</span></div>`).join('');
-    }
-
-    function viewReceipt(id) {
-        const tx = findReceiptTransaction(id);
-        if (!tx) {
-            showToast('Receipt not found', 'error');
-            return;
-        }
-        lastTransactionId = id;
-        resetReceiptFields();
-        if (tx.notes && tx.notes.includes('CR-') && tx.type === 'SA') { buildSettlementRcpt(tx); return; }
-        document.getElementById('receipt-title').innerText = 'OFFICIAL RECEIPT';
-        document.getElementById('receipt-standard-fields').classList.remove('hidden');
-        document.getElementById('receipt-settlement-fields').classList.add('hidden');
-        document.getElementById('receipt-items-header').classList.remove('hidden');
-        document.getElementById('receipt-settlement-header').classList.add('hidden');
-        document.getElementById('rec-id').innerText = tx.id;
-        document.getElementById('rec-date').innerText = new Date(tx.timestamp).toLocaleDateString();
-        document.getElementById('rec-total').innerText = formatCurrency(tx.total);
-        let receiptItemsHtml = tx.items && tx.items.length > 0 ? renderReceiptItems(tx.items) : `<div>${escapeHTML(tx.desc || tx.notes || '')}</div>`;
-        if ((Number(tx.discount) || 0) > 0) {
-            receiptItemsHtml += `<div class="mt-2 pt-2 border-t border-black/40 space-y-1"><div class="flex justify-between"><span class="font-bold">Subtotal</span><span>${formatCurrency(tx.subtotal || (Number(tx.total) + Number(tx.discount)))}</span></div><div class="flex justify-between"><span class="font-bold">Discount</span><span>-${formatCurrency(tx.discount)}</span></div></div>`;
-        }
-        document.getElementById('rec-items-list').innerHTML = receiptItemsHtml;
-        document.getElementById('rec-cash-row').classList.toggle('hidden', tx.type !== 'SA');
-        document.getElementById('rec-change-row').classList.toggle('hidden', tx.type !== 'SA');
-        if (tx.type === 'SA') {
-            document.getElementById('rec-cash').innerText = formatCurrency(tx.cashReceived || 0);
-            document.getElementById('rec-change').innerText = formatCurrency(tx.change || 0);
-        }
-        document.getElementById('rec-customer-row').classList.toggle('hidden', !tx.customer);
-        if (tx.customer) document.getElementById('rec-customer').innerText = tx.customer;
-        showReceiptModal();
-    }
-
-    function buildSettlementRcpt(tx) {
-        resetReceiptFields();
-        document.getElementById('receipt-title').innerText = 'CREDIT SETTLEMENT';
-        document.getElementById('receipt-standard-fields').classList.add('hidden');
-        document.getElementById('receipt-settlement-fields').classList.remove('hidden');
-        document.getElementById('receipt-items-header').classList.add('hidden');
-        document.getElementById('receipt-settlement-header').classList.remove('hidden');
-        document.getElementById('rec-set-customer').innerText = tx.customer || 'Guest';
-        document.getElementById('rec-set-date').innerText = new Date(tx.timestamp).toLocaleDateString();
-        document.getElementById('rec-label-total').innerText = 'TOTAL PAID:';
-        document.getElementById('rec-total').innerText = formatCurrency(tx.total);
-        const itemsList = document.getElementById('rec-items-list');
-        let html = '';
-        if (tx.items && tx.items.length > 0) {
-            const ticketGroups = {};
-            tx.items.forEach(item => {
-                const ticketId = item.originalTicketId || tx.notes || 'Original Order';
-                if (!ticketGroups[ticketId]) ticketGroups[ticketId] = [];
-                ticketGroups[ticketId].push(item);
-            });
-            for (const ticketId in ticketGroups) {
-                html += `<div class="mt-4 mb-1.5 border-b border-black pb-0.5"><span class="font-bold uppercase text-[10px]">Ticket: ${escapeHTML(ticketId)}</span></div>`;
-                html += renderReceiptItems(ticketGroups[ticketId]);
-            }
-        } else {
-            html = `<div class="p-2 bg-gray-50 border border-gray-200 rounded text-[9px]"><p class="font-mono break-all">Settled: ${escapeHTML(tx.notes)}</p></div>`;
-        }
-        itemsList.innerHTML = html;
-        document.getElementById('rec-cash-row').classList.add('hidden');
-        document.getElementById('rec-change-row').classList.add('hidden');
-        document.getElementById('rec-customer-row').classList.add('hidden');
-        showReceiptModal();
-    }
-
-    function printReceiptFromSuccess() { if (lastTransactionId) viewReceipt(lastTransactionId); closeModal('mod-success'); }
+    // v8.1.7: Receipt modal rendering moved to receipt-ui.js.
     function closeSuccessAndNewSale() { closeModal('mod-success'); }
-    function togglePackFields() { const packFields = document.getElementById('pack-fields'); const hasPack = document.getElementById('p-has-pack'); if (packFields && hasPack) { if (hasPack.checked) { packFields.classList.remove('hidden'); packFields.classList.add('grid'); } else { packFields.classList.add('hidden'); packFields.classList.remove('grid'); } } }
-    function closeModal(id) {
-        const modal = document.getElementById(id);
-        if (modal) modal.classList.replace('flex', 'hidden');
-        if (id === 'review-modal' && typeof resetReviewPaymentUi === 'function') resetReviewPaymentUi();
-        if (id === 'product-modal') stopInvScanner();
-    }
-    function showToast(m, t = 'info') { const c = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `p-3 px-4 rounded-xl shadow-lg flex items-center gap-2 text-white text-xs font-bold transition-all duration-300 transform translate-x-10 opacity-0 z-[300] ${t === 'success' ? 'bg-secondary' : t === 'error' ? 'bg-error' : 'bg-primary'}`; toast.innerHTML = `<span class="material-symbols-outlined text-[16px]">${t === 'success' ? 'check_circle' : 'info'}</span><span>${escapeHTML(m)}</span>`; c.appendChild(toast); requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0')); setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 2500); }
+    // v8.1.7: Modal/toast/pack UI helpers moved to ui-core.js.
     
-    // v8.1.0: Notifications UI moved to notifications.js.
+    // v8.1.7: Notifications UI moved to notifications.js.
     // --- Inventory Export ---
     let posScannerRunning = false;
 
@@ -2088,60 +1519,7 @@ body {
         label && label.classList.add('hidden');
     }
 
-    // --- Change PIN Logic ---
-    let newPinBuffer = '';
-    let newPinConfirmBuffer = '';
-    let newPinStage = 'enter'; // 'enter' or 'confirm'
-
-    function openChangePinModal() {
-        newPinBuffer = ''; newPinConfirmBuffer = ''; newPinStage = 'enter';
-        document.getElementById('change-pin-msg').innerText = 'Enter your new 4-digit PIN';
-        updateNewPinDots('');
-        closeModal('change-pin-modal');
-        document.getElementById('change-pin-modal').classList.replace('hidden', 'flex');
-    }
-
-    function pressNewPin(num) {
-        if (newPinStage === 'enter') {
-            if (newPinBuffer.length < 4) { newPinBuffer += num; updateNewPinDots(newPinBuffer); if (newPinBuffer.length === 4) setTimeout(advanceNewPin, 150); }
-        } else {
-            if (newPinConfirmBuffer.length < 4) { newPinConfirmBuffer += num; updateNewPinDots(newPinConfirmBuffer); if (newPinConfirmBuffer.length === 4) setTimeout(confirmNewPin, 150); }
-        }
-    }
-
-    function clearNewPin() {
-        if (newPinStage === 'enter') { newPinBuffer = ''; updateNewPinDots(''); }
-        else { newPinConfirmBuffer = ''; updateNewPinDots(''); }
-    }
-
-    function updateNewPinDots(buf) {
-        for (let i = 0; i < 4; i++) {
-            const dot = document.getElementById(`new-dot-${i}`);
-            if (dot) dot.classList.toggle('bg-primary', i < buf.length);
-        }
-    }
-
-    function advanceNewPin() {
-        newPinStage = 'confirm';
-        document.getElementById('change-pin-msg').innerText = 'Confirm your new PIN';
-        updateNewPinDots('');
-    }
-
-    function confirmNewPin() {
-        if (newPinBuffer === newPinConfirmBuffer) {
-            hashPin(newPinBuffer).then(hash => {
-                STORED_PIN_HASH = hash;
-                localStorage.setItem(PIN_KEY, hash);
-                closeModal('change-pin-modal');
-                showToast('PIN changed successfully', 'success');
-            });
-        } else {
-            showToast('PINs do not match', 'error');
-            newPinBuffer = ''; newPinConfirmBuffer = ''; newPinStage = 'enter';
-            document.getElementById('change-pin-msg').innerText = 'Enter your new 4-digit PIN';
-            updateNewPinDots('');
-        }
-    }
+    // v8.1.7: Change PIN helpers moved to settings.js.
 
     // --- Stock Adjustment ---
     function openStockAdjust(id) {
@@ -6298,7 +5676,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 
-    // v8.1.0: Do not pre-render Stock while the PIN modal is still open.
+    // v8.1.7: Do not pre-render Stock while the PIN modal is still open.
     // switchScreen('inventory') renders Stock once after PIN succeeds.
 
 
@@ -6752,51 +6130,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
 
 
-    function archiveFormatDateTime(value) {
-        if (!value) return 'Never';
-        const d = new Date(value);
-        if (Number.isNaN(d.getTime())) return 'Unknown';
-        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function updateArchiveMeta(patch) {
-        state.archiveMeta = { ...(state.archiveMeta || {}), ...(patch || {}), updatedAt: new Date().toISOString() };
-        if (typeof saveLocalArchive === 'function') saveLocalArchive();
-        renderArchiveSafety();
-    }
-
-    function renderArchiveSafety() {
-        const panel = document.getElementById('vc728-archive-safety');
-        if (!panel) return;
-        const meta = state.archiveMeta || {};
-        const txCount = Array.isArray(state.archiveTransactions) ? state.archiveTransactions.length : 0;
-        const dayCount = Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays.length : 0;
-        const gcashCount = Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords.length : 0;
-        const lastExport = archiveFormatDateTime(meta.lastExportAt);
-        const lastLoad = archiveFormatDateTime(meta.lastLoadAt);
-        const loadFile = meta.lastLoadFile ? ' • ' + String(meta.lastLoadFile) : '';
-        const exportScope = meta.lastArchiveBefore ? 'Before ' + String(meta.lastArchiveBefore) : 'No archive export yet';
-        panel.innerHTML = '<div class="flex items-start gap-3">' +
-            '<div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">verified_user</span></div>' +
-            '<div class="min-w-0 flex-1">' +
-                '<div class="flex flex-wrap items-center gap-2">' +
-                    '<p class="text-[10px] font-black uppercase tracking-[0.22em] text-primary/70">Backup Safety</p>' +
-                    '<span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase">Local archive only</span>' +
-                '</div>' +
-                '<p class="mt-1 text-xs font-bold text-on-surface-variant">Loaded archives stay on this device and are not written back to Firestore.</p>' +
-                '<div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-bold">' +
-                    '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Last export</span><strong class="text-primary">' + lastExport + '</strong><span class="block text-on-surface-variant mt-1">' + exportScope + '</span></div>' +
-                    '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Last local load</span><strong class="text-primary">' + lastLoad + '</strong><span class="block text-on-surface-variant mt-1 truncate">' + (loadFile || 'No file loaded') + '</span></div>' +
-                    '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Local archive stored</span><strong class="text-primary">' + txCount + ' tx / ' + dayCount + ' day(s) / ' + gcashCount + ' GCash</strong><span class="block text-on-surface-variant mt-1">Keep original JSON files safe</span></div>' +
-                '</div>' +
-                '<div class="mt-3 flex flex-wrap items-center gap-2">' +
-                    '<button type="button" onclick="clearLoadedArchiveData()" class="px-3 py-2 rounded-2xl bg-error/10 text-error text-[10px] font-black uppercase tracking-wider border border-error/10 active-scale">Delete loaded backup data</button>' +
-                    '<span class="text-[10px] font-bold text-on-surface-variant">This clears local archive history on this device only.</span>' +
-                '</div>' +
-            '</div>' +
-        '</div>';
-    }
-
+    // v8.1.7: Archive safety UI moved to business-ui.js. Backup/load actions remain here.
     async function backupOldCalendarData() {
         if (!navigator.onLine) {
             if (typeof showToast === 'function') showToast('Go online before backup', 'error');
@@ -6825,7 +6159,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.1.0',
+                backupVersion: 'v8.1.7',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
@@ -6941,8 +6275,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (typeof showToast === 'function') showToast('Loaded backup data deleted locally', 'success');
     }
 
-    window.vc728RenderArchiveSafety = renderArchiveSafety;
-    setTimeout(renderArchiveSafety, 300);
     window.clearLoadedArchiveData = clearLoadedArchiveData;
     window.backupOldCalendarData = backupOldCalendarData;
     window.loadBackupArchive = function() {
@@ -7466,4 +6798,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
     });
 })();
+
+
 
