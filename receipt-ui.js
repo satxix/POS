@@ -304,3 +304,16 @@ body {
     }
 
     function printReceiptFromSuccess() { if (lastTransactionId) viewReceipt(lastTransactionId); closeModal('mod-success'); }
+
+    function closeSuccessAndNewSale() {
+        const modal = document.getElementById('mod-success');
+        if (modal) {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+    }
+
+    // Inline HTML actions must remain explicit globals after the UI was split
+    // into separate scripts. This also avoids depending on script load order.
+    window.printReceiptFromSuccess = printReceiptFromSuccess;
+    window.closeSuccessAndNewSale = closeSuccessAndNewSale;
