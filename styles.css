@@ -3124,6 +3124,16 @@
         padding: 1rem !important;
     }
 
+    .vc560-chart-card {
+        min-height: 240px;
+    }
+
+    .vc560-chart-card canvas {
+        width: 100% !important;
+        height: 190px !important;
+        max-height: 190px !important;
+    }
+
     .vc560-activity {
         grid-template-columns: 42px 1fr auto;
         gap: .65rem;

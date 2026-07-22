@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.3.4';
+    window.VILLACART_APP_VERSION = 'v8.3.5';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -2253,7 +2253,13 @@ function switchScreen(id) {
         if (parent) parent.classList.remove('hidden');
 
         const sig = JSON.stringify([labels, values]);
-        if (canvas.dataset.vc531ChartSig === sig) return;
+        if (canvas.dataset.vc531ChartSig === sig) {
+            const existingChart = window.salesChartInstance;
+            if (existingChart && existingChart.canvas === canvas && typeof existingChart.resize === 'function') {
+                requestAnimationFrame(() => existingChart.resize());
+            }
+            return;
+        }
         canvas.dataset.vc531ChartSig = sig;
 
         if (window.salesChartInstance && window.salesChartInstance.canvas === canvas) {
@@ -2276,6 +2282,7 @@ function switchScreen(id) {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: window.innerWidth > 640,
                 animation: false,
                 transitions: { active: { animation: { duration: 0 } }, resize: { animation: { duration: 0 } } },
                 plugins: { legend: { display: false } },
