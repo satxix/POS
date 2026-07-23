@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.3.6';
+    window.VILLACART_APP_VERSION = 'v8.3.7';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -326,10 +326,24 @@
             
             const filteredCloudTrans = cloudTrans.filter(t => !offlineIds.has(t.id));
             const activeOfflineTrans = state.transactions.filter(t => t._offline && offlineIds.has(t.id));
+            const preserveLocalTransactions = !navigator.onLine || !!(snapshot.metadata && snapshot.metadata.fromCache);
+            const localTransactionsInRange = (state.transactions || []).filter(t => {
+                if (!t || !t.id || pendingDeleteIds.has(t.id)) return false;
+                if (!vc5632lBounds || typeof vc5632mInDateRange !== 'function') return true;
+                return vc5632mInDateRange(t, vc5632lBounds);
+            });
             
             const mergedMap = new Map();
             filteredCloudTrans.forEach(t => mergedMap.set(t.id, t));
             activeOfflineTrans.forEach(t => mergedMap.set(t.id, t));
+            // An empty/partial cache snapshot is not proof that locally saved
+            // transactions were deleted. Preserve them until a server-backed
+            // snapshot can authoritatively reconcile the current date range.
+            if (preserveLocalTransactions) {
+                localTransactionsInRange.forEach(t => {
+                    if (!mergedMap.has(t.id)) mergedMap.set(t.id, t);
+                });
+            }
             
             (state.transactions || [])
                 .filter(t => t && t.id && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, vc5632lBounds))
