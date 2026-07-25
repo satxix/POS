@@ -1,45 +1,55 @@
-const CACHE_NAME = 'villacart-pos-v8.3.7';
+const CACHE_NAME = 'villacart-pos-v8.3.8';
+const OFFLINE_ENTRY = './index.html';
+const EXTERNAL_STARTUP_ASSETS = [
+  'https://cdn.tailwindcss.com?plugins=forms,container-queries',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+  'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
+];
 const APP_SHELL = [
   './',
   './index.html',
-  './manifest.webmanifest?v=8.3.7',
-  './styles.css?v=8.3.7',
-  './utils.js?v=8.3.7',
-  './ledger.js?v=8.3.7',
-  './receipts.js?v=8.3.7',
+  './manifest.webmanifest?v=8.3.8',
+  './styles.css?v=8.3.8',
+  './utils.js?v=8.3.8',
+  './ledger.js?v=8.3.8',
+  './receipts.js?v=8.3.8',
   
-    './receipt-ui.js?v=8.3.7',
-    './scanner.js?v=8.3.7',
-    './camera-scanner.js?v=8.3.7',
+    './receipt-ui.js?v=8.3.8',
+    './scanner.js?v=8.3.8',
+    './camera-scanner.js?v=8.3.8',
   
     
-    './cart.js?v=8.3.7',
-    './payment-ui.js?v=8.3.7',
-    './favorites.js?v=8.3.7',
+    './cart.js?v=8.3.8',
+    './payment-ui.js?v=8.3.8',
+    './favorites.js?v=8.3.8',
     
-    './notifications.js?v=8.3.7',
+    './notifications.js?v=8.3.8',
     
-    './stock-ui.js?v=8.3.7',
-    './gcash.js?v=8.3.7',
+    './stock-ui.js?v=8.3.8',
+    './gcash.js?v=8.3.8',
   
-    './expenses.js?v=8.3.7',
-    './status-ui.js?v=8.3.7',
-    './pwa-lifecycle.js?v=8.3.7',
-    './insights-base.js?v=8.3.7',
-    './reporting-ui.js?v=8.3.7',
-    './app.js?v=8.3.7',
-    './backup-actions.js?v=8.3.7',
-    './business-actions.js?v=8.3.7',
+    './expenses.js?v=8.3.8',
+    './status-ui.js?v=8.3.8',
+    './pwa-lifecycle.js?v=8.3.8',
+    './insights-base.js?v=8.3.8',
+    './reporting-ui.js?v=8.3.8',
+    './app.js?v=8.3.8',
+    './backup-actions.js?v=8.3.8',
+    './business-actions.js?v=8.3.8',
   
-    './business-ui.js?v=8.3.7',
+    './business-ui.js?v=8.3.8',
     
-    './ui-core.js?v=8.3.7',
-    './product.js?v=8.3.7',
-    './settings.js?v=8.3.7',
-    './inventory-actions.js?v=8.3.7',
-    './sales-export.js?v=8.3.7',
-    './transaction-detail.js?v=8.3.7',
-    './diagnostics.js?v=8.3.7',
+    './ui-core.js?v=8.3.8',
+    './product.js?v=8.3.8',
+    './settings.js?v=8.3.8',
+    './inventory-actions.js?v=8.3.8',
+    './sales-export.js?v=8.3.8',
+    './transaction-detail.js?v=8.3.8',
+    './diagnostics.js?v=8.3.8',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
@@ -47,7 +57,19 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(APP_SHELL);
+
+    // Cross-origin startup libraries cannot safely participate in the atomic
+    // addAll() above. Cache each one independently so a font/CDN outage does
+    // not prevent the core offline shell from installing.
+    await Promise.allSettled(EXTERNAL_STARTUP_ASSETS.map(async url => {
+      const request = new Request(url, { mode: 'no-cors', credentials: 'omit' });
+      const response = await fetch(request);
+      await cache.put(request, response);
+    }));
+  })());
   self.skipWaiting();
 });
 
@@ -58,16 +80,36 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
-        .then(response => {
-          if (response && response.ok) {
-            caches.open(CACHE_NAME).then(cache => cache.put('./index.html', response.clone()));
-          }
-          return response;
-        })
-        .catch(() => caches.match('./index.html').then(cached => cached || caches.match('./')))
-    );
+    const networkUpdate = fetch(event.request, { cache: 'no-store' })
+      .then(async response => {
+        if (response && response.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(OFFLINE_ENTRY, response.clone());
+        }
+        return response;
+      });
+
+    event.waitUntil(networkUpdate.catch(() => undefined));
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(OFFLINE_ENTRY, { ignoreSearch: true })
+        || await cache.match('./', { ignoreSearch: true });
+      if (cached) return cached;
+
+      try {
+        return await networkUpdate;
+      } catch (error) {
+        return new Response(
+          '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">' +
+          '<meta name="theme-color" content="#1e3a5f">' +
+          '<body style="margin:0;background:#f0f4f8;color:#1e3a5f;font:600 18px system-ui;' +
+          'display:grid;place-items:center;min-height:100vh;text-align:center">' +
+          '<main><h1>Villacart POS</h1><p>Offline files are not ready yet.</p>' +
+          '<p>Connect once, reopen the app, then try again.</p></main></body>',
+          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
+      }
+    })());
     return;
   }
   event.respondWith(caches.match(event.request).then(cached => {
