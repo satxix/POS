@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v8.3.8</title>
+<title>Villacart POS v8.3.9</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=8.3.8"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.3.9"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            window.VILLACART_EXPECTED_VERSION = 'v8.3.8';
+            window.VILLACART_EXPECTED_VERSION = 'v8.3.9';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.vcReloadApp = function() {
@@ -36,7 +36,7 @@
                 // Register immediately. Waiting for window.load also waits for
                 // remote fonts/CDNs, which can leave a TWA cold launch without
                 // an installed offline worker.
-                navigator.serviceWorker.register('sw.js?v=8.3.8').then(function(reg) {
+                navigator.serviceWorker.register('sw.js?v=8.3.9').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (navigator.storage && navigator.storage.persist) {
                             navigator.storage.persist().catch(function(){});
@@ -116,7 +116,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=8.3.7"/>
+<link rel="stylesheet" href="styles.css?v=8.3.9"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -129,7 +129,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v8.3.8</span>
+                    <span class="vc551-version">v8.3.9</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -299,8 +299,9 @@
 </div>
 <label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Customer Name</label>
 <input id="gcash-name" class="w-full mt-1.5 mb-2.5 px-4 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Enter Name"/>
-<label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Reference / Notes</label>
-<input id="gcash-notes" class="w-full mt-1.5 mb-3 px-4 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Reference number or note"/>
+<label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Reference / Notes <span class="text-error">*</span></label>
+<input id="gcash-notes" class="w-full mt-1.5 px-4 py-2.5 rounded-2xl border border-border-subtle bg-surface-container/50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10" type="text" placeholder="Reference number or note" aria-required="true" aria-describedby="gcash-notes-error" oninput="clearGcashReferenceError()"/>
+<p id="gcash-notes-error" class="hidden mt-1 mb-2 text-[10px] font-black text-error">Reference or notes is required.</p>
 <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_150px] gap-2 items-stretch mb-1">
 <div class="rounded-3xl bg-primary/5 border border-primary/10 px-3 py-2 space-y-1">
 <div class="flex justify-between text-xs font-bold"><span>Service fee</span><strong id="gcash-preview-fee">₱0</strong></div>
@@ -1145,42 +1146,42 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="utils.js?v=8.3.8"></script>
-<script src="ledger.js?v=8.3.8"></script>
-<script src="receipts.js?v=8.3.8"></script>
+<script src="utils.js?v=8.3.9"></script>
+<script src="ledger.js?v=8.3.9"></script>
+<script src="receipts.js?v=8.3.9"></script>
 
-    <script src="receipt-ui.js?v=8.3.8"></script>
-    <script src="scanner.js?v=8.3.8"></script>
-    <script src="camera-scanner.js?v=8.3.8"></script>
-
-    
-    <script src="cart.js?v=8.3.8"></script>
-    <script src="payment-ui.js?v=8.3.8"></script>
-    <script src="favorites.js?v=8.3.8"></script>
-    
-    <script src="notifications.js?v=8.3.8"></script>
-    
-    <script src="stock-ui.js?v=8.3.8"></script>
-    <script src="gcash.js?v=8.3.8"></script>
-
-    <script src="expenses.js?v=8.3.8"></script>
-    <script src="status-ui.js?v=8.3.8"></script>
-    <script src="pwa-lifecycle.js?v=8.3.8"></script>
-    <script src="insights-base.js?v=8.3.8"></script>
-    <script src="reporting-ui.js?v=8.3.8"></script>
-    <script src="app.js?v=8.3.8"></script>
-    <script src="backup-actions.js?v=8.3.8"></script>
-    <script src="business-actions.js?v=8.3.8"></script>
-
-    <script src="business-ui.js?v=8.3.8"></script>
+    <script src="receipt-ui.js?v=8.3.9"></script>
+    <script src="scanner.js?v=8.3.9"></script>
+    <script src="camera-scanner.js?v=8.3.9"></script>
 
     
-    <script src="ui-core.js?v=8.3.8"></script>
-    <script src="product.js?v=8.3.8"></script>
-    <script src="settings.js?v=8.3.8"></script>
-    <script src="inventory-actions.js?v=8.3.8"></script>
-    <script src="sales-export.js?v=8.3.8"></script>
-    <script src="transaction-detail.js?v=8.3.8"></script>
+    <script src="cart.js?v=8.3.9"></script>
+    <script src="payment-ui.js?v=8.3.9"></script>
+    <script src="favorites.js?v=8.3.9"></script>
+    
+    <script src="notifications.js?v=8.3.9"></script>
+    
+    <script src="stock-ui.js?v=8.3.9"></script>
+    <script src="gcash.js?v=8.3.9"></script>
+
+    <script src="expenses.js?v=8.3.9"></script>
+    <script src="status-ui.js?v=8.3.9"></script>
+    <script src="pwa-lifecycle.js?v=8.3.9"></script>
+    <script src="insights-base.js?v=8.3.9"></script>
+    <script src="reporting-ui.js?v=8.3.9"></script>
+    <script src="app.js?v=8.3.9"></script>
+    <script src="backup-actions.js?v=8.3.9"></script>
+    <script src="business-actions.js?v=8.3.9"></script>
+
+    <script src="business-ui.js?v=8.3.9"></script>
+
+    
+    <script src="ui-core.js?v=8.3.9"></script>
+    <script src="product.js?v=8.3.9"></script>
+    <script src="settings.js?v=8.3.9"></script>
+    <script src="inventory-actions.js?v=8.3.9"></script>
+    <script src="sales-export.js?v=8.3.9"></script>
+    <script src="transaction-detail.js?v=8.3.9"></script>
 
     <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
@@ -1210,7 +1211,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=8.3.8"></script>
+<script src="diagnostics.js?v=8.3.9"></script>
 
 
 

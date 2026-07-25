@@ -1,4 +1,4 @@
-// Villacart GCash screen logic v8.0.56
+// Villacart GCash screen logic v8.3.9
 // Depends on shared app globals from app.js at call time.
 
     // v8.0.56: Standalone GCash service ledger.
@@ -46,6 +46,7 @@
         if (amountEl) amountEl.value = '';
         if (nameEl) nameEl.value = '';
         if (notesEl) notesEl.value = '';
+        setGcashReferenceError(false);
         updateGcashPreview();
         updateGcashSaveButtonState();
         if (showMessage && typeof showToast === 'function') showToast('GCash form reset', 'info');
@@ -74,6 +75,7 @@
         if (amountEl) amountEl.value = Number(record.amount) || 0;
         if (nameEl) nameEl.value = record.customerName || record.name || '';
         if (notesEl) notesEl.value = record.referenceNotes || record.notes || '';
+        setGcashReferenceError(false);
         updateGcashPreview();
         updateGcashSaveButtonState();
         showToast('Editing GCash record', 'info');
@@ -93,13 +95,39 @@
         if (drawerValue) drawerValue.innerText = (drawer < 0 ? '-' : '') + formatCurrency(Math.abs(drawer));
     }
 
+    function setGcashReferenceError(show) {
+        const notesEl = document.getElementById('gcash-notes');
+        const errorEl = document.getElementById('gcash-notes-error');
+        if (notesEl) {
+            notesEl.classList.toggle('border-error', !!show);
+            notesEl.classList.toggle('ring-2', !!show);
+            notesEl.classList.toggle('ring-error/20', !!show);
+            notesEl.classList.toggle('bg-error/5', !!show);
+            notesEl.setAttribute('aria-invalid', show ? 'true' : 'false');
+        }
+        if (errorEl) errorEl.classList.toggle('hidden', !show);
+    }
+
+    function clearGcashReferenceError() {
+        const notes = (document.getElementById('gcash-notes')?.value || '').trim();
+        if (notes) setGcashReferenceError(false);
+    }
+
     function saveGcashRecord() {
         const amountEl = document.getElementById('gcash-amount');
         const nameEl = document.getElementById('gcash-name');
         const notesEl = document.getElementById('gcash-notes');
         const amount = Math.max(0, Number(amountEl?.value) || 0);
+        const referenceNotes = (notesEl?.value || '').trim();
+        const referenceMissing = !referenceNotes;
+        setGcashReferenceError(referenceMissing);
         if (amount <= 0) {
             showToast('Enter a GCash amount first', 'error');
+            return;
+        }
+        if (referenceMissing) {
+            showToast('Reference or notes is required', 'error');
+            if (notesEl) notesEl.focus();
             return;
         }
         const fee = calcGcashFee(amount);
@@ -125,8 +153,8 @@
             timestamp: existing?.timestamp || now.toISOString(),
             updatedAt: existing ? now.toISOString() : undefined,
             customerName: (nameEl?.value || '').trim(),
-            referenceNotes: (notesEl?.value || '').trim(),
-            notes: (notesEl?.value || '').trim(),
+            referenceNotes,
+            notes: referenceNotes,
             _offline: true
         };
         if (record.updatedAt === undefined) delete record.updatedAt;
@@ -210,6 +238,13 @@
         }).join('');
     }
 
+    function gcashRangeDisplay(dateCode) {
+        if (!dateCode) return '';
+        const date = new Date(dateCode + 'T00:00:00');
+        if (isNaN(date)) return dateCode;
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
     function renderGcashScreen() {
         state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
         const today = todayDateCode();
@@ -249,12 +284,23 @@
                 const endEl = document.getElementById('gcash-range-end');
                 if (startEl && !startEl.value) startEl.value = monthStartDateCode();
                 if (endEl && !endEl.value) endEl.value = today;
-                const start = startEl && startEl.value ? startEl.value : '';
-                const end = endEl && endEl.value ? endEl.value : '';
+                let start = startEl && startEl.value ? startEl.value : '';
+                let end = endEl && endEl.value ? endEl.value : '';
+                if (start && end && start > end) {
+                    const originalStart = start;
+                    start = end;
+                    end = originalStart;
+                    if (startEl) startEl.value = start;
+                    if (endEl) endEl.value = end;
+                }
                 const filtered = records.filter(r => {
                     const d = gcashRecordDate(r);
                     return d && (!start || d >= start) && (!end || d <= end) && gcashMatchesSearch(r, searchQuery);
                 });
+                if (subtitle) {
+                    const rangeLabel = [gcashRangeDisplay(start), gcashRangeDisplay(end)].filter(Boolean).join(' – ');
+                    subtitle.innerText = (rangeLabel || 'All available dates') + ' · ' + filtered.length + ' record(s)';
+                }
                 list.innerHTML = renderGcashHistoryGroups(filtered) || '<div class="text-center py-16 opacity-30"><span class="material-symbols-outlined text-[44px]">history</span><p class="font-black text-xs uppercase tracking-widest mt-2">No GCash history found</p></div>';
             } else {
                 const filteredToday = todays.filter(r => gcashMatchesSearch(r, searchQuery));
@@ -286,4 +332,3 @@
             showToast('GCash refresh failed', 'error');
         }
     }
-
