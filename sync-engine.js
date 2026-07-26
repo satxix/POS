@@ -1,6 +1,13 @@
 // --- Villacart Firestore / offline sync engine ---
 // v8.3.12: Behavior-preserving extraction from app.js. Loaded before app.js; functions run only after app state is ready.
 
+    // A successful REST write can be acknowledged just before the realtime
+    // listener receives the matching document. Keep that newly written local
+    // transaction during the brief acknowledgement gap, then release it as
+    // soon as a server snapshot contains the same ID.
+    const vc8323RecentlySyncedTransactions = new Map();
+    const VC8323_SYNC_ACK_GRACE_MS = 30000;
+
     function setupRealTimeSync() {
         vcStartupMark('setup-realtime-sync-start');
         if (inventoryUnsubscribe) inventoryUnsubscribe();
@@ -31,6 +38,13 @@
                     .map(q => q.data.id)
             );
             const cloudTrans = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(t => !pendingDeleteIds.has(t.id));
+            const cloudTransactionIds = new Set(cloudTrans.map(t => t && t.id).filter(Boolean));
+            const ackNow = Date.now();
+            vc8323RecentlySyncedTransactions.forEach((expiresAt, id) => {
+                if (expiresAt <= ackNow || cloudTransactionIds.has(id)) {
+                    vc8323RecentlySyncedTransactions.delete(id);
+                }
+            });
             
             const offlineIds = new Set(offlineQueue.filter(q => q.table === 'transactions').map(q => q.data.id));
             
@@ -49,11 +63,12 @@
             // An empty/partial cache snapshot is not proof that locally saved
             // transactions were deleted. Preserve them until a server-backed
             // snapshot can authoritatively reconcile the current date range.
-            if (preserveLocalTransactions) {
-                localTransactionsInRange.forEach(t => {
-                    if (!mergedMap.has(t.id)) mergedMap.set(t.id, t);
-                });
-            }
+            localTransactionsInRange.forEach(t => {
+                const awaitingServerAck = vc8323RecentlySyncedTransactions.has(t.id);
+                if ((preserveLocalTransactions || awaitingServerAck) && !mergedMap.has(t.id)) {
+                    mergedMap.set(t.id, t);
+                }
+            });
             
             (state.transactions || [])
                 .filter(t => t && t.id && typeof vc5632mInDateRange === 'function' && !vc5632mInDateRange(t, vc5632lBounds))
@@ -404,6 +419,16 @@
 
     function markSyncedTaskLocally(task) {
         if (!task || !task.table || !task.data || !task.data.id) return;
+        if (task.table === 'transactions') {
+            if (task.type === 'delete') {
+                vc8323RecentlySyncedTransactions.delete(task.data.id);
+            } else {
+                vc8323RecentlySyncedTransactions.set(
+                    task.data.id,
+                    Date.now() + VC8323_SYNC_ACK_GRACE_MS
+                );
+            }
+        }
         const list = task.table === 'transactions' ? state.transactions
             : task.table === 'inventory' ? state.inventory
             : task.table === 'businessDays' ? state.businessDays
