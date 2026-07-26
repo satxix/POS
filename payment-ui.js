@@ -1,3 +1,59 @@
+// Transaction ID generation and sale commit extracted from app.js in v8.3.13.
+    function nextTransactionId(type) {
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yy = String(now.getFullYear()).slice(-2);
+        const dateCode = dd + mm + yy;
+        const counterKey = APP_ENV === 'test' ? 'dailyCounters_test' : 'dailyCounters';
+        let counters = safeLocalJson(counterKey, {}, 'daily counters');
+        if (!counters || typeof counters !== 'object' || Array.isArray(counters)) counters = {};
+        counters[dateCode] = counters[dateCode] || { SA: 0, CR: 0, EX: 0 };
+        counters[dateCode][type] = (counters[dateCode][type] || 0) + 1;
+        localStorage.setItem(counterKey, JSON.stringify(counters));
+        const seq = String(counters[dateCode][type]).padStart(3, '0');
+        return `${type}-${dateCode}-${seq}`;
+    }
+
+    function confirmSale() {
+        if (document.activeElement) document.activeElement.blur();
+        const subtotal = getCartSubtotal();
+        const discount = getCartDiscount();
+        const total = getCartTotal();
+        const cashVal = parseFloat(document.getElementById('cash-input').value) || 0;
+        const type = currentPayMode === 'cash' ? 'SA' : 'CR';
+        const id = nextTransactionId(type);
+        const customer = document.getElementById('credit-customer').value;
+        if (type === 'CR' && !customer) { showToast('Customer name required', 'error'); return; }
+        if (type === 'SA' && cashVal < total) { showToast('Insufficient cash', 'error'); return; }
+        const stockIssue = getCartStockIssue();
+        if (stockIssue) { showToast(stockIssue, 'error'); return; }
+        
+        const transaction = { 
+            id, 
+            type, 
+            total, 
+            subtotal,
+            discount,
+            discountType: discount > 0 ? 'amount' : null,
+            timestamp: new Date().toISOString(), 
+            items: JSON.parse(JSON.stringify(state.cart)), 
+            customer: customer ? customer.trim() : null, 
+            paid: (type === 'SA'), 
+            cashReceived: cashVal, 
+            change: type === 'SA' ? (cashVal - total) : 0,
+            notes: "" 
+        };
+        
+        // v5.6.1: Ensure every new transaction is linked to a business day before syncing.
+        if (typeof attachBusinessDayToTransaction === 'function') {
+            attachBusinessDayToTransaction(transaction);
+        }
+
+        queueTransaction(transaction);
+        lastTransactionId = id; state.cart = []; resetCartDiscount(); updateCartUI(); closeModal('review-modal'); document.getElementById('mod-success').classList.replace('hidden', 'flex');
+    }
+
 // Payment modal UI polish extracted from app.js in v8.2.8.
 // Handles cash quick-button selection and change/balance display only.
 // Depends on cart.js globals at load time: setCash, setExact, calculateChange.
