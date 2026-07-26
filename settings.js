@@ -1,6 +1,49 @@
 // PIN/settings helpers extracted from app.js in v8.1.7.
 // Depends on app globals: hashPin, STORED_PIN_HASH, PIN_KEY, closeModal, showToast.
 
+const STOCK_PIN_REQUIRED_KEY = 'villacart_stock_pin_required';
+
+function isStockPinRequired() {
+    return localStorage.getItem(STOCK_PIN_REQUIRED_KEY) !== 'false';
+}
+
+function updateStockPinToggle() {
+    const required = isStockPinRequired();
+    const button = document.getElementById('stock-pin-toggle');
+    const icon = document.getElementById('stock-pin-toggle-icon');
+    const label = document.getElementById('stock-pin-toggle-label');
+    if (!button) return;
+
+    button.setAttribute('aria-pressed', required ? 'true' : 'false');
+    button.title = required
+        ? 'Stock PIN is required on this device'
+        : 'Stock PIN is off on this device';
+    button.classList.toggle('bg-primary/10', required);
+    button.classList.toggle('text-primary', required);
+    button.classList.toggle('bg-secondary/10', !required);
+    button.classList.toggle('text-secondary', !required);
+    if (icon) icon.textContent = required ? 'lock' : 'lock_open';
+    if (label) label.textContent = required ? 'Stock PIN: On' : 'Stock PIN: Off';
+}
+
+function toggleStockPinRequirement() {
+    const required = !isStockPinRequired();
+    localStorage.setItem(STOCK_PIN_REQUIRED_KEY, required ? 'true' : 'false');
+    updateStockPinToggle();
+    showToast(
+        required
+            ? 'Stock PIN required on this device'
+            : 'Stock PIN turned off on this device',
+        'success'
+    );
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateStockPinToggle, { once: true });
+} else {
+    updateStockPinToggle();
+}
+
 // --- Change PIN Logic ---
 let newPinBuffer = '';
 let newPinConfirmBuffer = '';

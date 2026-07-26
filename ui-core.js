@@ -1,7 +1,18 @@
 // --- Villacart Core UI module ---
 // v8.1.5: Extracted from app.js. Depends on app.js globals; loaded after app.js.
 
-    function attemptInventoryAccess() { if (!document.getElementById('screen-inventory').classList.contains('hidden')) { switchScreen('inventory'); return; } openPinModal("inventory"); }
+    function attemptInventoryAccess() {
+        const inventoryScreen = document.getElementById('screen-inventory');
+        if (inventoryScreen && !inventoryScreen.classList.contains('hidden')) {
+            switchScreen('inventory');
+            return;
+        }
+        if (typeof isStockPinRequired === 'function' && !isStockPinRequired()) {
+            switchScreen('inventory');
+            return;
+        }
+        openPinModal("inventory");
+    }
 
     function openPinModal(target) { pinBuffer = ""; updatePinDots(); const modal = document.getElementById('pin-modal'); modal.classList.replace('hidden', 'flex'); window._pinTarget = target; }
     function pressPin(num) { if (pinBuffer.length < 4) { pinBuffer += num; updatePinDots(); if (pinBuffer.length === 4) setTimeout(validatePin, 150); } }
