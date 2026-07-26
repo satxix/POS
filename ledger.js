@@ -214,3 +214,79 @@ async function payFullBalance(customerName) {
   lastTransactionId = settlementId;
   viewReceipt(settlementId);
 }
+
+// v8.3.22: Pure credit/settlement integrity helpers extracted from app.js.
+    function vc530DeletedSet() {
+        return new Set();
+    }
+
+    function vc530SaveDeletedSet(set) {
+        try { localStorage.removeItem('villacart_deleted_transactions'); } catch(e) {}
+    }
+
+    function vc530Norm(value) {
+        return String(value || '').trim().toUpperCase();
+    }
+
+    function vc530IsSettlement(t) {
+        if (!t) return false;
+        const id = vc530Norm(t.id);
+        const type = vc530Norm(t.type);
+        const notes = vc530Norm(t.notes);
+        return !!(
+            t.settlementFor ||
+            t.creditRef ||
+            t.relatedCreditId ||
+            (type === 'SA' && notes.includes('CR-')) ||
+            (id.startsWith('SA-') && notes.includes('CR-')) ||
+            notes.includes('SETTLEMENT') ||
+            notes.includes('PAID CREDIT')
+        );
+    }
+
+    function vc530CreditIdFromSettlement(t) {
+        if (!t) return null;
+        if (t.settlementFor) return t.settlementFor;
+        if (t.creditRef) return t.creditRef;
+        if (t.relatedCreditId) return t.relatedCreditId;
+        const notes = String(t.notes || '');
+        const match = notes.match(/CR-[A-Z0-9-]+/i);
+        return match ? match[0].toUpperCase() : null;
+    }
+
+    function vc530IsCreditSale(t) {
+        return !!t && vc530Norm(t.type) === 'CR' && !vc530IsSettlement(t);
+    }
+
+    function vc530CleanTransactions() {
+        const deleted = vc530DeletedSet();
+        return (state.transactions || []).filter(t => t && t.id && !deleted.has(t.id));
+    }
+
+    function vc530FindSettlementForCredit(creditId) {
+        if (!creditId) return null;
+        const target = vc530Norm(creditId);
+        return vc530CleanTransactions()
+            .filter(vc530IsSettlement)
+            .find(t => vc530Norm(vc530CreditIdFromSettlement(t)) === target || vc530Norm(t.notes).includes(target));
+    }
+
+    function vc530CreditIsSettled(creditTx) {
+        if (!creditTx) return false;
+        if (creditTx.paid === true || creditTx.settled === true) return true;
+        const status = vc530Norm(creditTx.status);
+        if (status === 'PAID' || status === 'SETTLED') return true;
+        if (Number(creditTx.balance) === 0 || Number(creditTx.balanceDue) === 0 || Number(creditTx.remaining) === 0) return true;
+        return !!vc530FindSettlementForCredit(creditTx.id);
+    }
+
+    // Link future settlements to their original CR transaction where possible.
+    function vc530AttachSettlementLink(transaction) {
+        if (!transaction || !vc530IsSettlement(transaction) || transaction.settlementFor) return transaction;
+        const creditId = vc530CreditIdFromSettlement(transaction);
+        if (creditId) {
+            transaction.settlementFor = creditId;
+            transaction.linkType = 'creditSettlement';
+        }
+        return transaction;
+    }

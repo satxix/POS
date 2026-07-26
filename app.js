@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.3.20';
+    window.VILLACART_APP_VERSION = 'v8.3.22';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -275,9 +275,9 @@
         gcashMatchesSearch
     } = window.VillacartUtils || {};
 
-    // Transaction ID generation moved to payment-ui.js in v8.3.20.
+    // Transaction ID generation moved to payment-ui.js in v8.3.22.
 
-    // Firestore/offline queue engine moved to sync-engine.js in v8.3.20.
+    // Firestore/offline queue engine moved to sync-engine.js in v8.3.22.
 
     // Bluetooth / Physical Scanner Logic
     function vc7227FindProductByBarcode(barcode) {
@@ -482,7 +482,7 @@ function switchScreen(id) {
 
     // v8.3.0: PIN modal helpers moved to ui-core.js.
     // v8.3.0: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
-    // Sale commit moved to payment-ui.js in v8.3.20.
+    // Sale commit moved to payment-ui.js in v8.3.22.
 
     // v8.3.0: Product add/edit/delete helpers moved to product.js.
 
@@ -504,21 +504,6 @@ function switchScreen(id) {
     // v8.3.0: Receipt transaction print shortcut moved to receipt-ui.js.
     function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
     
-    async function deleteTransaction(id) {
-        if (document.activeElement) document.activeElement.blur();
-        const tx = state.transactions.find(t => t.id === id); if (!tx) return;
-        const isSettlement = tx.notes && tx.notes.includes('CR-');
-        if (tx.items && (tx.id.startsWith('SA-') || tx.id.startsWith('CR-')) && !isSettlement && tx.type !== 'EX') {
-            tx.items.forEach(item => { 
-                const p = state.inventory.find(inv => inv.id === item.id); 
-                if (p) { p.stock += (item.qty * (item.deduct || 1)); p._offline = true; queueAction('update', 'inventory', p); } 
-            });
-        }
-        state.transactions = state.transactions.filter(t => t.id !== id); 
-        queueAction('delete', 'transactions', { id }); 
-        sync(); renderInventory(); renderLedger(); renderInsights(); closeModal('mod-tx'); showToast('Voided', 'success');
-    }
-
     // v8.3.0: Receipt modal rendering moved to receipt-ui.js.
     // v8.3.0: Success modal close helper moved to receipt-ui.js.
     // v8.3.0: Modal/toast/pack UI helpers moved to ui-core.js.
@@ -622,34 +607,8 @@ function switchScreen(id) {
         return transaction;
     }
 
-    // v5.6.1 Delete Transaction Modal Fix
-    function closeTransactionDetailScreensAfterDelete() {
-        ['tx-detail-modal','transaction-detail-modal','receipt-modal','mod-tx-details','transaction-modal'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el && !el.classList.contains('hidden')) {
-                el.classList.add('hidden');
-                el.classList.remove('flex');
-            }
-        });
-        setTimeout(() => {
-            if (typeof renderLedger === 'function') renderLedger();
-            if (typeof renderInsights === 'function') renderInsights();
-        }, 80);
-    }
-
-    ['deleteTransaction','voidTransaction','deleteTx','voidTx'].forEach(fnName => {
-        const original = window[fnName];
-        if (typeof original === 'function' && !window[`__vc_${fnName}_patched513`]) {
-            window[`__vc_${fnName}_patched513`] = true;
-            window[fnName] = function(...args) {
-                const result = original.apply(this, args);
-                closeTransactionDetailScreensAfterDelete();
-                return result;
-            };
-        }
-    });
-
-
+    // v8.3.22: Removed the superseded base delete function and early
+    // modal wrapper. vc532DeleteTransaction owns deletion and modal cleanup.
     // v5.6.1 Business Day Manager - core architecture
     const VILLA_BUSINESS_DAY_STORAGE = 'villacart_business_days_v520';
 
@@ -1138,83 +1097,8 @@ function switchScreen(id) {
 
     // v5.6.1 Transaction Integrity Layer
     // Testing mode keeps Delete, but adds safe rules for credit sales and settlements.
-    function vc530DeletedSet() {
-        return new Set();
-    }
-
-    function vc530SaveDeletedSet(set) {
-        try { localStorage.removeItem('villacart_deleted_transactions'); } catch(e) {}
-    }
-
-    function vc530Norm(value) {
-        return String(value || '').trim().toUpperCase();
-    }
-
-    function vc530IsSettlement(t) {
-        if (!t) return false;
-        const id = vc530Norm(t.id);
-        const type = vc530Norm(t.type);
-        const notes = vc530Norm(t.notes);
-        return !!(
-            t.settlementFor ||
-            t.creditRef ||
-            t.relatedCreditId ||
-            (type === 'SA' && notes.includes('CR-')) ||
-            (id.startsWith('SA-') && notes.includes('CR-')) ||
-            notes.includes('SETTLEMENT') ||
-            notes.includes('PAID CREDIT')
-        );
-    }
-
-    function vc530CreditIdFromSettlement(t) {
-        if (!t) return null;
-        if (t.settlementFor) return t.settlementFor;
-        if (t.creditRef) return t.creditRef;
-        if (t.relatedCreditId) return t.relatedCreditId;
-        const notes = String(t.notes || '');
-        const match = notes.match(/CR-[A-Z0-9-]+/i);
-        return match ? match[0].toUpperCase() : null;
-    }
-
-    function vc530IsCreditSale(t) {
-        return !!t && vc530Norm(t.type) === 'CR' && !vc530IsSettlement(t);
-    }
-
-    function vc530CleanTransactions() {
-        const deleted = vc530DeletedSet();
-        return (state.transactions || []).filter(t => t && t.id && !deleted.has(t.id));
-    }
-
-    function vc530FindSettlementForCredit(creditId) {
-        if (!creditId) return null;
-        const target = vc530Norm(creditId);
-        return vc530CleanTransactions()
-            .filter(vc530IsSettlement)
-            .find(t => vc530Norm(vc530CreditIdFromSettlement(t)) === target || vc530Norm(t.notes).includes(target));
-    }
-
-    function vc530CreditIsSettled(creditTx) {
-        if (!creditTx) return false;
-        if (creditTx.paid === true || creditTx.settled === true) return true;
-        const status = vc530Norm(creditTx.status);
-        if (status === 'PAID' || status === 'SETTLED') return true;
-        if (Number(creditTx.balance) === 0 || Number(creditTx.balanceDue) === 0 || Number(creditTx.remaining) === 0) return true;
-        return !!vc530FindSettlementForCredit(creditTx.id);
-    }
-
-    // v8.3.20: Removed the superseded vc530 delete/void implementation.
+    // v8.3.22: Removed the superseded vc530 delete/void implementation.
     // The later vc532 durable-queue delete path is the single active owner.
-    // Link future settlements to their original CR transaction where possible.
-    function vc530AttachSettlementLink(transaction) {
-        if (!transaction || !vc530IsSettlement(transaction) || transaction.settlementFor) return transaction;
-        const creditId = vc530CreditIdFromSettlement(transaction);
-        if (creditId) {
-            transaction.settlementFor = creditId;
-            transaction.linkType = 'creditSettlement';
-        }
-        return transaction;
-    }
-
     const vcOriginalQueueTransaction530 = typeof queueTransaction === 'function' ? queueTransaction : null;
     if (vcOriginalQueueTransaction530 && !window.__vcQueueTransaction530Patched) {
         window.__vcQueueTransaction530Patched = true;
@@ -1444,10 +1328,10 @@ function switchScreen(id) {
     }
 
     // Override delete/void aliases for testing mode.
-    deleteTransaction = vc532DeleteTransaction;
-    voidTransaction = vc532DeleteTransaction;
-    deleteTx = vc532DeleteTransaction;
-    voidTx = vc532DeleteTransaction;
+    window.deleteTransaction = vc532DeleteTransaction;
+    window.voidTransaction = vc532DeleteTransaction;
+    window.deleteTx = vc532DeleteTransaction;
+    window.voidTx = vc532DeleteTransaction;
 
     function vc532DecorateCards() {
         document.querySelectorAll('#ledger-content > div').forEach(card => {
@@ -1764,7 +1648,7 @@ function switchScreen(id) {
             }).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`);
     }
 
-    // v8.3.20: Removed obsolete vc542 render/screen/sync pass-through
+    // v8.3.22: Removed obsolete vc542 render/screen/sync pass-through
     // wrappers and its inactive polling fallback. The final single-owner
     // Insights guards below remain responsible for stable repaint behavior.
     // v5.6.1 Cross-device Business Day Card Fix
