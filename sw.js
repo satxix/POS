@@ -1,5 +1,6 @@
-const CACHE_NAME = 'villacart-pos-v8.3.26';
-const OFFLINE_ENTRY = './index.html';
+const APP_VERSION = '8.3.27';
+const CACHE_NAME = 'villacart-pos-v' + APP_VERSION;
+const OFFLINE_ENTRY = './index.html?v=' + APP_VERSION;
 const EXTERNAL_STARTUP_ASSETS = [
   'https://cdn.tailwindcss.com?plugins=forms,container-queries',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
@@ -10,48 +11,47 @@ const EXTERNAL_STARTUP_ASSETS = [
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
 ];
 const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.webmanifest?v=8.3.26',
-  './styles.css?v=8.3.26',
-  './utils.js?v=8.3.26',
-  './ledger.js?v=8.3.26',
-  './receipts.js?v=8.3.26',
+  OFFLINE_ENTRY,
+  './manifest.webmanifest?v=8.3.27',
+  './styles.css?v=8.3.27',
+  './utils.js?v=8.3.27',
+  './ledger.js?v=8.3.27',
+  './receipts.js?v=8.3.27',
   
-    './receipt-ui.js?v=8.3.26',
-    './scanner.js?v=8.3.26',
-    './camera-scanner.js?v=8.3.26',
+    './receipt-ui.js?v=8.3.27',
+    './scanner.js?v=8.3.27',
+    './camera-scanner.js?v=8.3.27',
   
     
-    './cart.js?v=8.3.26',
-    './payment-ui.js?v=8.3.26',
-    './favorites.js?v=8.3.26',
+    './cart.js?v=8.3.27',
+    './payment-ui.js?v=8.3.27',
+    './favorites.js?v=8.3.27',
     
-    './notifications.js?v=8.3.26',
+    './notifications.js?v=8.3.27',
     
-    './stock-ui.js?v=8.3.26',
-    './gcash.js?v=8.3.26',
+    './stock-ui.js?v=8.3.27',
+    './gcash.js?v=8.3.27',
   
-    './expenses.js?v=8.3.26',
-    './status-ui.js?v=8.3.26',
-    './pwa-lifecycle.js?v=8.3.26',
-    './insights-base.js?v=8.3.26',
-    './reporting-ui.js?v=8.3.26',
-    './sync-engine.js?v=8.3.26',
-    './app.js?v=8.3.26',
-    './ledger-ui.js?v=8.3.26',
-    './backup-actions.js?v=8.3.26',
-    './business-actions.js?v=8.3.26',
+    './expenses.js?v=8.3.27',
+    './status-ui.js?v=8.3.27',
+    './pwa-lifecycle.js?v=8.3.27',
+    './insights-base.js?v=8.3.27',
+    './reporting-ui.js?v=8.3.27',
+    './sync-engine.js?v=8.3.27',
+    './app.js?v=8.3.27',
+    './ledger-ui.js?v=8.3.27',
+    './backup-actions.js?v=8.3.27',
+    './business-actions.js?v=8.3.27',
   
-    './business-ui.js?v=8.3.26',
+    './business-ui.js?v=8.3.27',
     
-    './ui-core.js?v=8.3.26',
-    './product.js?v=8.3.26',
-    './settings.js?v=8.3.26',
-    './inventory-actions.js?v=8.3.26',
-    './sales-export.js?v=8.3.26',
-    './transaction-detail.js?v=8.3.26',
-    './diagnostics.js?v=8.3.26',
+    './ui-core.js?v=8.3.27',
+    './product.js?v=8.3.27',
+    './settings.js?v=8.3.27',
+    './inventory-actions.js?v=8.3.27',
+    './sales-export.js?v=8.3.27',
+    './transaction-detail.js?v=8.3.27',
+    './diagnostics.js?v=8.3.27',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
@@ -63,6 +63,15 @@ self.addEventListener('install', event => {
     const cache = await caches.open(CACHE_NAME);
     await cache.addAll(APP_SHELL);
 
+    // Never activate a newly named cache if GitHub/CDN briefly returned the
+    // previous index.html during deployment propagation.
+    const offlinePage = await cache.match(OFFLINE_ENTRY);
+    const offlineText = offlinePage ? await offlinePage.clone().text() : '';
+    const cachedVersion = htmlAppVersion(offlineText);
+    if (cachedVersion !== APP_VERSION) {
+      throw new Error('App shell version mismatch: expected ' + APP_VERSION + ', received ' + (cachedVersion || 'unknown'));
+    }
+
     // Cross-origin startup libraries cannot safely participate in the atomic
     // addAll() above. Cache each one independently so a font/CDN outage does
     // not prevent the core offline shell from installing.
@@ -72,7 +81,6 @@ self.addEventListener('install', event => {
       await cache.put(request, response);
     }));
   })());
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -82,35 +90,36 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.mode === 'navigate') {
-    const networkUpdate = fetch(event.request, { cache: 'no-store' })
-      .then(async response => {
-        if (response && response.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put(OFFLINE_ENTRY, response.clone());
-        }
-        return response;
-      });
-
-    event.waitUntil(networkUpdate.catch(() => undefined));
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(OFFLINE_ENTRY, { ignoreSearch: true })
-        || await cache.match('./', { ignoreSearch: true });
+      try {
+        const response = await fetch(event.request, { cache: 'no-store' });
+        if (response && response.ok) {
+          const text = await response.clone().text();
+          const networkVersion = htmlAppVersion(text);
+          // Accept this build or any newer deployment. If an edge cache
+          // briefly serves an older page, retain the known-good shell.
+          if (networkVersion && compareVersions(networkVersion, APP_VERSION) >= 0) {
+            await cache.put(OFFLINE_ENTRY, response.clone());
+            return response;
+          }
+        }
+      } catch (error) {
+        // Fall through to the versioned offline shell.
+      }
+
+      const cached = await cache.match(OFFLINE_ENTRY);
       if (cached) return cached;
 
-      try {
-        return await networkUpdate;
-      } catch (error) {
-        return new Response(
-          '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">' +
-          '<meta name="theme-color" content="#1e3a5f">' +
-          '<body style="margin:0;background:#f0f4f8;color:#1e3a5f;font:600 18px system-ui;' +
-          'display:grid;place-items:center;min-height:100vh;text-align:center">' +
-          '<main><h1>Villacart POS</h1><p>Offline files are not ready yet.</p>' +
-          '<p>Connect once, reopen the app, then try again.</p></main></body>',
-          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-        );
-      }
+      return new Response(
+        '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<meta name="theme-color" content="#1e3a5f">' +
+        '<body style="margin:0;background:#f0f4f8;color:#1e3a5f;font:600 18px system-ui;' +
+        'display:grid;place-items:center;min-height:100vh;text-align:center">' +
+        '<main><h1>Villacart POS</h1><p>Offline files are not ready yet.</p>' +
+        '<p>Connect once, reopen the app, then try again.</p></main></body>',
+        { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+      );
     })());
     return;
   }
@@ -129,5 +138,20 @@ self.addEventListener('fetch', event => {
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
+
+function htmlAppVersion(html) {
+  const match = String(html || '').match(/VILLACART_EXPECTED_VERSION\s*=\s*['"]v?(\d+\.\d+\.\d+)['"]/);
+  return match ? match[1] : '';
+}
+
+function compareVersions(left, right) {
+  const a = String(left || '').split('.').map(value => Number(value) || 0);
+  const b = String(right || '').split('.').map(value => Number(value) || 0);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const difference = (a[i] || 0) - (b[i] || 0);
+    if (difference) return difference;
+  }
+  return 0;
+}
 
 
