@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.3.23';
+    window.VILLACART_APP_VERSION = 'v8.3.25';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -275,10 +275,6 @@
         gcashMatchesSearch
     } = window.VillacartUtils || {};
 
-    // Transaction ID generation moved to payment-ui.js in v8.3.22.
-
-    // Firestore/offline queue engine moved to sync-engine.js in v8.3.22.
-
     // Bluetooth / Physical Scanner Logic
     function vc7227FindProductByBarcode(barcode) {
         const code = vc7227NormalizeBarcode(barcode);
@@ -450,10 +446,6 @@
         modal.classList.replace('hidden', 'flex');
     }
 
-    // v8.3.0: Favorites UI moved to favorites.js.
-    // v8.3.0: Status/nav UI helpers moved to status-ui.js.
-
-
 function switchScreen(id) {
         const previousScreen = Array.from(document.querySelectorAll('.screen-transition[id^="screen-"]')).find(s => !s.classList.contains('hidden'));
         const previousId = previousScreen && previousScreen.id ? previousScreen.id.replace('screen-', '') : null;
@@ -478,39 +470,9 @@ function switchScreen(id) {
         if (id === 'pos') renderFavorites();
     }
 
-    // v8.3.0: PWA resume/print-return repaint helpers moved to pwa-lifecycle.js.
-
-    // v8.3.0: PIN modal helpers moved to ui-core.js.
-    // v8.3.0: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
-    // Sale commit moved to payment-ui.js in v8.3.22.
-
-    // v8.3.0: Product add/edit/delete helpers moved to product.js.
-
-    // v8.3.0: Stock screen rendering/search/mute UI moved to stock-ui.js. Product writes are in product.js.
-    // v8.3.3: Base Ledger renderer and credit-payment actions moved to ledger.js.
-
-
-    // v8.3.0: GCash screen logic moved to gcash.js.
-
-    // v8.3.0: Expense modal/save logic moved to expenses.js.
-
-    // v8.3.2: Base Insights period/render/chart helpers moved to insights-base.js.
-
-    // v8.3.0: Receipt print/share UI moved to receipt-ui.js.
-    // v8.3.0: Sales CSV export moved to sales-export.js.
-
-    // v8.3.0: Transaction detail modal moved to transaction-detail.js.
-
-    // v8.3.0: Receipt transaction print shortcut moved to receipt-ui.js.
     function confirmDeleteTransaction() { if (document.activeElement) document.activeElement.blur(); if (!lastTransactionId) return; openPinModal({ action: 'delete', id: lastTransactionId }); }
-    
-    // v8.3.0: Receipt modal rendering moved to receipt-ui.js.
-    // v8.3.0: Success modal close helper moved to receipt-ui.js.
-    // v8.3.0: Modal/toast/pack UI helpers moved to ui-core.js.
-    
-    // v8.3.0: Notifications UI moved to notifications.js.
+
     // --- Inventory Export ---
-    // v8.3.0: Stock camera scanner helper moved to camera-scanner.js. Terminal camera scanner removed; physical scanner remains.
 
     // v5.6.1 Inventory PIN navigation polish
     let pendingNavScreen = null;
@@ -546,15 +508,6 @@ function switchScreen(id) {
             }
         };
     }
-
-
-    // v8.3.0: Payment modal UI polish moved to payment-ui.js.
-
-    // v8.3.1: Dashboard and closing-summary helpers moved to reporting-ui.js.
-
-    
-
-
     // v5.6.1 Core Business Day Attachment + Reporting Repair
     function ensureBusinessDayForTransaction(transaction) {
         if (!transaction || transaction.businessDayId) return transaction;
@@ -1132,9 +1085,6 @@ function switchScreen(id) {
         return problems;
     };
 
-
-    // v8.3.6: Authoritative Insights engine moved to insights-base.js.
-
     // Replace renderInsights with an authoritative stable renderer.
     const vcOriginalRenderInsights531 = typeof renderInsights === 'function' ? renderInsights : null;
     if (vcOriginalRenderInsights531 && !window.__vcRenderInsights531Patched) {
@@ -1648,9 +1598,6 @@ function switchScreen(id) {
             }).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`);
     }
 
-    // v8.3.22: Removed obsolete vc542 render/screen/sync pass-through
-    // wrappers and its inactive polling fallback. The final single-owner
-    // Insights guards below remain responsible for stable repaint behavior.
     // v5.6.1 Cross-device Business Day Card Fix
     // Tablet can show report totals from transactions while businessDay state is missing/stale.
     // This derives the open business day from today's live transactions and repairs Firestore/local state.
@@ -1796,18 +1743,10 @@ function switchScreen(id) {
         }
     }
 
-    // Override helpers used by older layers.
+    // Keep older business-day callers on the live transaction-aware helper.
     getCurrentBusinessDay = function() {
         return vc543EnsureBusinessDayFromLiveTransactions();
     };
-
-    const vc543OldRenderInsights = typeof renderInsights === 'function' ? renderInsights : null;
-    if (vc543OldRenderInsights && !window.__vcRenderInsights543Patched) {
-        window.__vcRenderInsights543Patched = true;
-        renderInsights = function() {
-            return vc543OldRenderInsights();
-        };
-    }
 
     const vc543OldSwitchScreen = typeof switchScreen === 'function' ? switchScreen : null;
     if (vc543OldSwitchScreen && !window.__vcSwitchScreen543Patched) {
@@ -3074,12 +3013,3 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
     };
 })();
-
-
-
-// v7.2.14: Ledger cleanup complete. Credit is rendered by the main v5.6.32 renderer.
-
-
-// v8.3.0: Calendar backup/load/archive actions moved to backup-actions.js.
-
-// v8.3.0: Business month, refresh, cleanup, outstanding-credit, and auto-close actions moved to business-actions.js.
