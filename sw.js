@@ -1,4 +1,4 @@
-const APP_VERSION = '8.3.27';
+const APP_VERSION = '8.4.1';
 const CACHE_NAME = 'villacart-pos-v' + APP_VERSION;
 const OFFLINE_ENTRY = './index.html?v=' + APP_VERSION;
 const EXTERNAL_STARTUP_ASSETS = [
@@ -12,46 +12,46 @@ const EXTERNAL_STARTUP_ASSETS = [
 ];
 const APP_SHELL = [
   OFFLINE_ENTRY,
-  './manifest.webmanifest?v=8.3.27',
-  './styles.css?v=8.3.27',
-  './utils.js?v=8.3.27',
-  './ledger.js?v=8.3.27',
-  './receipts.js?v=8.3.27',
+  './manifest.webmanifest?v=8.4.1',
+  './styles.css?v=8.4.1',
+  './utils.js?v=8.4.1',
+  './ledger.js?v=8.4.1',
+  './receipts.js?v=8.4.1',
   
-    './receipt-ui.js?v=8.3.27',
-    './scanner.js?v=8.3.27',
-    './camera-scanner.js?v=8.3.27',
+    './receipt-ui.js?v=8.4.1',
+    './scanner.js?v=8.4.1',
+    './camera-scanner.js?v=8.4.1',
   
     
-    './cart.js?v=8.3.27',
-    './payment-ui.js?v=8.3.27',
-    './favorites.js?v=8.3.27',
+    './cart.js?v=8.4.1',
+    './payment-ui.js?v=8.4.1',
+    './favorites.js?v=8.4.1',
     
-    './notifications.js?v=8.3.27',
+    './notifications.js?v=8.4.1',
     
-    './stock-ui.js?v=8.3.27',
-    './gcash.js?v=8.3.27',
+    './stock-ui.js?v=8.4.1',
+    './gcash.js?v=8.4.1',
   
-    './expenses.js?v=8.3.27',
-    './status-ui.js?v=8.3.27',
-    './pwa-lifecycle.js?v=8.3.27',
-    './insights-base.js?v=8.3.27',
-    './reporting-ui.js?v=8.3.27',
-    './sync-engine.js?v=8.3.27',
-    './app.js?v=8.3.27',
-    './ledger-ui.js?v=8.3.27',
-    './backup-actions.js?v=8.3.27',
-    './business-actions.js?v=8.3.27',
+    './expenses.js?v=8.4.1',
+    './status-ui.js?v=8.4.1',
+    './pwa-lifecycle.js?v=8.4.1',
+    './insights-base.js?v=8.4.1',
+    './reporting-ui.js?v=8.4.1',
+    './sync-engine.js?v=8.4.1',
+    './app.js?v=8.4.1',
+    './ledger-ui.js?v=8.4.1',
+    './backup-actions.js?v=8.4.1',
+    './business-actions.js?v=8.4.1',
   
-    './business-ui.js?v=8.3.27',
+    './business-ui.js?v=8.4.1',
     
-    './ui-core.js?v=8.3.27',
-    './product.js?v=8.3.27',
-    './settings.js?v=8.3.27',
-    './inventory-actions.js?v=8.3.27',
-    './sales-export.js?v=8.3.27',
-    './transaction-detail.js?v=8.3.27',
-    './diagnostics.js?v=8.3.27',
+    './ui-core.js?v=8.4.1',
+    './product.js?v=8.4.1',
+    './settings.js?v=8.4.1',
+    './inventory-actions.js?v=8.4.1',
+    './sales-export.js?v=8.4.1',
+    './transaction-detail.js?v=8.4.1',
+    './diagnostics.js?v=8.4.1',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',

@@ -1,6 +1,10 @@
 // --- Villacart Cart and Payment UI module ---
 // v8.1.0: Extracted from app.js. Sale commit/write logic remains in app.js confirmSale().
 
+    let vc840LastAddedCartId = '';
+    let vc840CartScrollRequested = false;
+    let vc840CartHighlightTimer = null;
+
     function handlePosSearch(val) {
         const container = document.getElementById('search-results-container');
         const grid = document.getElementById('product-grid');
@@ -24,6 +28,8 @@
             return;
         }
         if (existing) { existing.qty++; } else { state.cart.push({ cartId, id: p.id, name: p.name, type, price: type === 'pack' ? p.packPrice : p.price, cost: p.cost, deduct, qty: 1 }); }
+        vc840LastAddedCartId = cartId;
+        vc840CartScrollRequested = true;
         const searchInput = document.getElementById('pos-search'); if (searchInput) searchInput.value = '';
         const results = document.getElementById('search-results-container'); if (results) results.classList.add('hidden');
         sync();
@@ -106,6 +112,7 @@
     function updateCartUI() {
         const container = document.getElementById('cart-items');
         if (!container) return;
+        const cartPanel = document.getElementById('cart-panel');
         const subtotalEl = document.getElementById('cart-subtotal');
         const totalEl = document.getElementById('cart-total');
         const discountRow = document.getElementById('cart-discount-row');
@@ -113,19 +120,25 @@
         const discountBtn = document.getElementById('cart-discount-btn');
         const countPill = document.getElementById('cart-count-pill');
         if (countPill) countPill.innerText = String(getCartCount());
+        if (cartPanel) cartPanel.classList.toggle('cart-panel-empty', state.cart.length === 0);
         if (state.cart.length === 0) {
             resetCartDiscount();
-            container.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-20 py-20"><span class="material-symbols-outlined text-[64px]">shopping_basket</span><p class="text-xs font-black uppercase mt-2 tracking-widest">Order is empty</p></div>`;
+            vc840LastAddedCartId = '';
+            vc840CartScrollRequested = false;
+            container.innerHTML = `<div class="cart-empty-state h-full flex flex-col items-center justify-center opacity-20 py-20"><span class="material-symbols-outlined text-[64px]">shopping_basket</span><p class="text-xs font-black uppercase mt-2 tracking-widest">Order is empty</p></div>`;
             if (subtotalEl) subtotalEl.innerText = '₱0.00';
             if (totalEl) totalEl.innerText = '₱0.00';
             if (discountRow) discountRow.classList.add('hidden');
             if (discountEl) discountEl.innerText = '-₱0.00';
             if (discountBtn) discountBtn.innerText = 'Add Discount';
+            if (typeof updateFavoriteCartBadges === 'function') updateFavoriteCartBadges();
             return;
         }
         container.innerHTML = state.cart.map((item, idx) => {
             const lineTotal = item.price * item.qty;
-            return `<div class="bg-surface-container/50 border border-border-subtle p-4 rounded-2xl flex justify-between items-center shadow-sm"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 mb-1.5"><span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">${escapeHTML(item.type)}</span><h4 class="font-bold text-sm truncate">${escapeHTML(item.name)}</h4></div><p class="text-xs font-bold opacity-50">${formatCurrency(item.price)} each</p></div><div class="flex items-center gap-3"><span class="font-black text-base whitespace-nowrap">${formatCurrency(lineTotal)}</span><div class="flex items-center bg-white border border-border-subtle rounded-xl shadow-sm"><button onclick="updateQty(${idx}, -1)" class="w-9 h-9 flex items-center justify-center text-error active-scale"><span class="material-symbols-outlined text-[20px]">remove_circle</span></button><input type="number" inputmode="numeric" min="1" value="${item.qty}" onchange="setQty(${idx}, this.value)" class="w-10 text-center text-xs font-black border-0 bg-transparent focus:outline-none p-0" style="min-height:unset"/><button onclick="updateQty(${idx}, 1)" class="w-9 h-9 flex items-center justify-center text-secondary active-scale"><span class="material-symbols-outlined text-[20px]">add_circle</span></button></div></div></div>`;
+            const isLatest = vc840LastAddedCartId === item.cartId;
+            const rowTone = idx % 2 === 0 ? 'cart-item-row-a' : 'cart-item-row-b';
+            return `<div class="cart-item-row ${rowTone} ${isLatest ? 'cart-item-latest' : ''} border border-border-subtle p-4 rounded-2xl flex justify-between items-center shadow-sm" data-cart-id="${encodeURIComponent(String(item.cartId))}"><div class="min-w-0 flex-1"><div class="flex items-center gap-2 mb-1.5"><span class="text-[8px] font-black ${item.type === 'pack' ? 'bg-secondary' : 'bg-primary'} text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">${escapeHTML(item.type)}</span><h4 class="font-bold text-sm truncate">${escapeHTML(item.name)}</h4></div><p class="text-xs font-bold opacity-50">${formatCurrency(item.price)} each</p></div><div class="flex items-center gap-3"><span class="font-black text-base whitespace-nowrap">${formatCurrency(lineTotal)}</span><div class="flex items-center bg-white border border-border-subtle rounded-xl shadow-sm"><button onclick="updateQty(${idx}, -1)" class="w-9 h-9 flex items-center justify-center text-error active-scale"><span class="material-symbols-outlined text-[20px]">remove_circle</span></button><input type="number" inputmode="numeric" min="1" value="${item.qty}" onchange="setQty(${idx}, this.value)" class="w-10 text-center text-xs font-black border-0 bg-transparent focus:outline-none p-0" style="min-height:unset"/><button onclick="updateQty(${idx}, 1)" class="w-9 h-9 flex items-center justify-center text-secondary active-scale"><span class="material-symbols-outlined text-[20px]">add_circle</span></button></div></div></div>`;
         }).join('');
         const subtotal = getCartSubtotal();
         const discount = getCartDiscount();
@@ -136,7 +149,41 @@
         if (discountRow) discountRow.classList.toggle('hidden', discount <= 0);
         if (discountEl) discountEl.innerText = '-' + formatCurrency(discount);
         if (discountBtn) discountBtn.innerText = discount > 0 ? 'Edit Discount' : 'Add Discount';
+        if (typeof updateFavoriteCartBadges === 'function') updateFavoriteCartBadges();
+
+        if (vc840CartScrollRequested && vc840LastAddedCartId) {
+            const targetId = encodeURIComponent(String(vc840LastAddedCartId));
+            vc840CartScrollRequested = false;
+            requestAnimationFrame(() => {
+                const row = Array.from(container.querySelectorAll('[data-cart-id]')).find(el => el.dataset.cartId === targetId);
+                if (!row) return;
+                row.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                if (vc840CartHighlightTimer) clearTimeout(vc840CartHighlightTimer);
+                vc840CartHighlightTimer = setTimeout(() => {
+                    row.classList.remove('cart-item-latest');
+                    vc840LastAddedCartId = '';
+                }, 1400);
+            });
+        }
     }
+
+    function resetTerminalForNewSale() {
+        vc840LastAddedCartId = '';
+        vc840CartScrollRequested = false;
+        if (vc840CartHighlightTimer) {
+            clearTimeout(vc840CartHighlightTimer);
+            vc840CartHighlightTimer = null;
+        }
+        if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
+        updateCartUI();
+        requestAnimationFrame(() => {
+            const terminal = document.getElementById('screen-pos');
+            if (terminal) terminal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    window.resetTerminalForNewSale = resetTerminalForNewSale;
 
     function updateQty(idx, delta) {
         if (!state.cart[idx]) return;

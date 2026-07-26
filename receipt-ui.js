@@ -311,6 +311,7 @@ body {
             modal.classList.remove('flex');
             modal.classList.add('hidden');
         }
+        if (typeof resetTerminalForNewSale === 'function') resetTerminalForNewSale();
     }
 
     // Inline HTML actions must remain explicit globals after the UI was split

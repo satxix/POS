@@ -106,12 +106,30 @@
         </button>${favoriteSlotControls(index)}`);
     }
 
+    function favoriteCartQuantity(productId) {
+        return (state.cart || []).reduce((total, item) => item && item.id === productId ? total + (Number(item.qty) || 0) : total, 0);
+    }
+
     function favoriteProductContent(product) {
         const stockCount = Math.max(0, Number(product.stock) || 0);
-        return `<span class="text-[9px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
+        const cartQty = favoriteCartQuantity(product.id);
+        return `<span class="favorite-cart-qty ${cartQty > 0 && !favoritesEditMode ? '' : 'hidden'} absolute top-1.5 right-1.5 md:top-2 md:right-2 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[8px] md:text-[10px] font-black flex items-center justify-center shadow-md z-10" data-favorite-cart-product="${encodeURIComponent(String(product.id))}">×${cartQty}</span>
+            <span class="text-[9px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
             <span class="text-[11px] md:text-[16px] font-black text-secondary mt-1 leading-none">${formatCurrency(product.price)}</span>
             <span class="absolute bottom-1.5 md:bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-1 md:px-2 py-0.5 rounded-full text-[6px] md:text-[8px] font-black uppercase tracking-wide ${favoriteStockClass(product)}">Stock: ${stockCount}</span>`;
     }
+
+    function updateFavoriteCartBadges() {
+        document.querySelectorAll('[data-favorite-cart-product]').forEach(badge => {
+            let productId = '';
+            try { productId = decodeURIComponent(badge.dataset.favoriteCartProduct || ''); } catch (error) {}
+            const qty = favoriteCartQuantity(productId);
+            badge.textContent = `×${qty}`;
+            badge.classList.toggle('hidden', qty <= 0 || favoritesEditMode);
+        });
+    }
+
+    window.updateFavoriteCartBadges = updateFavoriteCartBadges;
 
     function renderFavoriteProductSlot(fav, index) {
         const product = state.inventory.find(p => p.id === fav.id);
