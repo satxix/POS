@@ -4481,3 +4481,42 @@ body {
         animation: none;
     }
 }
+
+/* v8.4.3: favorites and cart use independent tablet/desktop scroll areas. */
+@media (min-width: 1024px) {
+    #terminal-layout {
+        height: calc(100vh - 100px);
+        min-height: 0;
+    }
+    #terminal-products-column,
+    #terminal-products-stack {
+        height: 100%;
+        min-height: 0;
+    }
+    #terminal-products-stack {
+        overflow: hidden;
+    }
+    #terminal-favorites-section {
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+        flex-direction: column;
+    }
+    #favorites-grid {
+        flex: 1 1 auto;
+        min-height: 0;
+        align-content: start;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        padding-right: .25rem;
+        padding-bottom: .5rem;
+        touch-action: pan-y;
+    }
+    #cart-panel {
+        height: 100% !important;
+        min-height: 0;
+    }
+    #cart-items {
+        overscroll-behavior-y: contain;
+    }
+}

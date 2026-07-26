@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v8.4.2</title>
+<title>Villacart POS v8.4.3</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=8.4.2"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.4.3"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-            window.VILLACART_EXPECTED_VERSION = 'v8.4.2';
+            window.VILLACART_EXPECTED_VERSION = 'v8.4.3';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.__villacartUpdateReloadRequested = false;
@@ -51,7 +51,7 @@
                 // Register immediately. Waiting for window.load also waits for
                 // remote fonts/CDNs, which can leave a TWA cold launch without
                 // an installed offline worker.
-                navigator.serviceWorker.register('sw.js?v=8.4.2').then(function(reg) {
+                navigator.serviceWorker.register('sw.js?v=8.4.3').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (navigator.storage && navigator.storage.persist) {
                             navigator.storage.persist().catch(function(){});
@@ -131,7 +131,7 @@
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=8.4.2"/>
+<link rel="stylesheet" href="styles.css?v=8.4.3"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -144,7 +144,7 @@
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-                    <span class="vc551-version">v8.4.2</span>
+                    <span class="vc551-version">v8.4.3</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -211,10 +211,10 @@
 <main class="pt-[64px] pb-24 md:pb-6 md:pl-20 min-h-screen">
 <!-- TERMINAL SCREEN -->
 <div class="screen-transition p-3 lg:p-6 lg:max-h-[calc(100vh-56px)]" id="screen-pos">
-<div class="lg:grid lg:grid-cols-[1fr_400px] lg:gap-6 lg:items-start max-w-[1400px] mx-auto h-full">
+<div id="terminal-layout" class="lg:grid lg:grid-cols-[1fr_400px] lg:gap-6 lg:items-start max-w-[1400px] mx-auto h-full">
 <!-- Left Column: Search & Favorites -->
-<div class="flex flex-col gap-4">
-<div class="flex flex-col gap-3">
+<div id="terminal-products-column" class="flex flex-col gap-4">
+<div id="terminal-products-stack" class="flex flex-col gap-3">
 <div class="flex items-stretch gap-2">
 <div class="relative group flex-1 min-w-0">
 <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[22px] group-focus-within:text-primary">search</span>
@@ -230,7 +230,7 @@
 <div class="divide-y divide-border-subtle" id="product-grid"></div>
 </div>
 <!-- Favorites Section -->
-<div class="mt-2">
+<div id="terminal-favorites-section" class="mt-2">
 <div class="flex items-center justify-between px-1 mb-3">
 <p class="text-[10px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2">
 <span class="w-1 h-3 bg-brand-yellow rounded-full"></span>
@@ -238,7 +238,7 @@
                             </p>
 <button class="text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors" id="fav-mode-btn" onclick="toggleFavoritesMode()">Edit Slots</button>
 </div>
-<div class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3" id="favorites-grid"></div>
+<div class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 custom-scrollbar" id="favorites-grid"></div>
 </div>
 </div>
 </div>
@@ -1165,44 +1165,44 @@
 </div>
 </div>
 <!-- Application logic -->
-<script src="utils.js?v=8.4.2"></script>
-<script src="ledger.js?v=8.4.2"></script>
-<script src="receipts.js?v=8.4.2"></script>
+<script src="utils.js?v=8.4.3"></script>
+<script src="ledger.js?v=8.4.3"></script>
+<script src="receipts.js?v=8.4.3"></script>
 
-    <script src="receipt-ui.js?v=8.4.2"></script>
-    <script src="scanner.js?v=8.4.2"></script>
-    <script src="camera-scanner.js?v=8.4.2"></script>
-
-    
-    <script src="cart.js?v=8.4.2"></script>
-    <script src="payment-ui.js?v=8.4.2"></script>
-    <script src="favorites.js?v=8.4.2"></script>
-    
-    <script src="notifications.js?v=8.4.2"></script>
-    
-    <script src="stock-ui.js?v=8.4.2"></script>
-    <script src="gcash.js?v=8.4.2"></script>
-
-    <script src="expenses.js?v=8.4.2"></script>
-    <script src="status-ui.js?v=8.4.2"></script>
-    <script src="pwa-lifecycle.js?v=8.4.2"></script>
-    <script src="insights-base.js?v=8.4.2"></script>
-    <script src="reporting-ui.js?v=8.4.2"></script>
-    <script src="sync-engine.js?v=8.4.2"></script>
-    <script src="business-ui.js?v=8.4.2"></script>
-    <script src="app.js?v=8.4.2"></script>
-<script src="ledger-ui.js?v=8.4.2"></script>
-    <script src="backup-actions.js?v=8.4.2"></script>
-    <script src="business-actions.js?v=8.4.2"></script>
-
+    <script src="receipt-ui.js?v=8.4.3"></script>
+    <script src="scanner.js?v=8.4.3"></script>
+    <script src="camera-scanner.js?v=8.4.3"></script>
 
     
-    <script src="ui-core.js?v=8.4.2"></script>
-    <script src="product.js?v=8.4.2"></script>
-    <script src="settings.js?v=8.4.2"></script>
-    <script src="inventory-actions.js?v=8.4.2"></script>
-    <script src="sales-export.js?v=8.4.2"></script>
-    <script src="transaction-detail.js?v=8.4.2"></script>
+    <script src="cart.js?v=8.4.3"></script>
+    <script src="payment-ui.js?v=8.4.3"></script>
+    <script src="favorites.js?v=8.4.3"></script>
+    
+    <script src="notifications.js?v=8.4.3"></script>
+    
+    <script src="stock-ui.js?v=8.4.3"></script>
+    <script src="gcash.js?v=8.4.3"></script>
+
+    <script src="expenses.js?v=8.4.3"></script>
+    <script src="status-ui.js?v=8.4.3"></script>
+    <script src="pwa-lifecycle.js?v=8.4.3"></script>
+    <script src="insights-base.js?v=8.4.3"></script>
+    <script src="reporting-ui.js?v=8.4.3"></script>
+    <script src="sync-engine.js?v=8.4.3"></script>
+    <script src="business-ui.js?v=8.4.3"></script>
+    <script src="app.js?v=8.4.3"></script>
+<script src="ledger-ui.js?v=8.4.3"></script>
+    <script src="backup-actions.js?v=8.4.3"></script>
+    <script src="business-actions.js?v=8.4.3"></script>
+
+
+    
+    <script src="ui-core.js?v=8.4.3"></script>
+    <script src="product.js?v=8.4.3"></script>
+    <script src="settings.js?v=8.4.3"></script>
+    <script src="inventory-actions.js?v=8.4.3"></script>
+    <script src="sales-export.js?v=8.4.3"></script>
+    <script src="transaction-detail.js?v=8.4.3"></script>
 
     <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
@@ -1232,7 +1232,7 @@
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=8.4.2"></script>
+<script src="diagnostics.js?v=8.4.3"></script>
 
 
 
