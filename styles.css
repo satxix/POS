@@ -4432,11 +4432,13 @@ body {
     transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
 .cart-item-row-a {
-    background: rgba(248, 250, 252, .96);
+    background: #ffffff;
+    border-color: rgba(203, 213, 225, .72);
 }
 .cart-item-row-b {
-    background: rgba(239, 246, 255, .92);
-    border-color: rgba(147, 197, 253, .34);
+    background: #e7f0ff;
+    border-color: rgba(96, 165, 250, .58);
+    box-shadow: inset 4px 0 0 rgba(59, 130, 246, .24), 0 2px 7px rgba(15, 23, 42, .05);
 }
 .cart-item-latest {
     border-color: rgba(36, 99, 235, .48) !important;

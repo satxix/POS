@@ -1,4 +1,4 @@
-const APP_VERSION = '8.4.1';
+const APP_VERSION = '8.4.2';
 const CACHE_NAME = 'villacart-pos-v' + APP_VERSION;
 const OFFLINE_ENTRY = './index.html?v=' + APP_VERSION;
 const EXTERNAL_STARTUP_ASSETS = [
@@ -12,46 +12,46 @@ const EXTERNAL_STARTUP_ASSETS = [
 ];
 const APP_SHELL = [
   OFFLINE_ENTRY,
-  './manifest.webmanifest?v=8.4.1',
-  './styles.css?v=8.4.1',
-  './utils.js?v=8.4.1',
-  './ledger.js?v=8.4.1',
-  './receipts.js?v=8.4.1',
+  './manifest.webmanifest?v=8.4.2',
+  './styles.css?v=8.4.2',
+  './utils.js?v=8.4.2',
+  './ledger.js?v=8.4.2',
+  './receipts.js?v=8.4.2',
   
-    './receipt-ui.js?v=8.4.1',
-    './scanner.js?v=8.4.1',
-    './camera-scanner.js?v=8.4.1',
+    './receipt-ui.js?v=8.4.2',
+    './scanner.js?v=8.4.2',
+    './camera-scanner.js?v=8.4.2',
   
     
-    './cart.js?v=8.4.1',
-    './payment-ui.js?v=8.4.1',
-    './favorites.js?v=8.4.1',
+    './cart.js?v=8.4.2',
+    './payment-ui.js?v=8.4.2',
+    './favorites.js?v=8.4.2',
     
-    './notifications.js?v=8.4.1',
+    './notifications.js?v=8.4.2',
     
-    './stock-ui.js?v=8.4.1',
-    './gcash.js?v=8.4.1',
+    './stock-ui.js?v=8.4.2',
+    './gcash.js?v=8.4.2',
   
-    './expenses.js?v=8.4.1',
-    './status-ui.js?v=8.4.1',
-    './pwa-lifecycle.js?v=8.4.1',
-    './insights-base.js?v=8.4.1',
-    './reporting-ui.js?v=8.4.1',
-    './sync-engine.js?v=8.4.1',
-    './app.js?v=8.4.1',
-    './ledger-ui.js?v=8.4.1',
-    './backup-actions.js?v=8.4.1',
-    './business-actions.js?v=8.4.1',
+    './expenses.js?v=8.4.2',
+    './status-ui.js?v=8.4.2',
+    './pwa-lifecycle.js?v=8.4.2',
+    './insights-base.js?v=8.4.2',
+    './reporting-ui.js?v=8.4.2',
+    './sync-engine.js?v=8.4.2',
+    './app.js?v=8.4.2',
+    './ledger-ui.js?v=8.4.2',
+    './backup-actions.js?v=8.4.2',
+    './business-actions.js?v=8.4.2',
   
-    './business-ui.js?v=8.4.1',
+    './business-ui.js?v=8.4.2',
     
-    './ui-core.js?v=8.4.1',
-    './product.js?v=8.4.1',
-    './settings.js?v=8.4.1',
-    './inventory-actions.js?v=8.4.1',
-    './sales-export.js?v=8.4.1',
-    './transaction-detail.js?v=8.4.1',
-    './diagnostics.js?v=8.4.1',
+    './ui-core.js?v=8.4.2',
+    './product.js?v=8.4.2',
+    './settings.js?v=8.4.2',
+    './inventory-actions.js?v=8.4.2',
+    './sales-export.js?v=8.4.2',
+    './transaction-detail.js?v=8.4.2',
+    './diagnostics.js?v=8.4.2',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
