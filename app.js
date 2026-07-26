@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.3.19';
+    window.VILLACART_APP_VERSION = 'v8.3.20';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -275,9 +275,9 @@
         gcashMatchesSearch
     } = window.VillacartUtils || {};
 
-    // Transaction ID generation moved to payment-ui.js in v8.3.19.
+    // Transaction ID generation moved to payment-ui.js in v8.3.20.
 
-    // Firestore/offline queue engine moved to sync-engine.js in v8.3.19.
+    // Firestore/offline queue engine moved to sync-engine.js in v8.3.20.
 
     // Bluetooth / Physical Scanner Logic
     function vc7227FindProductByBarcode(barcode) {
@@ -482,7 +482,7 @@ function switchScreen(id) {
 
     // v8.3.0: PIN modal helpers moved to ui-core.js.
     // v8.3.0: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
-    // Sale commit moved to payment-ui.js in v8.3.19.
+    // Sale commit moved to payment-ui.js in v8.3.20.
 
     // v8.3.0: Product add/edit/delete helpers moved to product.js.
 
@@ -1138,8 +1138,6 @@ function switchScreen(id) {
 
     // v5.6.1 Transaction Integrity Layer
     // Testing mode keeps Delete, but adds safe rules for credit sales and settlements.
-    const VC_DEV_DELETE_MODE = true;
-
     function vc530DeletedSet() {
         return new Set();
     }
@@ -1187,10 +1185,6 @@ function switchScreen(id) {
         return (state.transactions || []).filter(t => t && t.id && !deleted.has(t.id));
     }
 
-    function vc530FindTransaction(id) {
-        return (state.transactions || []).find(t => t && t.id === id) || null;
-    }
-
     function vc530FindSettlementForCredit(creditId) {
         if (!creditId) return null;
         const target = vc530Norm(creditId);
@@ -1208,105 +1202,8 @@ function switchScreen(id) {
         return !!vc530FindSettlementForCredit(creditTx.id);
     }
 
-    function vc530MarkCreditOpen(creditId) {
-        const credit = vc530FindTransaction(creditId);
-        if (!credit) return;
-        credit.paid = false;
-        credit.settled = false;
-        credit.status = 'OPEN';
-        if (credit.balance !== undefined) credit.balance = Number(credit.total) || 0;
-        if (credit.balanceDue !== undefined) credit.balanceDue = Number(credit.total) || 0;
-        if (credit.remaining !== undefined) credit.remaining = Number(credit.total) || 0;
-
-        credit._offline = true;
-        if (typeof queueAction === 'function') queueAction('update', 'transactions', credit);
-    }
-
-    function vc530RestockTransactionItems(tx) {
-        if (!tx || !tx.items || tx.type === 'EX' || vc530IsSettlement(tx)) return;
-        if (!(String(tx.id || '').startsWith('SA-') || String(tx.id || '').startsWith('CR-'))) return;
-
-        tx.items.forEach(item => {
-            const p = (state.inventory || []).find(inv => inv.id === item.id);
-            if (p) {
-                p.stock += (Number(item.qty) || 0) * (Number(item.deduct) || 1);
-                p._offline = true;
-                if (typeof queueAction === 'function') queueAction('update', 'inventory', p);
-            }
-        });
-    }
-
-    async function vc530DeleteFromCloud(id) {
-        if (typeof queueAction === 'function') queueAction('delete', 'transactions', { id });
-    }
-
-    function vc530CloseTransactionModals() {
-        [
-            'mod-tx','pin-modal','receipt-modal','tx-detail-modal','transaction-detail-modal',
-            'mod-tx-details','transaction-modal','void-modal','confirm-modal'
-        ].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.classList.add('hidden');
-                el.classList.remove('flex');
-            }
-        });
-    }
-
-    function vc530RefreshAll() {
-        if (typeof sync === 'function') sync();
-        if (typeof renderInventory === 'function') renderInventory();
-        if (typeof renderLedger === 'function') renderLedger();
-        if (typeof renderInsights === 'function') renderInsights();
-        if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
-        if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI();
-        if (typeof vc526PolishCreditDashboardLabels === 'function') vc526PolishCreditDashboardLabels();
-    }
-
-    async function vc530DeleteTransaction(id, options = {}) {
-        const tx = vc530FindTransaction(id);
-        if (!tx) {
-            vc530RefreshAll();
-            return;
-        }
-
-        // Rule 1: A settled CR sale cannot be deleted until its settlement/payment is deleted first.
-        if (vc530IsCreditSale(tx) && vc530CreditIsSettled(tx) && !options.force) {
-            const settlement = vc530FindSettlementForCredit(tx.id);
-            const settlementText = settlement ? `\n\nSettlement found: ${settlement.id}` : '';
-            alert(`This credit sale has already been settled.${settlementText}\n\nDelete the settlement/payment first, then delete the credit sale.`);
-            if (settlement && typeof viewTxDetails === 'function') {
-                setTimeout(() => viewTxDetails(settlement.id), 120);
-            }
-            return;
-        }
-
-        // Rule 2: Deleting a settlement reopens the original credit. No inventory change.
-        if (vc530IsSettlement(tx)) {
-            const creditId = vc530CreditIdFromSettlement(tx);
-            if (!confirm(`Delete this credit payment/settlement?\n\nThis will reopen the customer's credit balance.\nInventory will not change.`)) return;
-            if (creditId) vc530MarkCreditOpen(creditId);
-        } else {
-            if (!confirm(`Delete transaction ${tx.id}?\n\nThis is allowed in testing mode.`)) return;
-            vc530RestockTransactionItems(tx);
-        }
-
-        state.transactions = (state.transactions || []).filter(t => t.id !== tx.id);
-        if (lastTransactionId === tx.id) lastTransactionId = null;
-
-        await vc530DeleteFromCloud(tx.id);
-
-        vc530CloseTransactionModals();
-        vc530RefreshAll();
-        if (typeof showToast === 'function') showToast('Transaction deleted', 'success');
-    }
-
-    // Override known delete names.
-    deleteTransaction = vc530DeleteTransaction;
-    voidTransaction = vc530DeleteTransaction;
-    deleteTx = vc530DeleteTransaction;
-    voidTx = vc530DeleteTransaction;
-
+    // v8.3.20: Removed the superseded vc530 delete/void implementation.
+    // The later vc532 durable-queue delete path is the single active owner.
     // Link future settlements to their original CR transaction where possible.
     function vc530AttachSettlementLink(transaction) {
         if (!transaction || !vc530IsSettlement(transaction) || transaction.settlementFor) return transaction;
@@ -1867,7 +1764,7 @@ function switchScreen(id) {
             }).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`);
     }
 
-    // v8.3.19: Removed obsolete vc542 render/screen/sync pass-through
+    // v8.3.20: Removed obsolete vc542 render/screen/sync pass-through
     // wrappers and its inactive polling fallback. The final single-owner
     // Insights guards below remain responsible for stable repaint behavior.
     // v5.6.1 Cross-device Business Day Card Fix
