@@ -1,7 +1,7 @@
-// Villacart shared credit helpers v8.0.56
+// Villacart shared credit helpers v8.3.26
 // Single source for open/settled credit status used by Ledger and Notifications.
 (function(){
-  if (window.VillacartCreditUtils && window.VillacartCreditUtils.version === 'v8.0.56') return;
+  if (window.VillacartCreditUtils && window.VillacartCreditUtils.version === 'v8.3.26') return;
 
   function norm(value) {
     return String(value == null ? '' : value).trim().toUpperCase();
@@ -45,21 +45,51 @@
     });
   }
 
-  function isCreditSettled(creditTx, allTx) {
+  function hasIntrinsicSettledState(creditTx) {
     if (!creditTx) return false;
     if (creditTx.paid === true || creditTx.settled === true) return true;
     const status = norm(creditTx.status);
     if (status === 'PAID' || status === 'SETTLED') return true;
-    if (hasZeroBalanceMarker(creditTx)) return true;
+    return hasZeroBalanceMarker(creditTx);
+  }
 
-    const target = norm(creditTx.id);
-    if (!target) return false;
-    return (Array.isArray(allTx) ? allTx : []).some(tx => {
-      if (!tx || tx.id === creditTx.id || !isCreditSettlement(tx)) return false;
-      const notes = norm(tx.notes);
-      if (notes.includes('PARTIAL:')) return false;
-      return settlementCreditIds(tx).has(target);
+  function timestampValue(tx) {
+    const value = new Date(tx && (tx.timestamp || tx.createdAt || tx.settledAt) || 0).getTime();
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  function creditStateIndex(allTx) {
+    const transactions = Array.isArray(allTx) ? allTx : [];
+    const settlementByCreditId = new Map();
+
+    transactions.forEach(tx => {
+      if (!tx || !isCreditSettlement(tx)) return;
+      if (norm(tx.notes).includes('PARTIAL:')) return;
+
+      settlementCreditIds(tx).forEach(creditId => {
+        const current = settlementByCreditId.get(creditId);
+        if (!current || timestampValue(tx) >= timestampValue(current)) {
+          settlementByCreditId.set(creditId, tx);
+        }
+      });
     });
+
+    return {
+      settlementByCreditId,
+      isCreditSettled(creditTx) {
+        if (hasIntrinsicSettledState(creditTx)) return true;
+        const id = norm(creditTx && creditTx.id);
+        return !!id && settlementByCreditId.has(id);
+      },
+      settlementFor(creditTx) {
+        const id = norm(creditTx && creditTx.id);
+        return id ? (settlementByCreditId.get(id) || null) : null;
+      }
+    };
+  }
+
+  function isCreditSettled(creditTx, allTx) {
+    return creditStateIndex(allTx).isCreditSettled(creditTx);
   }
 
   function uniqueCredits(allTx) {
@@ -72,19 +102,22 @@
 
   function openCredits(allTx) {
     const tx = Array.isArray(allTx) ? allTx : [];
-    return uniqueCredits(tx).filter(cr => !isCreditSettled(cr, tx));
+    const index = creditStateIndex(tx);
+    return uniqueCredits(tx).filter(cr => !index.isCreditSettled(cr));
   }
 
   function settledCredits(allTx) {
     const tx = Array.isArray(allTx) ? allTx : [];
-    return uniqueCredits(tx).filter(cr => isCreditSettled(cr, tx));
+    const index = creditStateIndex(tx);
+    return uniqueCredits(tx).filter(cr => index.isCreditSettled(cr));
   }
 
   window.VillacartCreditUtils = {
-    version: 'v8.0.56',
+    version: 'v8.3.26',
     norm,
     isCreditSettlement,
     settlementCreditIds,
+    creditStateIndex,
     isCreditSettled,
     openCredits,
     settledCredits

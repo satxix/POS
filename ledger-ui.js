@@ -126,12 +126,14 @@
         return settlement ? (settlement.timestamp || settlement.createdAt || '') : (creditTx && (creditTx.settledAt || creditTx.timestamp || creditTx.createdAt || ''));
     }
 
-    function vc5632FilteredSettledCredits(list, allTx) {
+    function vc5632FilteredSettledCredits(list, allTx, creditIndex) {
         const q = String(document.getElementById('vc5629-ledger-search')?.value || '').trim().toLowerCase();
         const mode = document.getElementById('vc5629-ledger-date')?.value || 'today';
         const todayKey = vc5632DateKey({ timestamp: new Date().toISOString() });
         let out = (Array.isArray(list) ? list : []).map(t => {
-            const settlement = vc5632FindSettlementForCredit(t, allTx);
+            const settlement = t._vcSettlement ||
+                (creditIndex && typeof creditIndex.settlementFor === 'function' ? creditIndex.settlementFor(t) : null) ||
+                vc5632FindSettlementForCredit(t, allTx);
             return {
                 ...t,
                 _vcCreditSettled: true,
@@ -503,12 +505,23 @@
 
     function vc7262BuildCreditLedger(tx) {
         const creditBase = tx.filter(t => t && t.type === 'CR');
-        const openCredits = creditBase.filter(t => !vc5632CreditIsSettled(t, tx));
+        const creditIndex = window.VillacartCreditUtils &&
+            typeof window.VillacartCreditUtils.creditStateIndex === 'function'
+            ? window.VillacartCreditUtils.creditStateIndex(tx)
+            : null;
+        const isSettled = t => creditIndex
+            ? creditIndex.isCreditSettled(t)
+            : vc5632CreditIsSettled(t, tx);
+        const openCredits = creditBase.filter(t => !isSettled(t));
         const settledCredits = creditBase
-            .filter(t => vc5632CreditIsSettled(t, tx))
-            .map(t => ({ ...t, _vcCreditSettled: true }));
+            .filter(isSettled)
+            .map(t => ({
+                ...t,
+                _vcCreditSettled: true,
+                _vcSettlement: creditIndex ? creditIndex.settlementFor(t) : undefined
+            }));
         const openList = vc5632Filtered(openCredits);
-        const settledList = vc5632FilteredSettledCredits(settledCredits, tx);
+        const settledList = vc5632FilteredSettledCredits(settledCredits, tx, creditIndex);
         const view = vc5632CreditLedgerView === 'settled' ? 'settled' : 'open';
         const list = view === 'settled' ? settledList : openList;
         const total = list.reduce((sum, t) => sum + Number(t.total || 0), 0);
