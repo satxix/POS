@@ -48,3 +48,145 @@
 
 window.vc728RenderArchiveSafety = renderArchiveSafety;
 setTimeout(renderArchiveSafety, 300);
+
+// Business-day header display helpers moved from app.js in v8.3.17.
+    // v5.6.1 Brand Header Controller
+    function vc545FormatToday() {
+        const now = new Date();
+        const mobile = window.innerWidth < 620;
+        return mobile
+            ? `Today • ${now.toLocaleDateString(undefined, { weekday:'short', day:'2-digit', month:'short', year:'numeric' })}`
+            : `Today • ${now.toLocaleDateString(undefined, { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}`;
+    }
+
+    function vc545RefreshTodayLine() {
+        const el = document.getElementById('vc-today-line');
+        if (el) el.innerText = vc545FormatToday();
+    }
+
+    function vc545NormalizeHeaderStatus() {
+        const day = document.getElementById('business-day-pill');
+        const dayText = document.getElementById('business-day-text');
+        if (day && dayText) {
+            const raw = (dayText.innerText || '').trim().toUpperCase();
+            day.classList.remove('open','closed','none','waiting');
+            if (raw.includes('OPEN')) {
+                dayText.innerText = 'Open';
+                day.classList.add('open');
+            } else if (raw.includes('CLOSED')) {
+                dayText.innerText = 'Closed';
+                day.classList.add('closed');
+            } else {
+                dayText.innerText = 'Waiting';
+                day.classList.add('waiting');
+            }
+        }
+
+        const sync = document.getElementById('sync-pill');
+        const syncText = document.getElementById('sync-text');
+        if (sync && syncText) {
+            const online = navigator.onLine;
+            sync.classList.toggle('offline', !online);
+            syncText.innerText = online ? 'Online' : 'Offline';
+        }
+
+        vc545RefreshTodayLine();
+    }
+
+    // v5.6.1 Premium Header Text Normalizer
+    function vc547PremiumHeaderText() {
+        const dayText = document.getElementById('business-day-text');
+        if (dayText) {
+            const raw = (dayText.innerText || '').toUpperCase();
+            if (raw.includes('OPEN')) dayText.innerText = 'OPEN';
+            else if (raw.includes('CLOSED')) dayText.innerText = 'CLOSED';
+            else dayText.innerText = 'WAITING';
+        }
+
+        const syncText = document.getElementById('sync-text');
+        if (syncText) syncText.innerText = navigator.onLine ? 'ONLINE' : 'OFFLINE';
+
+        const dateLine = document.getElementById('vc-today-line');
+        if (dateLine) {
+            const now = new Date();
+            dateLine.innerText = window.innerWidth < 620
+                ? now.toLocaleDateString(undefined, { weekday:'short', day:'2-digit', month:'short', year:'numeric' })
+                : `Today • ${now.toLocaleDateString(undefined, { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}`;
+        }
+    }
+
+    // v5.6.1 Ultra Compact Header Date Line
+    function vc548UpdateCompactDate() {
+        const copy = document.querySelector('.vc-brand-copy');
+        if (!copy) return;
+        const now = new Date();
+        const syncEl = document.getElementById('sync-timestamp');
+        let sync = '--:--';
+        if (syncEl && syncEl.innerText) {
+            const match = syncEl.innerText.match(/(\d{1,2}:\d{2})/);
+            if (match) sync = match[1];
+        }
+        const date = window.innerWidth < 500
+            ? now.toLocaleDateString(undefined, { day:'2-digit', month:'short' })
+            : now.toLocaleDateString(undefined, { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+        copy.setAttribute('data-date-line', `${date} • Sync ${sync}`);
+    }
+
+    // v5.6.1 Stable Header Controller
+    function vc551GetTodayBusinessDay() {
+        try {
+            if (typeof getCurrentBusinessDay === 'function') return getCurrentBusinessDay();
+        } catch(e) {}
+        try {
+            const today = new Date();
+            const code = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            if (state && Array.isArray(state.businessDays)) {
+                return state.businessDays.find(b => b.date === code && b.status === 'OPEN') || null;
+            }
+        } catch(e) {}
+        return null;
+    }
+
+    function vc551RefreshHeader() {
+        const date = document.getElementById('vc551-date');
+        if (date) {
+            const now = new Date();
+            date.innerText = window.innerWidth < 620
+                ? `Today • ${now.toLocaleDateString(undefined, { weekday:'short', day:'2-digit', month:'short' })}`
+                : `Today • ${now.toLocaleDateString(undefined, { weekday:'short', day:'2-digit', month:'short', year:'numeric' })}`;
+        }
+
+        const dayPill = document.getElementById('vc551-day-pill');
+        const dayText = document.getElementById('vc551-day-text');
+        if (dayPill && dayText) {
+            dayPill.classList.remove('waiting','closed','open');
+            const bd = vc551GetTodayBusinessDay();
+            if (bd && String(bd.status || '').toUpperCase() === 'CLOSED') {
+                dayText.innerText = 'CLOSED';
+                dayPill.classList.add('closed');
+            } else if (bd) {
+                dayText.innerText = 'OPEN';
+                dayPill.classList.add('open');
+            } else {
+                dayText.innerText = 'WAITING';
+                dayPill.classList.add('waiting');
+            }
+        }
+
+        const syncPill = document.getElementById('vc551-sync-pill');
+        const syncText = document.getElementById('vc551-sync-text');
+        if (syncPill && syncText) {
+            syncPill.classList.toggle('offline', !navigator.onLine);
+            syncText.innerText = navigator.onLine ? 'ONLINE' : 'OFFLINE';
+        }
+
+        const alertDot = document.getElementById('vc551-notif-dot');
+        const oldDot = document.getElementById('notif-dot');
+        if (alertDot && oldDot) alertDot.classList.toggle('hidden', oldDot.classList.contains('hidden'));
+        if (typeof renderHeaderLowStockTicker === 'function') renderHeaderLowStockTicker();
+    }
+
+    function vc551DebouncedHeader() {
+        clearTimeout(window.__vc551HeaderTimer);
+        window.__vc551HeaderTimer = setTimeout(vc551RefreshHeader, 80);
+    }
