@@ -1,4 +1,4 @@
-// Villacart GCash screen logic v8.3.9
+// Villacart GCash screen logic v8.3.10
 // Depends on shared app globals from app.js at call time.
 
     // v8.0.56: Standalone GCash service ledger.
@@ -20,6 +20,12 @@
             btn.classList.toggle('bg-surface-container', !active);
             btn.classList.toggle('text-on-surface-variant', !active);
         });
+        const referenceRequired = activeGcashType === 'cashOut';
+        const notesEl = document.getElementById('gcash-notes');
+        const requiredMark = document.getElementById('gcash-notes-required');
+        if (notesEl) notesEl.setAttribute('aria-required', referenceRequired ? 'true' : 'false');
+        if (requiredMark) requiredMark.classList.toggle('hidden', !referenceRequired);
+        if (!referenceRequired) setGcashReferenceError(false);
         updateGcashPreview();
     }
 
@@ -96,6 +102,7 @@
     }
 
     function setGcashReferenceError(show) {
+        show = !!show && activeGcashType === 'cashOut';
         const notesEl = document.getElementById('gcash-notes');
         const errorEl = document.getElementById('gcash-notes-error');
         if (notesEl) {
@@ -119,7 +126,7 @@
         const notesEl = document.getElementById('gcash-notes');
         const amount = Math.max(0, Number(amountEl?.value) || 0);
         const referenceNotes = (notesEl?.value || '').trim();
-        const referenceMissing = !referenceNotes;
+        const referenceMissing = activeGcashType === 'cashOut' && !referenceNotes;
         setGcashReferenceError(referenceMissing);
         if (amount <= 0) {
             showToast('Enter a GCash amount first', 'error');
