@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.3.13';
+    window.VILLACART_APP_VERSION = 'v8.3.14';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -275,9 +275,9 @@
         gcashMatchesSearch
     } = window.VillacartUtils || {};
 
-    // Transaction ID generation moved to payment-ui.js in v8.3.13.
+    // Transaction ID generation moved to payment-ui.js in v8.3.14.
 
-    // Firestore/offline queue engine moved to sync-engine.js in v8.3.13.
+    // Firestore/offline queue engine moved to sync-engine.js in v8.3.14.
 
     // Bluetooth / Physical Scanner Logic
     function vc7227FindProductByBarcode(barcode) {
@@ -482,7 +482,7 @@ function switchScreen(id) {
 
     // v8.3.0: PIN modal helpers moved to ui-core.js.
     // v8.3.0: Cart and payment UI moved to cart.js. Sale commit remains in confirmSale().
-    // Sale commit moved to payment-ui.js in v8.3.13.
+    // Sale commit moved to payment-ui.js in v8.3.14.
 
     // v8.3.0: Product add/edit/delete helpers moved to product.js.
 

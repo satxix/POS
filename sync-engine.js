@@ -101,8 +101,8 @@
                 .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0))[0];
             state.currentBusinessDayId = open ? open.id : null;
             sync();
-            updateBusinessDayUI();
-            renderBusinessCalendar && renderBusinessCalendar();
+            if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI();
+            if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
         }, (error) => {
             syncErrorMsg = error.message;
             updateSyncUI();
@@ -173,7 +173,7 @@
             renderFavorites();
             renderLedger();
             renderInsights();
-            updateBusinessDayUI();
+            if (typeof updateBusinessDayUI === 'function') updateBusinessDayUI();
             syncErrorMsg = null;
             updateSyncUI();
             vcStartupMark('hydrate-rest-complete', {
