@@ -261,13 +261,33 @@
         (state.gcashRecords || []).forEach(r => { if (r && r.id) mergedRecords.set(r.id, r); });
         const records = Array.from(mergedRecords.values()).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
         const todays = records.filter(r => r && gcashRecordDate(r) === today);
-        const { cashOut, cashIn, fees, drawer } = gcashDailySummary(todays);
+        const { cashOut, cashIn, fees } = gcashDailySummary(todays);
+        const rangeStartEl = document.getElementById('gcash-range-start');
+        const rangeEndEl = document.getElementById('gcash-range-end');
+        if (rangeStartEl && !rangeStartEl.value) rangeStartEl.value = monthStartDateCode();
+        if (rangeEndEl && !rangeEndEl.value) rangeEndEl.value = today;
+        let rangeStart = rangeStartEl && rangeStartEl.value ? rangeStartEl.value : '';
+        let rangeEnd = rangeEndEl && rangeEndEl.value ? rangeEndEl.value : '';
+        if (rangeStart && rangeEnd && rangeStart > rangeEnd) {
+            const originalStart = rangeStart;
+            rangeStart = rangeEnd;
+            rangeEnd = originalStart;
+            if (rangeStartEl) rangeStartEl.value = rangeStart;
+            if (rangeEndEl) rangeEndEl.value = rangeEnd;
+        }
+        const rangeRecords = records.filter(r => {
+            const d = gcashRecordDate(r);
+            return d && (!rangeStart || d >= rangeStart) && (!rangeEnd || d <= rangeEnd);
+        });
+        const rangeProfit = rangeRecords.reduce((total, record) => total + (Number(record.fee) || 0), 0);
         const searchQuery = currentGcashSearchQuery();
         const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
         setText('gcash-sum-out', formatCurrency(cashOut));
         setText('gcash-sum-in', formatCurrency(cashIn));
         setText('gcash-sum-fees', formatCurrency(fees));
-        setText('gcash-sum-drawer', (drawer < 0 ? '-' : '') + formatCurrency(Math.abs(drawer)));
+        setText('gcash-sum-profit', formatCurrency(rangeProfit));
+        const rangeSummaryLabel = [gcashRangeDisplay(rangeStart), gcashRangeDisplay(rangeEnd)].filter(Boolean).join(' – ');
+        setText('gcash-sum-profit-range', rangeSummaryLabel || 'All available dates');
 
         const todayBtn = document.getElementById('gcash-view-today');
         const historyBtn = document.getElementById('gcash-view-history');
@@ -287,19 +307,8 @@
         const list = document.getElementById('gcash-record-list');
         if (list) {
             if (activeGcashView === 'history') {
-                const startEl = document.getElementById('gcash-range-start');
-                const endEl = document.getElementById('gcash-range-end');
-                if (startEl && !startEl.value) startEl.value = monthStartDateCode();
-                if (endEl && !endEl.value) endEl.value = today;
-                let start = startEl && startEl.value ? startEl.value : '';
-                let end = endEl && endEl.value ? endEl.value : '';
-                if (start && end && start > end) {
-                    const originalStart = start;
-                    start = end;
-                    end = originalStart;
-                    if (startEl) startEl.value = start;
-                    if (endEl) endEl.value = end;
-                }
+                const start = rangeStart;
+                const end = rangeEnd;
                 const filtered = records.filter(r => {
                     const d = gcashRecordDate(r);
                     return d && (!start || d >= start) && (!end || d <= end) && gcashMatchesSearch(r, searchQuery);
