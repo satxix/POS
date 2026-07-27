@@ -6,6 +6,33 @@
     let activeGcashView = 'today';
     let expandedGcashDates = new Set();
     let editingGcashRecordId = null;
+    let gcashHistoryRangeManuallySet = false;
+    let gcashHistoryDefaultDateStamp = '';
+
+    function gcashCompletedHistoryRange(referenceDate = new Date()) {
+        const now = referenceDate instanceof Date && !isNaN(referenceDate) ? referenceDate : new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        if (now.getDate() === 1) {
+            const previousMonthEnd = new Date(year, month, 0);
+            const previousMonthStart = new Date(previousMonthEnd.getFullYear(), previousMonthEnd.getMonth(), 1);
+            return {
+                start: todayDateCodeFromDate(previousMonthStart),
+                end: todayDateCodeFromDate(previousMonthEnd)
+            };
+        }
+        return {
+            start: todayDateCodeFromDate(new Date(year, month, 1)),
+            end: todayDateCodeFromDate(new Date(year, month, now.getDate() - 1))
+        };
+    }
+
+    function handleGcashHistoryRangeChange() {
+        gcashHistoryRangeManuallySet = true;
+        renderGcashScreen();
+    }
+
+    window.handleGcashHistoryRangeChange = handleGcashHistoryRangeChange;
 
     function nextGcashId() {
         return nextTransactionId('GC');
@@ -264,8 +291,12 @@
         const { cashOut, cashIn, fees } = gcashDailySummary(todays);
         const rangeStartEl = document.getElementById('gcash-range-start');
         const rangeEndEl = document.getElementById('gcash-range-end');
-        if (rangeStartEl && !rangeStartEl.value) rangeStartEl.value = monthStartDateCode();
-        if (rangeEndEl && !rangeEndEl.value) rangeEndEl.value = today;
+        const completedRange = gcashCompletedHistoryRange();
+        if (!gcashHistoryRangeManuallySet && (gcashHistoryDefaultDateStamp !== today || !rangeStartEl?.value || !rangeEndEl?.value)) {
+            if (rangeStartEl) rangeStartEl.value = completedRange.start;
+            if (rangeEndEl) rangeEndEl.value = completedRange.end;
+            gcashHistoryDefaultDateStamp = today;
+        }
         let rangeStart = rangeStartEl && rangeStartEl.value ? rangeStartEl.value : '';
         let rangeEnd = rangeEndEl && rangeEndEl.value ? rangeEndEl.value : '';
         if (rangeStart && rangeEnd && rangeStart > rangeEnd) {
