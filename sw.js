@@ -1,57 +1,56 @@
-const APP_VERSION = '8.4.5';
+const APP_VERSION = '8.4.6';
 const CACHE_NAME = 'villacart-pos-v' + APP_VERSION;
 const OFFLINE_ENTRY = './index.html?v=' + APP_VERSION;
-const EXTERNAL_STARTUP_ASSETS = [
-  'https://cdn.tailwindcss.com?plugins=forms,container-queries',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
-  'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap',
-  'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js',
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
-];
 const APP_SHELL = [
   OFFLINE_ENTRY,
-  './manifest.webmanifest?v=8.4.5',
-  './styles.css?v=8.4.5',
-  './utils.js?v=8.4.5',
-  './ledger.js?v=8.4.5',
-  './receipts.js?v=8.4.5',
+  './manifest.webmanifest?v=8.4.6',
+  './styles.css?v=8.4.6',
+  './vendor/tailwind-forms-container.js?v=8.4.6',
+  './vendor/fonts/fonts.css?v=8.4.6',
+  './vendor/fonts/inter-latin.woff2',
+  './vendor/fonts/material-symbols-outlined.woff2',
+  './vendor/quagga.min.js?v=8.4.6',
+  './vendor/firebase-app-compat.js?v=8.4.6',
+  './vendor/firebase-auth-compat.js?v=8.4.6',
+  './vendor/firebase-firestore-compat.js?v=8.4.6',
+  './utils.js?v=8.4.6',
+  './ledger.js?v=8.4.6',
+  './receipts.js?v=8.4.6',
   
-    './receipt-ui.js?v=8.4.5',
-    './scanner.js?v=8.4.5',
-    './camera-scanner.js?v=8.4.5',
+    './receipt-ui.js?v=8.4.6',
+    './scanner.js?v=8.4.6',
+    './camera-scanner.js?v=8.4.6',
   
     
-    './cart.js?v=8.4.5',
-    './payment-ui.js?v=8.4.5',
-    './favorites.js?v=8.4.5',
+    './cart.js?v=8.4.6',
+    './payment-ui.js?v=8.4.6',
+    './favorites.js?v=8.4.6',
     
-    './notifications.js?v=8.4.5',
+    './notifications.js?v=8.4.6',
     
-    './stock-ui.js?v=8.4.5',
-    './gcash.js?v=8.4.5',
+    './stock-ui.js?v=8.4.6',
+    './gcash.js?v=8.4.6',
   
-    './expenses.js?v=8.4.5',
-    './status-ui.js?v=8.4.5',
-    './pwa-lifecycle.js?v=8.4.5',
-    './insights-base.js?v=8.4.5',
-    './reporting-ui.js?v=8.4.5',
-    './sync-engine.js?v=8.4.5',
-    './app.js?v=8.4.5',
-    './ledger-ui.js?v=8.4.5',
-    './backup-actions.js?v=8.4.5',
-    './business-actions.js?v=8.4.5',
+    './expenses.js?v=8.4.6',
+    './status-ui.js?v=8.4.6',
+    './pwa-lifecycle.js?v=8.4.6',
+    './insights-base.js?v=8.4.6',
+    './reporting-ui.js?v=8.4.6',
+    './sync-engine.js?v=8.4.6',
+    './app.js?v=8.4.6',
+    './ledger-ui.js?v=8.4.6',
+    './backup-actions.js?v=8.4.6',
+    './business-actions.js?v=8.4.6',
   
-    './business-ui.js?v=8.4.5',
+    './business-ui.js?v=8.4.6',
     
-    './ui-core.js?v=8.4.5',
-    './product.js?v=8.4.5',
-    './settings.js?v=8.4.5',
-    './inventory-actions.js?v=8.4.5',
-    './sales-export.js?v=8.4.5',
-    './transaction-detail.js?v=8.4.5',
-    './diagnostics.js?v=8.4.5',
+    './ui-core.js?v=8.4.6',
+    './product.js?v=8.4.6',
+    './settings.js?v=8.4.6',
+    './inventory-actions.js?v=8.4.6',
+    './sales-export.js?v=8.4.6',
+    './transaction-detail.js?v=8.4.6',
+    './diagnostics.js?v=8.4.6',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
@@ -72,14 +71,6 @@ self.addEventListener('install', event => {
       throw new Error('App shell version mismatch: expected ' + APP_VERSION + ', received ' + (cachedVersion || 'unknown'));
     }
 
-    // Cross-origin startup libraries cannot safely participate in the atomic
-    // addAll() above. Cache each one independently so a font/CDN outage does
-    // not prevent the core offline shell from installing.
-    await Promise.allSettled(EXTERNAL_STARTUP_ASSETS.map(async url => {
-      const request = new Request(url, { mode: 'no-cors', credentials: 'omit' });
-      const response = await fetch(request);
-      await cache.put(request, response);
-    }));
   })());
 });
 
