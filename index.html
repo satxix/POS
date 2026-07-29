@@ -6,17 +6,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v8.4.9</title>
+<title>Villacart POS v8.5.0</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=8.4.9"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.5.0"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
-window.VILLACART_EXPECTED_VERSION = 'v8.4.9';
+window.VILLACART_EXPECTED_VERSION = 'v8.5.0';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.__villacartUpdateReloadRequested = false;
@@ -51,7 +51,7 @@ window.VILLACART_EXPECTED_VERSION = 'v8.4.9';
                 // Register immediately. Waiting for window.load also waits for
                 // remote fonts/CDNs, which can leave a TWA cold launch without
                 // an installed offline worker.
-navigator.serviceWorker.register('sw.js?v=8.4.9').then(function(reg) {
+navigator.serviceWorker.register('sw.js?v=8.5.0').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (navigator.storage && navigator.storage.persist) {
                             navigator.storage.persist().catch(function(){});
@@ -71,13 +71,13 @@ navigator.serviceWorker.register('sw.js?v=8.4.9').then(function(reg) {
             }
         })();
     </script>
-<script src="vendor/tailwind-forms-container.js?v=8.4.9"></script>
-<link href="vendor/fonts/fonts.css?v=8.4.9" rel="stylesheet"/>
-<script src="vendor/quagga.min.js?v=8.4.9"></script>
+<script src="vendor/tailwind-forms-container.js?v=8.5.0"></script>
+<link href="vendor/fonts/fonts.css?v=8.5.0" rel="stylesheet"/>
+<script src="vendor/quagga.min.js?v=8.5.0"></script>
 <!-- Firebase SDKs -->
-<script src="vendor/firebase-app-compat.js?v=8.4.9"></script>
-<script src="vendor/firebase-auth-compat.js?v=8.4.9"></script>
-<script src="vendor/firebase-firestore-compat.js?v=8.4.9"></script>
+<script src="vendor/firebase-app-compat.js?v=8.5.0"></script>
+<script src="vendor/firebase-auth-compat.js?v=8.5.0"></script>
+<script src="vendor/firebase-firestore-compat.js?v=8.5.0"></script>
 <script id="tailwind-config">
       tailwind.config = {
         theme: {
@@ -130,7 +130,7 @@ navigator.serviceWorker.register('sw.js?v=8.4.9').then(function(reg) {
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=8.4.9"/>
+<link rel="stylesheet" href="styles.css?v=8.5.0"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -143,7 +143,7 @@ navigator.serviceWorker.register('sw.js?v=8.4.9').then(function(reg) {
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-<span class="vc551-version">v8.4.9</span>
+<span class="vc551-version">v8.5.0</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -426,6 +426,10 @@ navigator.serviceWorker.register('sw.js?v=8.4.9').then(function(reg) {
 <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
 <h2 class="text-2xl font-black text-primary uppercase">Analytics &amp; Reports</h2>
 <div class="flex flex-wrap gap-2">
+<button class="bg-primary/10 text-primary h-11 px-4 sm:px-5 rounded-2xl font-bold text-[10px] sm:text-xs uppercase flex items-center gap-2 active-scale border border-primary/10" onclick="openItemSalesLookup()">
+<span class="material-symbols-outlined text-[18px] sm:text-[20px]">query_stats</span>
+                    Item Sales
+                </button>
 <button class="bg-on-surface-variant/10 text-on-surface-variant h-11 px-4 sm:px-5 rounded-2xl font-bold text-[10px] sm:text-xs uppercase flex items-center gap-2 active-scale border border-border-subtle" onclick="troubleshootConnection()">
 <span class="material-symbols-outlined text-[18px] sm:text-[20px]">refresh</span>
                     Troubleshoot
@@ -1163,45 +1167,112 @@ navigator.serviceWorker.register('sw.js?v=8.4.9').then(function(reg) {
 </div>
 </div>
 </div>
+<!-- ITEM SALES LOOKUP MODAL -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[180] hidden items-end md:items-center justify-center p-0 md:p-4" id="item-sales-modal">
+<div class="bg-surface w-full max-w-xl rounded-t-[30px] md:rounded-[30px] shadow-2xl max-h-[92dvh] overflow-y-auto">
+<div class="sticky top-0 z-10 bg-primary text-white px-5 py-4 flex justify-between items-center rounded-t-[30px]">
+<div>
+<p class="text-[9px] font-black uppercase tracking-[0.18em] text-white/65">Local sales lookup</p>
+<h3 class="font-black text-lg uppercase">Item Sales</h3>
+</div>
+<button class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center active-scale" onclick="closeModal('item-sales-modal')" aria-label="Close item sales">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-5 space-y-4">
+<div>
+<label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant block mb-2">Find Product</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input id="item-sales-search" class="w-full h-14 pl-12 pr-11 bg-surface-container border border-border-subtle rounded-2xl font-bold text-sm" type="search" placeholder="Search product or barcode..." oninput="filterItemSalesProducts(this.value)"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl text-on-surface-variant flex items-center justify-center" onclick="clearItemSalesProduct()" type="button" aria-label="Clear product">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="mt-2 max-h-48 overflow-y-auto space-y-2" id="item-sales-product-list"></div>
+</div>
+<div class="hidden bg-primary/5 border border-primary/10 rounded-2xl px-4 py-3" id="item-sales-selected">
+<p class="text-[9px] font-black uppercase tracking-widest text-primary/60">Selected Product</p>
+<p class="text-sm font-black text-primary uppercase mt-1" id="item-sales-selected-name">—</p>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant block mb-2">From</label>
+<input class="w-full h-12 px-3 bg-surface-container border border-border-subtle rounded-2xl font-bold text-xs" id="item-sales-from" type="date"/>
+</div>
+<div>
+<label class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant block mb-2">To</label>
+<input class="w-full h-12 px-3 bg-surface-container border border-border-subtle rounded-2xl font-bold text-xs" id="item-sales-to" type="date"/>
+</div>
+</div>
+<button class="w-full h-13 min-h-[52px] bg-primary text-white rounded-2xl font-black uppercase tracking-wider text-xs active-scale shadow-md" onclick="calculateItemSales()" type="button">
+                    Calculate Item Sales
+                </button>
+<div class="hidden space-y-3" id="item-sales-result">
+<div class="bg-gradient-to-br from-primary to-blue-700 text-white rounded-3xl p-5">
+<p class="text-[9px] font-black uppercase tracking-widest text-white/65" id="item-sales-result-range">Selected period</p>
+<h4 class="font-black text-lg uppercase mt-1" id="item-sales-result-name">—</h4>
+<div class="grid grid-cols-2 gap-3 mt-4">
+<div class="bg-white/10 rounded-2xl p-3"><p class="text-[8px] uppercase font-black text-white/60">Stock Units Sold</p><p class="text-2xl font-black mt-1" id="item-sales-units">0</p></div>
+<div class="bg-white/10 rounded-2xl p-3"><p class="text-[8px] uppercase font-black text-white/60">Transactions</p><p class="text-2xl font-black mt-1" id="item-sales-transactions">0</p></div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-container/60 border border-border-subtle rounded-2xl p-4"><p class="text-[9px] uppercase font-black text-on-surface-variant">Pieces Sold</p><p class="text-xl font-black text-primary mt-1" id="item-sales-pieces">0</p></div>
+<div class="bg-surface-container/60 border border-border-subtle rounded-2xl p-4"><p class="text-[9px] uppercase font-black text-on-surface-variant">Packs Sold</p><p class="text-xl font-black text-primary mt-1" id="item-sales-packs">0</p></div>
+<div class="bg-surface border border-border-subtle rounded-2xl p-4"><p class="text-[9px] uppercase font-black text-on-surface-variant">Sales Amount</p><p class="text-xl font-black text-secondary mt-1" id="item-sales-revenue">&#8369;0.00</p></div>
+<div class="bg-surface border border-border-subtle rounded-2xl p-4"><p class="text-[9px] uppercase font-black text-on-surface-variant">Current-Cost COGS</p><p class="text-xl font-black text-primary mt-1" id="item-sales-cogs">&#8369;0.00</p></div>
+</div>
+<div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-5">
+<p class="text-[9px] uppercase font-black tracking-widest text-emerald-700">Estimated Profit</p>
+<p class="text-3xl font-black text-emerald-800 mt-1" id="item-sales-profit">&#8369;0.00</p>
+<p class="text-[10px] font-bold text-emerald-700/75 mt-2" id="item-sales-cost-note">Using the product’s current cost.</p>
+</div>
+<p class="text-[9px] leading-relaxed font-bold text-on-surface-variant">Sales amount includes this product’s proportional share of transaction discounts. Results use transactions already saved on this device, including loaded local backups.</p>
+</div>
+</div>
+</div>
+</div>
 <!-- Application logic -->
-<script src="utils.js?v=8.4.9"></script>
-<script src="ledger.js?v=8.4.9"></script>
-<script src="receipts.js?v=8.4.9"></script>
+<script src="utils.js?v=8.5.0"></script>
+<script src="ledger.js?v=8.5.0"></script>
+<script src="receipts.js?v=8.5.0"></script>
 
-<script src="receipt-ui.js?v=8.4.9"></script>
-<script src="scanner.js?v=8.4.9"></script>
-<script src="camera-scanner.js?v=8.4.9"></script>
-
-    
-<script src="cart.js?v=8.4.9"></script>
-<script src="payment-ui.js?v=8.4.9"></script>
-<script src="favorites.js?v=8.4.9"></script>
-    
-<script src="notifications.js?v=8.4.9"></script>
-    
-<script src="stock-ui.js?v=8.4.9"></script>
-<script src="gcash.js?v=8.4.9"></script>
-
-<script src="expenses.js?v=8.4.9"></script>
-<script src="status-ui.js?v=8.4.9"></script>
-<script src="pwa-lifecycle.js?v=8.4.9"></script>
-<script src="insights-base.js?v=8.4.9"></script>
-<script src="reporting-ui.js?v=8.4.9"></script>
-<script src="sync-engine.js?v=8.4.9"></script>
-<script src="business-ui.js?v=8.4.9"></script>
-<script src="app.js?v=8.4.9"></script>
-<script src="ledger-ui.js?v=8.4.9"></script>
-<script src="backup-actions.js?v=8.4.9"></script>
-<script src="business-actions.js?v=8.4.9"></script>
-
+<script src="receipt-ui.js?v=8.5.0"></script>
+<script src="scanner.js?v=8.5.0"></script>
+<script src="camera-scanner.js?v=8.5.0"></script>
 
     
-<script src="ui-core.js?v=8.4.9"></script>
-<script src="product.js?v=8.4.9"></script>
-<script src="settings.js?v=8.4.9"></script>
-<script src="inventory-actions.js?v=8.4.9"></script>
-<script src="sales-export.js?v=8.4.9"></script>
-<script src="transaction-detail.js?v=8.4.9"></script>
+<script src="cart.js?v=8.5.0"></script>
+<script src="payment-ui.js?v=8.5.0"></script>
+<script src="favorites.js?v=8.5.0"></script>
+    
+<script src="notifications.js?v=8.5.0"></script>
+    
+<script src="stock-ui.js?v=8.5.0"></script>
+<script src="gcash.js?v=8.5.0"></script>
+
+<script src="expenses.js?v=8.5.0"></script>
+<script src="status-ui.js?v=8.5.0"></script>
+<script src="pwa-lifecycle.js?v=8.5.0"></script>
+<script src="insights-base.js?v=8.5.0"></script>
+<script src="reporting-ui.js?v=8.5.0"></script>
+<script src="sync-engine.js?v=8.5.0"></script>
+<script src="business-ui.js?v=8.5.0"></script>
+<script src="app.js?v=8.5.0"></script>
+<script src="item-sales.js?v=8.5.0"></script>
+<script src="ledger-ui.js?v=8.5.0"></script>
+<script src="backup-actions.js?v=8.5.0"></script>
+<script src="business-actions.js?v=8.5.0"></script>
+
+
+    
+<script src="ui-core.js?v=8.5.0"></script>
+<script src="product.js?v=8.5.0"></script>
+<script src="settings.js?v=8.5.0"></script>
+<script src="inventory-actions.js?v=8.5.0"></script>
+<script src="sales-export.js?v=8.5.0"></script>
+<script src="transaction-detail.js?v=8.5.0"></script>
 
     <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
@@ -1231,7 +1302,7 @@ navigator.serviceWorker.register('sw.js?v=8.4.9').then(function(reg) {
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=8.4.9"></script>
+<script src="diagnostics.js?v=8.5.0"></script>
 
 
 
