@@ -185,7 +185,14 @@
 
     function lineMatchesProduct(item, product) {
         if (!item || !product) return false;
-        if (item.id != null && String(item.id) === String(product.id)) return true;
+        // Modern sale lines carry the permanent inventory ID. When it exists,
+        // it is authoritative: do not let a renamed or duplicate product name
+        // combine two separately identified products in this report.
+        if (item.id != null && String(item.id).trim() !== '') {
+            return String(item.id) === String(product.id);
+        }
+        // Legacy sale lines created before product IDs were stored can still
+        // be recovered by their normalized name.
         return String(item.name || '').trim().toLowerCase() === String(product.name || '').trim().toLowerCase();
     }
 

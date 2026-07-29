@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.5.0';
+    window.VILLACART_APP_VERSION = 'v8.5.2';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1467,52 +1467,12 @@ function switchScreen(id) {
     setTimeout(vc541ForceUI, 700);
 
 
-    // v5.6.1 Cross-device Recent Activities Fix
-    // Tablet issue: local deleted-id cache or period scope can make Recent Activities empty
-    // while chart totals still show data. This renderer uses the same live state.transactions
-    // that Ledger uses, then applies a safe period filter with fallback.
+    // Keep Insights period calculations aligned with the live transaction
+    // state used by Ledger, with a safe fallback when a period is empty.
     function vc542DateCode(value = new Date()) {
         const d = value instanceof Date ? value : new Date(value);
         if (Number.isNaN(d.getTime())) return new Date().toISOString().slice(0,10);
         return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    }
-
-    function vc542Norm(v) { return String(v || '').trim().toUpperCase(); }
-
-    function vc542IsSettlement(t) {
-        if (!t) return false;
-        const id = vc542Norm(t.id);
-        const type = vc542Norm(t.type);
-        const notes = vc542Norm(t.notes);
-        return !!(
-            t.settlementFor ||
-            t.creditRef ||
-            t.relatedCreditId ||
-            (type === 'SA' && notes.includes('CR-')) ||
-            (id.startsWith('SA-') && notes.includes('CR-')) ||
-            notes.includes('SETTLEMENT') ||
-            notes.includes('PAID CREDIT') ||
-            notes.includes('PAYMENT')
-        );
-    }
-
-    function vc542Kind(t) {
-        if (vc542IsSettlement(t)) return 'settlement';
-        if (t && t.type === 'CR') return 'credit';
-        if (t && t.type === 'EX') return 'expense';
-        return 'cash';
-    }
-
-    function vc542Label(kind) {
-        return ({ cash:'SA', credit:'CR', settlement:'PAYMENT', expense:'EX' })[kind] || 'TX';
-    }
-
-    function vc542Icon(kind) {
-        return ({ cash:'payments', credit:'schedule', settlement:'task_alt', expense:'remove_circle' })[kind] || 'receipt_long';
-    }
-
-    function vc542Peso(v) {
-        return `₱${(Number(v)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
     }
 
     function vc542AllLiveTransactions() {
@@ -1555,50 +1515,6 @@ function switchScreen(id) {
         // Fallback: if period filter returns empty on one device but live tx exists,
         // show latest live tx instead of a false "No activity".
         return filtered.length ? filtered : all;
-    }
-
-    function vc542OpenTx(id) {
-        if (typeof viewTxDetails === 'function') {
-            viewTxDetails(id);
-            return;
-        }
-        const tx = (state.transactions || []).find(t => t.id === id);
-        if (tx) alert(`${tx.id}\n\n${vc542Peso(tx.total)}\n${vc542Label(vc542Kind(tx))}`);
-    }
-
-    function vc542RenderRecentActivities() {
-        const list = document.getElementById('insight-transactions-list');
-        if (!list) return;
-
-        const tx = vc542PeriodTransactionsSafe()
-            .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0))
-            .slice(0,10);
-
-        list.innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities</p>` +
-            (tx.map(t => {
-                const kind = vc542Kind(t);
-                const safeId = String(t.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const time = t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-                return `
-                    <button type="button" class="vc541-tx-card vc541-${kind}" onclick="vc542OpenTx('${safeId}')">
-                        <div class="vc541-tx-left">
-                            <div class="vc541-tx-icon vc541-icon-${kind}">
-                                <span class="material-symbols-outlined">${vc542Icon(kind)}</span>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <p class="vc541-tx-id truncate">${t.id}</p>
-                                    <span class="vc541-tx-badge vc541-badge-${kind}">${vc542Label(kind)}</span>
-                                </div>
-                                <p class="vc541-tx-time">${time}</p>
-                            </div>
-                        </div>
-                        <div class="vc541-tx-right">
-                            <p class="vc541-tx-amount">${vc542Peso(t.total)}</p>
-                            <span class="material-symbols-outlined vc541-chevron">chevron_right</span>
-                        </div>
-                    </button>`;
-            }).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`);
     }
 
     // v5.6.1 Cross-device Business Day Card Fix
@@ -1988,21 +1904,6 @@ function switchScreen(id) {
         );
     }
 
-    function vc560Kind(t) {
-        if (vc560IsSettlement(t)) return 'payment';
-        if (t && vc560Norm(t.type) === 'CR') return 'credit';
-        if (t && vc560Norm(t.type) === 'EX') return 'expense';
-        return 'cash';
-    }
-
-    function vc560Label(kind) {
-        return ({ cash: 'SA', credit: 'CR', payment: 'PAYMENT', expense: 'EX' })[kind] || 'TX';
-    }
-
-    function vc560Icon(kind) {
-        return ({ cash: 'payments', credit: 'schedule', payment: 'task_alt', expense: 'remove_circle' })[kind] || 'receipt_long';
-    }
-
     function vc560PeriodTransactions() {
         try {
             if (typeof vc542PeriodTransactionsSafe === 'function') return vc542PeriodTransactionsSafe();
@@ -2065,9 +1966,6 @@ function switchScreen(id) {
         if (chart && chart.parentElement) chart.parentElement.classList.add('vc560-chart-card');
         const topList = document.getElementById('best-sellers-list');
         if (topList && topList.parentElement) topList.parentElement.classList.add('vc560-top-products-card');
-        const activities = document.getElementById('insight-transactions-list');
-        if (activities) activities.classList.add('vc560-activities-list');
-
         return screen;
     }
 
@@ -2122,42 +2020,11 @@ function switchScreen(id) {
             </div>`).join('');
     }
 
-    function vc560RenderActivities(tx) {
-        const list = document.getElementById('insight-transactions-list');
-        if (!list) return;
-        const recent = (tx || [])
-            .filter(t => t && t.id)
-            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-            .slice(0, 8);
-
-        if (!recent.length) {
-            list.innerHTML = `<div class="vc560-section-title">Recent Activities</div><div class="vc560-empty-state">No activity yet</div>`;
-            return;
-        }
-
-        list.innerHTML = `<div class="vc560-section-title">Recent Activities</div>` + recent.map(t => {
-            const kind = vc560Kind(t);
-            const time = t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-            const safeId = vc560SafeText(t.id);
-            return `
-                <button type="button" class="vc560-activity vc560-${kind}" onclick="typeof vc542OpenTx==='function' ? vc542OpenTx('${safeId}') : (typeof viewTxDetails==='function' && viewTxDetails('${safeId}'))">
-                    <div class="vc560-activity-icon"><span class="material-symbols-outlined">${vc560Icon(kind)}</span></div>
-                    <div class="vc560-activity-main">
-                        <div><strong>${safeId}</strong><span>${vc560Label(kind)}</span></div>
-                        <p>${time}</p>
-                    </div>
-                    <div class="vc560-activity-amount">${vc560Peso(t.total)}</div>
-                    <span class="material-symbols-outlined vc560-chevron">chevron_right</span>
-                </button>`;
-        }).join('');
-    }
-
     function vc560RefreshInsightsUI() {
         if (!vc560EnsureInsightsShell()) return;
         const tx = vc560PeriodTransactions();
         vc560RenderQuickMetrics(tx);
         vc560RenderTopProducts(tx);
-        // Recent Activities is rendered by vc531RenderRecentActivities only.
     }
 
     const vc560OldRenderInsights = typeof renderInsights === 'function' ? renderInsights : null;
@@ -2686,34 +2553,6 @@ document.addEventListener('DOMContentLoaded',()=>{
         };
     }
 })();
-// v7.2.15 Final Insights flicker guard: one owner for Business Day + Recent Activities.
-(function(){
-    if (window.__vc5632gInsightsFlickerGuard) return;
-    window.__vc5632gInsightsFlickerGuard = true;
-
-    function vc5632gIsInsightsVisible() {
-        const screen = document.getElementById('screen-insights');
-        return !!screen && !screen.classList.contains('hidden');
-    }
-
-    if (typeof vc542RenderRecentActivities === 'function') {
-        const oldVc542Recent = vc542RenderRecentActivities;
-        vc542RenderRecentActivities = function() {
-            if (vc5632gIsInsightsVisible() && typeof vc531RenderRecentActivities === 'function') return;
-            return oldVc542Recent.apply(this, arguments);
-        };
-    }
-
-    if (typeof vc560RenderActivities === 'function') {
-        const oldVc560Activities = vc560RenderActivities;
-        vc560RenderActivities = function() {
-            if (vc5632gIsInsightsVisible() && typeof vc531RenderRecentActivities === 'function') return;
-            return oldVc560Activities.apply(this, arguments);
-        };
-    }
-})();
-
-
 // v7.2.15 Insights Business Day card flicker guard.
 // On Insights, vc531RefreshBusinessDayCard is the only writer for the card.
 (function(){

@@ -85,9 +85,6 @@ function renderInsights() {
     document.getElementById('inventory-value').innerText = `₱${state.inventory.reduce((sum, product) => sum + (product.cost * product.stock), 0).toLocaleString()}`;
     document.getElementById('inventory-count').innerText = `${state.inventory.length} items tracking`;
 
-    const recent = periodTransactions.slice(0, 10);
-    document.getElementById('insight-transactions-list').innerHTML = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities</p>` + recent.map(transaction => `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2 hover:shadow-md transition-all"><div><div class="flex items-center gap-2"><p class="font-black text-xs text-primary">${transaction.id}</p><span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-bold ${transaction.type === 'CR' ? 'bg-orange-500 text-white' : transaction.type === 'EX' ? 'bg-error text-white' : 'bg-primary/10 text-primary'}">${(transaction.notes && transaction.notes.includes('CR-')) ? 'SA (SET)' : transaction.type}</span>${isPendingSync('transactions', transaction.id) ? '<span class="text-[7px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase font-bold">Pending</span>' : ''}</div><p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${new Date(transaction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p></div><div class="flex items-center gap-4"><span class="font-black text-sm ${transaction.type === 'EX' ? 'text-error' : 'text-on-surface'}">₱${transaction.total.toLocaleString()}</span><button onclick="viewTxDetails('${transaction.id}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button></div></div>`).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`;
-
     renderSalesChart(periodTransactions);
     renderBestSellers(periodTransactions);
 }
@@ -445,30 +442,6 @@ function vc531RefreshBusinessDayCard() {
     }
 }
 
-function vc531RenderRecentActivities(tx) {
-    const list = document.getElementById('insight-transactions-list');
-    if (!list) return;
-    const recent = vc531CleanTransactions(tx).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0)).slice(0,10);
-    const html = `<p class="text-[10px] font-black uppercase text-primary/60 mb-3 tracking-widest px-1">Recent Period Activities</p>` +
-        (recent.map(t => {
-            const label = vc531IsSettlement(t) ? 'PAYMENT' : t.type;
-            return `<div class="bg-surface border border-border-subtle p-4 rounded-3xl flex justify-between items-center shadow-sm mb-2">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <p class="font-black text-xs text-primary">${t.id}</p>
-                        <span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-bold bg-primary/10 text-primary">${label}</span>
-                    </div>
-                    <p class="text-[10px] text-on-surface-variant font-bold mt-0.5">${t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="font-black text-sm ${t.type === 'EX' ? 'text-error' : 'text-on-surface'}">${vc531Peso(t.total)}</span>
-                    <button onclick="viewTxDetails('${String(t.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" class="w-9 h-9 flex items-center justify-center bg-primary/10 text-primary rounded-xl"><span class="material-symbols-outlined text-[18px]">visibility</span></button>
-                </div>
-            </div>`;
-        }).join('') || `<div class="text-center py-10 opacity-30 font-bold uppercase text-[10px]">No activity</div>`);
-    if (list.innerHTML !== html) list.innerHTML = html;
-}
-
 function vc531RenderTopProducts(tx) {
     const list = document.getElementById('best-sellers-list');
     if (!list) return;
@@ -574,7 +547,6 @@ function vc531RefreshInsights() {
     vc531SetText('inventory-count', `${inv.length} items tracking`);
 
     vc531RefreshBusinessDayCard();
-    vc531RenderRecentActivities(tx);
     vc531RenderTopProducts(tx);
     vc531RenderSalesChart(tx);
 
