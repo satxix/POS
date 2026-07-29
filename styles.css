@@ -4541,6 +4541,28 @@ body {
     color: #FDE68A !important;
 }
 
+/* Branded high-contrast choices for the Marlboro favorite slots. */
+#favorites-grid .favorite-color-marlboro-red {
+    border-color: #7F1D1D;
+    box-shadow: 0 3px 10px rgba(127, 29, 29, .22);
+}
+#favorites-grid .favorite-color-marlboro-red > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color: #FFF7ED !important;
+}
+#favorites-grid .favorite-color-marlboro-red .favorite-product-price {
+    color: #FDE68A !important;
+}
+#favorites-grid .favorite-color-marlboro-gold {
+    border-color: #A16207;
+    box-shadow: 0 3px 10px rgba(161, 98, 7, .18);
+}
+#favorites-grid .favorite-color-marlboro-gold > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color: #1F2937 !important;
+}
+#favorites-grid .favorite-color-marlboro-gold .favorite-product-price {
+    color: #713F12 !important;
+}
+
 /* v8.4.7: tablet-landscape senior compact favorites.
    Preserve six wide touch targets while fitting four readable rows. */
 @media (min-width: 1024px) and (orientation: landscape) {

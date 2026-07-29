@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.4.8';
+    window.VILLACART_APP_VERSION = 'v8.4.9';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -218,6 +218,8 @@
         { name: 'Mauve', value: '#E2C4D4' },
         { name: 'Clay', value: '#E8C7B5' },
         { name: 'Tan', value: '#E6D1B3' },
+        { name: 'Marlboro Red', value: '#B91C1C' },
+        { name: 'Marlboro Gold', value: '#D6B45A' },
         { name: 'Black', value: '#111827' }
     ];
     let favoriteSlotColors = safeLocalJson(FAV_COLOR_KEY, {}, 'favorite colors');

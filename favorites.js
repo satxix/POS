@@ -56,7 +56,11 @@
     }
 
     function favoriteColorClass(index) {
-        return favoriteColorValue(index) === '#111827' ? ' favorite-color-dark' : '';
+        const value = favoriteColorValue(index);
+        if (value === '#111827') return ' favorite-color-dark';
+        if (value === '#B91C1C') return ' favorite-color-marlboro-red';
+        if (value === '#D6B45A') return ' favorite-color-marlboro-gold';
+        return '';
     }
 
     function favoriteSlotControls(index) {
