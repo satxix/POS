@@ -4521,6 +4521,26 @@ body {
     }
 }
 
+/* v8.4.8: keep the default/White favorite surface distinct from the page.
+   Inline custom colors still override this background. */
+#favorites-grid .favorite-product-button {
+    background-color: #EAF1F8;
+    border-color: #CBD5E1;
+}
+
+/* The Black palette keeps product details readable while preserving the
+   stock-status and cart-quantity badge colors. */
+#favorites-grid .favorite-color-dark {
+    border-color: #334155;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, .22);
+}
+#favorites-grid .favorite-color-dark > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color: #F8FAFC !important;
+}
+#favorites-grid .favorite-color-dark .favorite-product-price {
+    color: #FDE68A !important;
+}
+
 /* v8.4.7: tablet-landscape senior compact favorites.
    Preserve six wide touch targets while fitting four readable rows. */
 @media (min-width: 1024px) and (orientation: landscape) {

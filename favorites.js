@@ -55,6 +55,10 @@
         return value ? ` style="background-color: ${value};"` : '';
     }
 
+    function favoriteColorClass(index) {
+        return favoriteColorValue(index) === '#111827' ? ' favorite-color-dark' : '';
+    }
+
     function favoriteSlotControls(index) {
         if (!favoritesEditMode) return '';
         return `${favoriteEditOverlay()}${favoriteColorButton(index)}${favoriteRemoveButton(index)}`;
@@ -94,14 +98,14 @@
     }
 
     function renderFavoriteEmptySlot(index) {
-        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="${favoriteBaseButtonClass('empty')}"${favoriteColorStyle(index)}>
+        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="${favoriteBaseButtonClass('empty')}${favoriteColorClass(index)}"${favoriteColorStyle(index)}>
             <span class="material-symbols-outlined text-[20px] md:text-[28px] text-primary/30 group-hover:text-primary transition-colors">add</span>
             <span class="text-[7px] md:text-[10px] font-black uppercase text-primary/30 group-hover:text-primary transition-colors">Set Slot</span>
         </button>${favoriteSlotControls(index)}`);
     }
 
     function renderFavoriteMissingSlot(index) {
-        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="${favoriteBaseButtonClass('missing')}"${favoriteColorStyle(index)}>
+        return favoriteSlotShell(index, `<button onclick="openFavoritesPicker(${index})" class="${favoriteBaseButtonClass('missing')}${favoriteColorClass(index)}"${favoriteColorStyle(index)}>
             <span class="material-symbols-outlined">error</span>
         </button>${favoriteSlotControls(index)}`);
     }
@@ -134,7 +138,7 @@
     function renderFavoriteProductSlot(fav, index) {
         const product = state.inventory.find(p => p.id === fav.id);
         if (!product) return renderFavoriteMissingSlot(index);
-        return favoriteSlotShell(index, `<button onclick="handleFavoriteClick(${index})" class="${favoriteBaseButtonClass('product')}"${favoriteColorStyle(index)}>
+        return favoriteSlotShell(index, `<button onclick="handleFavoriteClick(${index})" class="${favoriteBaseButtonClass('product')}${favoriteColorClass(index)}"${favoriteColorStyle(index)}>
             ${favoriteProductContent(product)}
         </button>${favoriteSlotControls(index)}`);
     }
@@ -265,7 +269,7 @@
         const current = favoriteColorValue(index);
         list.innerHTML = favoriteColorPalette.map(color => {
             const selected = current === color.value;
-            const swatch = color.value || '#FFFFFF';
+            const swatch = color.value || '#EAF1F8';
             return `<button onclick="setFavoriteColor('${color.value}', ${index})" class="fav-color-chip ${selected ? 'selected' : ''}" style="--fav-chip-color:${swatch}"><span></span><small>${escapeHTML(color.name)}</small></button>`;
         }).join('');
         closeModal('fav-picker-modal');
