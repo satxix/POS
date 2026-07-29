@@ -4520,3 +4520,45 @@ body {
         overscroll-behavior-y: contain;
     }
 }
+
+/* v8.4.7: tablet-landscape senior compact favorites.
+   Preserve six wide touch targets while fitting four readable rows. */
+@media (min-width: 1024px) and (orientation: landscape) {
+    #terminal-products-stack {
+        gap: .5rem;
+    }
+    #terminal-favorites-section {
+        margin-top: .25rem;
+    }
+    #terminal-favorites-section > .flex {
+        margin-bottom: .5rem;
+    }
+    #favorites-grid {
+        gap: .5rem;
+        grid-auto-rows: clamp(112px, calc((100% - 1.5rem) / 4), 124px);
+    }
+    #favorites-grid .favorite-slot {
+        height: 100% !important;
+        min-height: 112px;
+        max-height: 124px;
+    }
+    #favorites-grid .favorite-product-button {
+        padding: .4rem .45rem 1.55rem !important;
+    }
+    #favorites-grid .favorite-product-name {
+        font-size: 15px !important;
+        line-height: 1.05 !important;
+        letter-spacing: -.01em;
+    }
+    #favorites-grid .favorite-product-price {
+        margin-top: .2rem !important;
+        font-size: 19px !important;
+        line-height: 1 !important;
+    }
+    #favorites-grid .favorite-stock-pill {
+        bottom: .35rem !important;
+        padding: .15rem .45rem !important;
+        font-size: 10px !important;
+        line-height: 1.1 !important;
+    }
+}

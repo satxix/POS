@@ -83,7 +83,7 @@
     function favoriteBaseButtonClass(kind) {
         if (kind === 'empty') return 'w-full h-full border-2 border-dashed border-primary/10 rounded-2xl flex flex-col items-center justify-center gap-1 active-scale group hover:border-primary/30 transition-colors';
         if (kind === 'missing') return 'w-full h-full border-2 border-dashed border-error/20 rounded-2xl flex flex-col items-center justify-center text-error/50';
-        return 'relative w-full h-full border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-1.5 pt-2 pb-6 md:px-2 md:pt-3 md:pb-7 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all';
+        return 'favorite-product-button relative w-full h-full border border-border-subtle rounded-2xl flex flex-col items-center justify-center px-1.5 pt-2 pb-6 md:px-2 md:pt-3 md:pb-7 overflow-hidden active-scale shadow-sm hover:shadow-md transition-all';
     }
 
     function favoriteStockClass(product) {
@@ -114,9 +114,9 @@
         const stockCount = Math.max(0, Number(product.stock) || 0);
         const cartQty = favoriteCartQuantity(product.id);
         return `<span class="favorite-cart-qty ${cartQty > 0 && !favoritesEditMode ? '' : 'hidden'} absolute top-1.5 right-1.5 md:top-2 md:right-2 min-w-5 h-5 px-1.5 rounded-full bg-primary text-white text-[8px] md:text-[10px] font-black flex items-center justify-center shadow-md z-10" data-favorite-cart-product="${encodeURIComponent(String(product.id))}">×${cartQty}</span>
-            <span class="text-[9px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
-            <span class="text-[11px] md:text-[16px] font-black text-secondary mt-1 leading-none">${formatCurrency(product.price)}</span>
-            <span class="absolute bottom-1.5 md:bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-1 md:px-2 py-0.5 rounded-full text-[6px] md:text-[8px] font-black uppercase tracking-wide ${favoriteStockClass(product)}">Stock: ${stockCount}</span>`;
+            <span class="favorite-product-name text-[9px] md:text-[13px] font-black text-primary leading-tight line-clamp-2 md:line-clamp-3 text-center uppercase">${escapeHTML(product.name)}</span>
+            <span class="favorite-product-price text-[11px] md:text-[16px] font-black text-secondary mt-1 leading-none">${formatCurrency(product.price)}</span>
+            <span class="favorite-stock-pill absolute bottom-1.5 md:bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-1 md:px-2 py-0.5 rounded-full text-[6px] md:text-[8px] font-black uppercase tracking-wide ${favoriteStockClass(product)}">Stock: ${stockCount}</span>`;
     }
 
     function updateFavoriteCartBadges() {
