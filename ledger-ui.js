@@ -228,9 +228,11 @@
         try { localStorage.setItem(VC5632_COLLAPSE_KEY, JSON.stringify(value || {})); } catch(e) {}
     }
 
-    window.vc5632ToggleLedgerDate = function(key) {
+    window.vc5632ToggleLedgerDate = function(key, currentCollapsed) {
         const collapsed = vc5632LoadCollapsed();
-        collapsed[key] = !collapsed[key];
+        collapsed[key] = typeof currentCollapsed === 'boolean'
+            ? !currentCollapsed
+            : !collapsed[key];
         vc5632SaveCollapsed(collapsed);
         if (typeof renderLedger === 'function') renderLedger();
     };
@@ -275,7 +277,6 @@
                     ledgerDate.dataset.vcUserPickedDate = '1';
                     vc8043ScheduleLedgerRender();
                 };
-                ledgerDate.addEventListener('input', scheduleDateRender);
                 ledgerDate.addEventListener('change', scheduleDateRender);
             }
         }
@@ -345,8 +346,11 @@
         const preview = vc8050TxPreview(t, kind);
         const isSettledCredit = kind === 'credit-settled' || !!(t && t._vcCreditSettled);
         const cardKind = kind === 'credit-settled' ? 'credit' : kind;
+        const legacyTone = isSettledCredit || vc5632IsSettlement(t)
+            ? 'tx-card-settlement'
+            : (cardKind === 'credit' ? 'tx-card-credit' : (cardKind === 'expense' ? 'tx-card-expense' : 'tx-card-cash'));
         const payButton = kind === 'credit' && !isSettledCredit ? '<button type="button" class="vc5632-mini-pay" onclick="payIndividualTicket(\'' + vc5632Js(t.id) + '\')">Pay</button>' : '';
-        return '<article class="vc5629-tx-card vc5629-' + cardKind + (isSettledCredit ? ' vc5632-settled-credit-card' : '') + '">' +
+        return '<article class="vc5629-tx-card vc5629-' + cardKind + ' ' + legacyTone + (isSettledCredit ? ' vc5632-settled-credit-card' : '') + '">' +
             '<div class="vc5629-tx-main"><div class="vc5629-tx-top"><h3>' + vc5632Safe(t.id || 'Transaction') + '</h3><div class="vc5629-pills">' + vc5632Pills(t, kind) + '</div></div>' +
             '<p class="vc5629-time">' + vc5632Safe(vc5632Time(t)) + '</p>' + customer + preview +
             (note ? '<p class="vc5629-meta">' + vc5632Safe(note) + '</p>' : '') + '</div>' +
@@ -370,16 +374,23 @@
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key).push(t);
         });
-        return Array.from(groups.entries()).map(([key, items]) => {
+        const entries = Array.from(groups.entries());
+        const mode = document.getElementById('vc5629-ledger-date')?.value || 'today';
+        const hasSearch = !!String(document.getElementById('vc5629-ledger-search')?.value || '').trim();
+        return entries.map(([key, items], groupIndex) => {
             const total = items.reduce((sum, t) => sum + Number(t.total || 0), 0);
             const collapseKey = (activeLedgerTab || 'cash') + ':' + key;
-            const isCollapsed = !!collapsed[collapseKey];
+            const hasSavedState = Object.prototype.hasOwnProperty.call(collapsed, collapseKey);
+            const isCollapsed = hasSavedState
+                ? !!collapsed[collapseKey]
+                : (mode === 'all' && groupIndex > 0 && !hasSearch);
+            const body = isCollapsed ? '' : items.map(t => vc5632TxCard(t, kind)).join('');
             return '<section class="vc5632-date-group ' + (isCollapsed ? 'collapsed' : '') + '">' +
-                '<button type="button" class="vc5632-date-header" onclick="vc5632ToggleLedgerDate(\'' + vc5632Js(collapseKey) + '\')">' +
+                '<button type="button" class="vc5632-date-header" onclick="vc5632ToggleLedgerDate(\'' + vc5632Js(collapseKey) + '\',' + (isCollapsed ? 'true' : 'false') + ')">' +
                     '<div><span class="material-symbols-outlined">expand_more</span><strong>' + vc5632Safe(vc5632DateLabel(key)) + '</strong><small>' + items.length + ' transaction(s)</small></div>' +
                     '<em>' + vc5632Peso(total) + '</em>' +
                 '</button>' +
-                '<div class="vc5632-date-body">' + items.map(t => vc5632TxCard(t, kind)).join('') + '</div>' +
+                '<div class="vc5632-date-body">' + body + '</div>' +
             '</section>';
         }).join('');
     }
@@ -404,40 +415,49 @@
             if (!dateGroups.has(key)) dateGroups.set(key, []);
             dateGroups.get(key).push(t);
         });
-        return Array.from(dateGroups.entries())
-            .sort((a, b) => String(b[0]).localeCompare(String(a[0])))
-            .map(([dateKey, items]) => {
+        const dateEntries = Array.from(dateGroups.entries())
+            .sort((a, b) => String(b[0]).localeCompare(String(a[0])));
+        const mode = document.getElementById('vc5629-ledger-date')?.value || 'today';
+        const hasSearch = !!String(document.getElementById('vc5629-ledger-search')?.value || '').trim();
+        return dateEntries
+            .map(([dateKey, items], groupIndex) => {
                 const total = items.reduce((sum, t) => sum + Number(t.total || 0), 0);
                 const collapseKey = 'credit-settled:' + dateKey;
-                const isCollapsed = !!collapsed[collapseKey];
+                const hasSavedState = Object.prototype.hasOwnProperty.call(collapsed, collapseKey);
+                const isCollapsed = hasSavedState
+                    ? !!collapsed[collapseKey]
+                    : (mode === 'all' && groupIndex > 0 && !hasSearch);
                 const customers = {};
-                items.forEach(t => {
-                    const raw = String(t.customer || 'Guest').trim() || 'Guest';
-                    const key = raw.toLowerCase();
-                    if (!customers[key]) {
-                        customers[key] = {
-                            rawName: raw,
-                            displayName: typeof titleCase === 'function' ? titleCase(raw) : raw,
-                            items: [],
-                            total: 0
-                        };
-                    }
-                    customers[key].items.push(t);
-                    customers[key].total += Number(t.total || 0);
-                });
-                const body = Object.values(customers)
-                    .sort((a, b) => b.total - a.total || a.displayName.localeCompare(b.displayName))
-                    .map(group => {
-                        return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
-                            '<div class="vc5629-credit-head">' +
-                                '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + ' settled ticket(s)</p></div>' +
-                                '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong></div>' +
-                            '</div>' +
-                            '<div class="vc5629-credit-list">' + group.items.map(t => vc5632TxCard(t, 'credit-settled')).join('') + '</div>' +
-                        '</section>';
-                    }).join('');
+                let body = '';
+                if (!isCollapsed) {
+                    items.forEach(t => {
+                        const raw = String(t.customer || 'Guest').trim() || 'Guest';
+                        const key = raw.toLowerCase();
+                        if (!customers[key]) {
+                            customers[key] = {
+                                rawName: raw,
+                                displayName: typeof titleCase === 'function' ? titleCase(raw) : raw,
+                                items: [],
+                                total: 0
+                            };
+                        }
+                        customers[key].items.push(t);
+                        customers[key].total += Number(t.total || 0);
+                    });
+                    body = Object.values(customers)
+                        .sort((a, b) => b.total - a.total || a.displayName.localeCompare(b.displayName))
+                        .map(group => {
+                            return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
+                                '<div class="vc5629-credit-head">' +
+                                    '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + ' settled ticket(s)</p></div>' +
+                                    '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong></div>' +
+                                '</div>' +
+                                '<div class="vc5629-credit-list">' + group.items.map(t => vc5632TxCard(t, 'credit-settled')).join('') + '</div>' +
+                            '</section>';
+                        }).join('');
+                }
                 return '<section class="vc5632-date-group vc5632-settled-credit-date-group ' + (isCollapsed ? 'collapsed' : '') + '">' +
-                    '<button type="button" class="vc5632-date-header" onclick="vc5632ToggleLedgerDate(\'' + vc5632Js(collapseKey) + '\')">' +
+                    '<button type="button" class="vc5632-date-header" onclick="vc5632ToggleLedgerDate(\'' + vc5632Js(collapseKey) + '\',' + (isCollapsed ? 'true' : 'false') + ')">' +
                         '<div><span class="material-symbols-outlined">expand_more</span><strong>' + vc5632Safe(vc5632DateLabel(dateKey)) + '</strong><small>' + items.length + ' settled ticket(s)</small></div>' +
                         '<em>' + vc5632Peso(total) + '</em>' +
                     '</button>' +

@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.5.2';
+    window.VILLACART_APP_VERSION = 'v8.5.3';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1317,9 +1317,7 @@ function switchScreen(id) {
     if (vcOriginalRenderLedger532 && !window.__vcRenderLedger532Patched) {
         window.__vcRenderLedger532Patched = true;
         renderLedger = function() {
-            const result = vcOriginalRenderLedger532();
-            setTimeout(vc532DecorateTransactionColors, 0);
-            return result;
+            return vcOriginalRenderLedger532();
         };
     }
 
