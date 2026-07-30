@@ -3,6 +3,11 @@
 
     let vc8044ReceiptPrintBusy = false;
     let vc8044ReceiptPrintResetTimer = null;
+    let vc854ReceiptIntentCache = {
+        key: '',
+        url: '',
+        promise: null
+    };
 
     function vc8044SetReceiptPrintBusy(isBusy) {
         vc8044ReceiptPrintBusy = !!isBusy;
@@ -26,12 +31,77 @@
         }, delay);
     }
 
-    async function printWithOpenEscposIntent(receiptText, receiptTitle) {
-        if (!isAndroidRuntime()) return false;
+    function vc854ResetReceiptPrintOnResume() {
+        if (document.visibilityState && document.visibilityState !== 'visible') return;
+        if (vc8044ReceiptPrintResetTimer) {
+            clearTimeout(vc8044ReceiptPrintResetTimer);
+            vc8044ReceiptPrintResetTimer = null;
+        }
+        vc8044SetReceiptPrintBusy(false);
+    }
+
+    document.addEventListener('visibilitychange', vc854ResetReceiptPrintOnResume);
+    window.addEventListener('pageshow', vc854ResetReceiptPrintOnResume);
+
+    function vc854ReceiptIntentKey(receiptText, receiptTitle) {
+        return `${receiptTitle || ''}\u0000${receiptText || ''}`;
+    }
+
+    function vc854BuildReceiptIntentUrl(receiptText, receiptTitle) {
+        const key = vc854ReceiptIntentKey(receiptText, receiptTitle);
+        if (vc854ReceiptIntentCache.key === key) {
+            if (vc854ReceiptIntentCache.url) return Promise.resolve(vc854ReceiptIntentCache.url);
+            if (vc854ReceiptIntentCache.promise) return vc854ReceiptIntentCache.promise;
+        }
+
         const html = buildOpenEscposIntentHtml(receiptText, receiptTitle);
         const payload = JSON.stringify([html]);
-        const encoded = encodeURIComponent(await gzipBase64String(payload));
-        const intentUrl = `intent://#Intent;scheme=print-intent;S.content=${encoded};end`;
+        const promise = gzipBase64String(payload).then(compressed => {
+            const encoded = encodeURIComponent(compressed);
+            // Target the installed Open ESC/POS Print Service directly so Android
+            // does not need to resolve the print-intent handler on every receipt.
+            const url = `intent://#Intent;scheme=print-intent;package=com.farminos.print;S.content=${encoded};end`;
+            if (vc854ReceiptIntentCache.key === key) {
+                vc854ReceiptIntentCache.url = url;
+                vc854ReceiptIntentCache.promise = null;
+            }
+            return url;
+        }).catch(error => {
+            if (vc854ReceiptIntentCache.key === key) {
+                vc854ReceiptIntentCache.url = '';
+                vc854ReceiptIntentCache.promise = null;
+            }
+            throw error;
+        });
+
+        vc854ReceiptIntentCache = { key, url: '', promise };
+        return promise;
+    }
+
+    function vc854GetReceiptPrintData() {
+        const tx = (state.transactions || []).find(t => t.id === lastTransactionId)
+            || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
+        const receiptEl = document.getElementById('receipt-content');
+        if (!tx && !receiptEl) return null;
+        return {
+            tx,
+            receiptText: tx ? buildThermalReceiptText(tx) : receiptEl.innerText,
+            receiptTitle: lastTransactionId ? `Villacart Receipt ${lastTransactionId}` : 'Villacart Receipt'
+        };
+    }
+
+    function vc854PrimeReceiptPrintIntent() {
+        if (!isAndroidRuntime()) return;
+        const printData = vc854GetReceiptPrintData();
+        if (!printData) return;
+        vc854BuildReceiptIntentUrl(printData.receiptText, printData.receiptTitle).catch(error => {
+            console.warn('Receipt print preparation failed:', error);
+        });
+    }
+
+    async function printWithOpenEscposIntent(receiptText, receiptTitle) {
+        if (!isAndroidRuntime()) return false;
+        const intentUrl = await vc854BuildReceiptIntentUrl(receiptText, receiptTitle);
         window.__villacartPrintIntentAt = Date.now();
         if (typeof vcStartupMark === 'function') vcStartupMark('print-intent-opened');
         window.location.href = intentUrl;
@@ -45,15 +115,13 @@
         }
         vc8044SetReceiptPrintBusy(true);
         vc8044ScheduleReceiptPrintReset();
-        const tx = (state.transactions || []).find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
-        const receiptEl = document.getElementById('receipt-content');
-        if (!tx && !receiptEl) {
+        const printData = vc854GetReceiptPrintData();
+        if (!printData) {
             vc8044SetReceiptPrintBusy(false);
             if (typeof showToast === 'function') showToast('Receipt not ready', 'error');
             return;
         }
-        const receiptText = tx ? buildThermalReceiptText(tx) : receiptEl.innerText;
-        const receiptTitle = lastTransactionId ? `Villacart Receipt ${lastTransactionId}` : 'Villacart Receipt';
+        const { receiptText, receiptTitle } = printData;
         try {
             const opened = await printWithOpenEscposIntent(receiptText, receiptTitle);
             if (opened) {
@@ -229,6 +297,9 @@ body {
         const modal = document.getElementById('receipt-modal');
         if (modal) modal.classList.replace('hidden', 'flex');
         resetReceiptModalScroll();
+        // Prepare the compressed direct-print payload while the cashier reviews
+        // the receipt, so tapping Print can hand off to the helper immediately.
+        vc854PrimeReceiptPrintIntent();
     }
 
     function renderReceiptItems(items) {
