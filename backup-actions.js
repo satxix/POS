@@ -46,11 +46,55 @@
         ], limit || 3000);
     }
 
-    async function deleteCloudDocs(table, docs) {
+    // v8.2.11: The delete loop previously had no timeout and no progress
+    // feedback, and ran one document at a time. A single stalled fetch()
+    // (flaky WiFi, etc.) could leave the whole backup stuck on "Preparing"
+    // forever with no error and no way to tell it apart from just being slow.
+    // Fix: wrap every delete in a hard timeout, run several in parallel, and
+    // report progress back to the caller so the button can show real status.
+    function withDeleteTimeout(write, timeoutMs) {
+        const helper = (window.VillacartUtils && window.VillacartUtils.firestoreWriteWithTimeout);
+        if (typeof helper === 'function') return helper(write, timeoutMs);
+        let timeoutId;
+        const timeout = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error('Firestore delete timed out; check your connection and try again.')), timeoutMs || 15000);
+        });
+        return Promise.race([write, timeout]).finally(() => clearTimeout(timeoutId));
+    }
+
+    async function deleteManyCloudDocs(items, onProgress) {
+        // items: [{ table, doc }]
         if (typeof syncTaskWithFirestoreRest !== 'function') throw new Error('Delete helper unavailable.');
-        for (const doc of docs || []) {
-            if (!doc || !doc.id) continue;
-            await syncTaskWithFirestoreRest({ type: 'delete', table, data: { id: doc.id } });
+        const list = (items || []).filter(it => it && it.doc && it.doc.id);
+        const total = list.length;
+        if (!total) return;
+        const CONCURRENCY = 6;
+        let nextIndex = 0;
+        let completed = 0;
+        let firstError = null;
+
+        async function worker() {
+            while (nextIndex < list.length) {
+                if (firstError) return;
+                const item = list[nextIndex++];
+                try {
+                    await withDeleteTimeout(
+                        syncTaskWithFirestoreRest({ type: 'delete', table: item.table, data: { id: item.doc.id } }),
+                        15000
+                    );
+                } catch (error) {
+                    if (!firstError) firstError = error;
+                    return;
+                }
+                completed++;
+                if (typeof onProgress === 'function') onProgress(completed, total);
+            }
+        }
+
+        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
+        if (firstError) {
+            firstError.message = (firstError.message || 'Delete failed') + ` (${completed}/${total} deleted before this error; safe to re-run backup to finish the rest)`;
+            throw firstError;
         }
     }
 
@@ -118,7 +162,7 @@
             const { deletable: deletableTransactions, keep: openCreditTransactions } = splitDeletableTransactions(transactions);
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.2.10',
+                backupVersion: 'v8.2.11',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
@@ -155,9 +199,15 @@
                 if (typeof showToast === 'function') showToast('Backup downloaded; cloud delete skipped', 'info');
                 return;
             }
-            await deleteCloudDocs('transactions', deletableTransactions);
-            await deleteCloudDocs('businessDays', businessDays);
-            await deleteCloudDocs('gcashRecords', gcashRecords);
+            if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Deleting 0/' + (deletableTransactions.length + businessDays.length + gcashRecords.length);
+            const deleteItems = [
+                ...deletableTransactions.map(doc => ({ table: 'transactions', doc })),
+                ...businessDays.map(doc => ({ table: 'businessDays', doc })),
+                ...gcashRecords.map(doc => ({ table: 'gcashRecords', doc }))
+            ];
+            await deleteManyCloudDocs(deleteItems, (done, total) => {
+                if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Deleting ' + done + '/' + total;
+            });
             const deletableIds = new Set(deletableTransactions.map(t => t.id));
             state.transactions = (state.transactions || []).filter(t => !deletableIds.has(t.id));
             state.businessDays = (state.businessDays || []).filter(d => !(String(d.date || '').slice(0, 10) < cutoff));
