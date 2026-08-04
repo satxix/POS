@@ -54,6 +54,39 @@
         }
     }
 
+    // v8.2.10: Never delete unpaid/open credit transactions from Firestore during
+    // archive, even if their businessDate is before the cutoff. A credit sold last
+    // month but not yet paid must stay live so it keeps showing in the Ledger's
+    // Credit tab. Uses the same settlement logic the Ledger uses (VillacartCreditUtils)
+    // so "paid" is determined consistently across the app.
+    function splitDeletableTransactions(oldTransactions) {
+        const utils = window.VillacartCreditUtils;
+        if (!utils || typeof utils.creditStateIndex !== 'function') {
+            // Utils unavailable: fail safe by keeping ALL credit transactions in the
+            // cloud rather than risk deleting an unpaid one.
+            const deletable = (oldTransactions || []).filter(t => String(t && t.type || '').toUpperCase() !== 'CR');
+            const keep = (oldTransactions || []).filter(t => String(t && t.type || '').toUpperCase() === 'CR');
+            return { deletable, keep };
+        }
+        // Combine with current live transactions so settlements made THIS month
+        // (which won't appear in the "old" query results) are still visible when
+        // checking whether an old credit has since been paid.
+        const liveTx = Array.isArray(state.transactions) ? state.transactions : [];
+        const combined = (oldTransactions || []).concat(liveTx);
+        const index = utils.creditStateIndex(combined);
+        const deletable = [];
+        const keep = [];
+        (oldTransactions || []).forEach(tx => {
+            const isCredit = utils.norm(tx && tx.type) === 'CR' && !utils.isCreditSettlement(tx);
+            if (isCredit && !index.isCreditSettled(tx)) {
+                keep.push(tx);
+            } else {
+                deletable.push(tx);
+            }
+        });
+        return { deletable, keep };
+    }
+
 
     // v8.2.9: Archive safety UI moved to business-ui.js. Backup/load actions live here.
     async function backupOldCalendarData() {
@@ -82,15 +115,18 @@
                 if (typeof showToast === 'function') showToast('No old records before this month', 'info');
                 return;
             }
+            const { deletable: deletableTransactions, keep: openCreditTransactions } = splitDeletableTransactions(transactions);
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.2.9',
+                backupVersion: 'v8.2.10',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
                 createdAt: new Date().toISOString(),
-                note: 'Inventory is intentionally not included. Loaded backups are local archive-only and must not sync to Firestore.',
-                transactions,
+                note: 'Inventory is intentionally not included. Loaded backups are local archive-only and must not sync to Firestore. Unpaid/open credit transactions are included here for reference but are kept live in Firestore, not deleted.',
+                transactions: transactions.map(t => (
+                    openCreditTransactions.includes(t) ? { ...t, _openCreditKeptInCloud: true } : t
+                )),
                 businessDays,
                 gcashRecords
             };
@@ -102,24 +138,38 @@
                 lastExportFile: 'Villacart_Archive_before_' + fileMonth + '.json',
                 lastExportTransactions: transactions.length,
                 lastExportBusinessDays: businessDays.length,
-                lastExportGcashRecords: gcashRecords.length
+                lastExportGcashRecords: gcashRecords.length,
+                lastExportOpenCreditsKept: openCreditTransactions.length
             });
-            const ok = confirm('Backup file downloaded for records before ' + cutoff + '.\n\nDelete these old transactions/business days from Firestore now?\n\nChoose Cancel if you want to verify the file first.');
+            if (!deletableTransactions.length && !businessDays.length && !gcashRecords.length) {
+                if (typeof showToast === 'function') {
+                    showToast('Backup downloaded. All ' + openCreditTransactions.length + ' old record(s) are unpaid credits, so nothing was deleted from Firestore.', 'info');
+                }
+                return;
+            }
+            const creditNote = openCreditTransactions.length
+                ? ('\n\n' + openCreditTransactions.length + ' unpaid credit transaction(s) will be KEPT in Firestore (not deleted) so they stay collectible in the Ledger.')
+                : '';
+            const ok = confirm('Backup file downloaded for records before ' + cutoff + '.\n\nDelete these old transactions/business days from Firestore now?' + creditNote + '\n\nChoose Cancel if you want to verify the file first.');
             if (!ok) {
                 if (typeof showToast === 'function') showToast('Backup downloaded; cloud delete skipped', 'info');
                 return;
             }
-            await deleteCloudDocs('transactions', transactions);
+            await deleteCloudDocs('transactions', deletableTransactions);
             await deleteCloudDocs('businessDays', businessDays);
             await deleteCloudDocs('gcashRecords', gcashRecords);
-            state.transactions = (state.transactions || []).filter(t => !(txDate(t) && txDate(t) < cutoff));
+            const deletableIds = new Set(deletableTransactions.map(t => t.id));
+            state.transactions = (state.transactions || []).filter(t => !deletableIds.has(t.id));
             state.businessDays = (state.businessDays || []).filter(d => !(String(d.date || '').slice(0, 10) < cutoff));
             state.gcashRecords = (state.gcashRecords || []).filter(r => !(String(r.businessDate || '').slice(0, 10) < cutoff));
             if (typeof sync === 'function') sync();
             if (typeof renderLedger === 'function') renderLedger();
             if (typeof renderInsights === 'function') renderInsights();
             if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
-            if (typeof showToast === 'function') showToast('Old cloud records archived/deleted', 'success');
+            const successMsg = openCreditTransactions.length
+                ? ('Old cloud records deleted. ' + openCreditTransactions.length + ' unpaid credit(s) kept in Firestore.')
+                : 'Old cloud records archived/deleted';
+            if (typeof showToast === 'function') showToast(successMsg, 'success');
         } catch (error) {
             console.error('Backup/archive failed', error);
             if (typeof showToast === 'function') showToast('Backup failed: ' + (error.message || error), 'error');
