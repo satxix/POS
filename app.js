@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.5.7';
+    window.VILLACART_APP_VERSION = 'v8.5.8';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1491,7 +1491,22 @@ function switchScreen(id) {
     function vc542AllLiveTransactions() {
         // Ledger already trusts state.transactions after Firestore snapshot.
         // Do not let stale per-device deleted cache hide fresh cloud transactions in Insights.
-        return (state.transactions || []).filter(t => t && t.id && t.timestamp);
+        //
+        // v8.2.11: This function is what actually drives Insights' day/month/range
+        // totals (see vc560PeriodTransactions, which prefers this over the
+        // archive-aware getPeriodTransactions in insights-base.js). It only ever
+        // read state.transactions, so once old months were archived+deleted from
+        // Firestore, Insights ranges covering those months went empty even though
+        // the Business Calendar (and a loaded backup) still had the data. Merge in
+        // state.archiveTransactions here too so Insights stays consistent with the
+        // calendar view. Live data still wins on id collisions.
+        const live = (state.transactions || []).filter(t => t && t.id && t.timestamp);
+        const archive = Array.isArray(state.archiveTransactions) ? state.archiveTransactions : [];
+        if (!archive.length) return live;
+        const byId = new Map();
+        archive.forEach(t => { if (t && t.id && t.timestamp) byId.set(t.id, { ...t, _fromArchive: true }); });
+        live.forEach(t => byId.set(t.id, t));
+        return Array.from(byId.values());
     }
 
     function vc542PeriodTransactionsSafe() {
