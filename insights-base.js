@@ -210,26 +210,8 @@ function vc531CleanTransactions(tx = state.transactions || []) {
     return (tx || []).filter(t => t && t.id && !deleted.has(t.id));
 }
 
-// v8.2.11: vc531PeriodTransactions/vc531OutstandingCredit are the functions
-// that actually drive the visible Total Sales/Cash Received/Credit Sales/
-// Outstanding Credit cards (via vc531RefreshInsights). They only ever read
-// state.transactions, so once old months were archived+deleted from
-// Firestore, a Range covering those months came back empty even with a
-// backup loaded. Merge in state.archiveTransactions here (live wins on id
-// collisions) so these cards match the Business Calendar and stay correct
-// after a backup is loaded.
-function vc531TransactionsWithArchive() {
-    const live = vc531CleanTransactions(state.transactions || []);
-    const archive = Array.isArray(state.archiveTransactions) ? state.archiveTransactions : [];
-    if (!archive.length) return live;
-    const byId = new Map();
-    archive.forEach(t => { if (t && t.id) byId.set(t.id, { ...t, _fromArchive: true }); });
-    live.forEach(t => byId.set(t.id, t));
-    return Array.from(byId.values());
-}
-
 function vc531PeriodTransactions() {
-    const all = vc531CleanTransactions(vc531TransactionsWithArchive());
+    const all = vc531CleanTransactions(state.transactions || []);
     const now = new Date();
 
     if (typeof insightPeriod === 'undefined' || insightPeriod === 'day') {
@@ -301,7 +283,7 @@ function vc531Metrics(tx) {
 }
 
 function vc531OutstandingCredit() {
-    const tx = vc531CleanTransactions(vc531TransactionsWithArchive());
+    const tx = vc531CleanTransactions(state.transactions || []);
     const settlements = tx.filter(t => vc531IsSettlement(t));
     const credits = tx.filter(t => t && t.type === 'CR' && !vc531IsSettlement(t));
     let total = 0;

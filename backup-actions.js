@@ -46,89 +46,12 @@
         ], limit || 3000);
     }
 
-    // v8.2.11: The delete loop previously had no timeout and no progress
-    // feedback, and ran one document at a time. A single stalled fetch()
-    // (flaky WiFi, etc.) could leave the whole backup stuck on "Preparing"
-    // forever with no error and no way to tell it apart from just being slow.
-    // Fix: wrap every delete in a hard timeout, run several in parallel, and
-    // report progress back to the caller so the button can show real status.
-    function withDeleteTimeout(write, timeoutMs) {
-        const helper = (window.VillacartUtils && window.VillacartUtils.firestoreWriteWithTimeout);
-        if (typeof helper === 'function') return helper(write, timeoutMs);
-        let timeoutId;
-        const timeout = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error('Firestore delete timed out; check your connection and try again.')), timeoutMs || 15000);
-        });
-        return Promise.race([write, timeout]).finally(() => clearTimeout(timeoutId));
-    }
-
-    async function deleteManyCloudDocs(items, onProgress) {
-        // items: [{ table, doc }]
+    async function deleteCloudDocs(table, docs) {
         if (typeof syncTaskWithFirestoreRest !== 'function') throw new Error('Delete helper unavailable.');
-        const list = (items || []).filter(it => it && it.doc && it.doc.id);
-        const total = list.length;
-        if (!total) return;
-        const CONCURRENCY = 6;
-        let nextIndex = 0;
-        let completed = 0;
-        let firstError = null;
-
-        async function worker() {
-            while (nextIndex < list.length) {
-                if (firstError) return;
-                const item = list[nextIndex++];
-                try {
-                    await withDeleteTimeout(
-                        syncTaskWithFirestoreRest({ type: 'delete', table: item.table, data: { id: item.doc.id } }),
-                        15000
-                    );
-                } catch (error) {
-                    if (!firstError) firstError = error;
-                    return;
-                }
-                completed++;
-                if (typeof onProgress === 'function') onProgress(completed, total);
-            }
+        for (const doc of docs || []) {
+            if (!doc || !doc.id) continue;
+            await syncTaskWithFirestoreRest({ type: 'delete', table, data: { id: doc.id } });
         }
-
-        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
-        if (firstError) {
-            firstError.message = (firstError.message || 'Delete failed') + ` (${completed}/${total} deleted before this error; safe to re-run backup to finish the rest)`;
-            throw firstError;
-        }
-    }
-
-    // v8.2.10: Never delete unpaid/open credit transactions from Firestore during
-    // archive, even if their businessDate is before the cutoff. A credit sold last
-    // month but not yet paid must stay live so it keeps showing in the Ledger's
-    // Credit tab. Uses the same settlement logic the Ledger uses (VillacartCreditUtils)
-    // so "paid" is determined consistently across the app.
-    function splitDeletableTransactions(oldTransactions) {
-        const utils = window.VillacartCreditUtils;
-        if (!utils || typeof utils.creditStateIndex !== 'function') {
-            // Utils unavailable: fail safe by keeping ALL credit transactions in the
-            // cloud rather than risk deleting an unpaid one.
-            const deletable = (oldTransactions || []).filter(t => String(t && t.type || '').toUpperCase() !== 'CR');
-            const keep = (oldTransactions || []).filter(t => String(t && t.type || '').toUpperCase() === 'CR');
-            return { deletable, keep };
-        }
-        // Combine with current live transactions so settlements made THIS month
-        // (which won't appear in the "old" query results) are still visible when
-        // checking whether an old credit has since been paid.
-        const liveTx = Array.isArray(state.transactions) ? state.transactions : [];
-        const combined = (oldTransactions || []).concat(liveTx);
-        const index = utils.creditStateIndex(combined);
-        const deletable = [];
-        const keep = [];
-        (oldTransactions || []).forEach(tx => {
-            const isCredit = utils.norm(tx && tx.type) === 'CR' && !utils.isCreditSettlement(tx);
-            if (isCredit && !index.isCreditSettled(tx)) {
-                keep.push(tx);
-            } else {
-                deletable.push(tx);
-            }
-        });
-        return { deletable, keep };
     }
 
 
@@ -159,18 +82,15 @@
                 if (typeof showToast === 'function') showToast('No old records before this month', 'info');
                 return;
             }
-            const { deletable: deletableTransactions, keep: openCreditTransactions } = splitDeletableTransactions(transactions);
             const payload = {
                 app: 'Villacart POS',
-                backupVersion: 'v8.2.11',
+                backupVersion: 'v8.2.9',
                 environment: window.VILLACART_ENV || 'live',
                 firebaseProjectId: window.VILLACART_FIREBASE_PROJECT || null,
                 archiveBefore: cutoff,
                 createdAt: new Date().toISOString(),
-                note: 'Inventory is intentionally not included. Loaded backups are local archive-only and must not sync to Firestore. Unpaid/open credit transactions are included here for reference but are kept live in Firestore, not deleted.',
-                transactions: transactions.map(t => (
-                    openCreditTransactions.includes(t) ? { ...t, _openCreditKeptInCloud: true } : t
-                )),
+                note: 'Inventory is intentionally not included. Loaded backups are local archive-only and must not sync to Firestore.',
+                transactions,
                 businessDays,
                 gcashRecords
             };
@@ -182,45 +102,24 @@
                 lastExportFile: 'Villacart_Archive_before_' + fileMonth + '.json',
                 lastExportTransactions: transactions.length,
                 lastExportBusinessDays: businessDays.length,
-                lastExportGcashRecords: gcashRecords.length,
-                lastExportOpenCreditsKept: openCreditTransactions.length
+                lastExportGcashRecords: gcashRecords.length
             });
-            if (!deletableTransactions.length && !businessDays.length && !gcashRecords.length) {
-                if (typeof showToast === 'function') {
-                    showToast('Backup downloaded. All ' + openCreditTransactions.length + ' old record(s) are unpaid credits, so nothing was deleted from Firestore.', 'info');
-                }
-                return;
-            }
-            const creditNote = openCreditTransactions.length
-                ? ('\n\n' + openCreditTransactions.length + ' unpaid credit transaction(s) will be KEPT in Firestore (not deleted) so they stay collectible in the Ledger.')
-                : '';
-            const confirmFn = typeof vcConfirm === 'function' ? vcConfirm : (msg) => Promise.resolve(confirm(msg));
-            const ok = await confirmFn('Backup file downloaded for records before ' + cutoff + '.\n\nDelete these old transactions/business days from Firestore now?' + creditNote + '\n\nChoose Cancel if you want to verify the file first.', 'Delete Old Records?');
+            const ok = confirm('Backup file downloaded for records before ' + cutoff + '.\n\nDelete these old transactions/business days from Firestore now?\n\nChoose Cancel if you want to verify the file first.');
             if (!ok) {
                 if (typeof showToast === 'function') showToast('Backup downloaded; cloud delete skipped', 'info');
                 return;
             }
-            if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Deleting 0/' + (deletableTransactions.length + businessDays.length + gcashRecords.length);
-            const deleteItems = [
-                ...deletableTransactions.map(doc => ({ table: 'transactions', doc })),
-                ...businessDays.map(doc => ({ table: 'businessDays', doc })),
-                ...gcashRecords.map(doc => ({ table: 'gcashRecords', doc }))
-            ];
-            await deleteManyCloudDocs(deleteItems, (done, total) => {
-                if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Deleting ' + done + '/' + total;
-            });
-            const deletableIds = new Set(deletableTransactions.map(t => t.id));
-            state.transactions = (state.transactions || []).filter(t => !deletableIds.has(t.id));
+            await deleteCloudDocs('transactions', transactions);
+            await deleteCloudDocs('businessDays', businessDays);
+            await deleteCloudDocs('gcashRecords', gcashRecords);
+            state.transactions = (state.transactions || []).filter(t => !(txDate(t) && txDate(t) < cutoff));
             state.businessDays = (state.businessDays || []).filter(d => !(String(d.date || '').slice(0, 10) < cutoff));
             state.gcashRecords = (state.gcashRecords || []).filter(r => !(String(r.businessDate || '').slice(0, 10) < cutoff));
             if (typeof sync === 'function') sync();
             if (typeof renderLedger === 'function') renderLedger();
             if (typeof renderInsights === 'function') renderInsights();
             if (typeof renderBusinessCalendar === 'function') renderBusinessCalendar();
-            const successMsg = openCreditTransactions.length
-                ? ('Old cloud records deleted. ' + openCreditTransactions.length + ' unpaid credit(s) kept in Firestore.')
-                : 'Old cloud records archived/deleted';
-            if (typeof showToast === 'function') showToast(successMsg, 'success');
+            if (typeof showToast === 'function') showToast('Old cloud records archived/deleted', 'success');
         } catch (error) {
             console.error('Backup/archive failed', error);
             if (typeof showToast === 'function') showToast('Backup failed: ' + (error.message || error), 'error');
@@ -270,7 +169,7 @@
     }
 
 
-    async function clearLoadedArchiveData() {
+    function clearLoadedArchiveData() {
         const txCount = Array.isArray(state.archiveTransactions) ? state.archiveTransactions.length : 0;
         const dayCount = Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays.length : 0;
         const gcashCount = Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords.length : 0;
@@ -278,8 +177,7 @@
             if (typeof showToast === 'function') showToast('No loaded backup data to delete', 'info');
             return;
         }
-        const confirmFn = typeof vcConfirm === 'function' ? vcConfirm : (msg) => Promise.resolve(confirm(msg));
-        const ok = await confirmFn('Delete loaded backup/archive data from this device only?\n\nThis will NOT delete Firestore data and will NOT delete your original JSON backup files.', 'Clear Loaded Backup?');
+        const ok = confirm('Delete loaded backup/archive data from this device only?\n\nThis will NOT delete Firestore data and will NOT delete your original JSON backup files.');
         if (!ok) return;
         state.archiveTransactions = [];
         state.archiveBusinessDays = [];

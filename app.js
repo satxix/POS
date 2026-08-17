@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.6.1';
+    window.VILLACART_APP_VERSION = 'v8.5.4';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1384,24 +1384,6 @@ function switchScreen(id) {
         el.innerText = vc541BusinessDate().toLocaleDateString(undefined, {month:'long', year:'numeric'});
     }
 
-    function vc541MergedMonthTx(year, month) {
-        // v8.2.11: The calendar previously only ever read state.transactions
-        // (live Firestore data), so loading a backup file never made archived
-        // days show up here — only Insights read state.archiveTransactions.
-        // Merge live + loaded-archive here (live wins on id collisions) so a
-        // loaded backup actually populates the calendar again.
-        const liveList = vc541Clean(state.transactions || []);
-        const archiveList = Array.isArray(state.archiveTransactions) ? state.archiveTransactions : [];
-        const byId = new Map();
-        archiveList.forEach(t => { if (t && t.id) byId.set(t.id, { ...t, _fromArchive: true }); });
-        liveList.forEach(t => { if (t && t.id) byId.set(t.id, t); });
-        return Array.from(byId.values()).filter(t => {
-            const d = t.businessDate || (t.timestamp ? vc541DateCode(t.timestamp) : '');
-            const dt = new Date(d + 'T00:00:00');
-            return dt.getFullYear() === year && dt.getMonth() === month;
-        });
-    }
-
     function vc541RenderBusinessGrid() {
         const grid = document.getElementById('business-calendar-grid');
         if (!grid) return;
@@ -1410,14 +1392,17 @@ function switchScreen(id) {
         const month = current.getMonth();
         const today = vc541DateCode(new Date());
 
-        const tx = vc541MergedMonthTx(year, month);
+        const tx = vc541Clean(state.transactions || []).filter(t => {
+            const d = t.businessDate || (t.timestamp ? vc541DateCode(t.timestamp) : '');
+            const dt = new Date(d + 'T00:00:00');
+            return dt.getFullYear() === year && dt.getMonth() === month;
+        });
 
         const byDate = {};
         tx.forEach(t => {
             const d = t.businessDate || (t.timestamp ? vc541DateCode(t.timestamp) : '');
-            if (!byDate[d]) byDate[d] = { sales: 0, tx: 0, archiveOnly: true };
+            if (!byDate[d]) byDate[d] = { sales: 0, tx: 0 };
             byDate[d].tx++;
-            if (!t._fromArchive) byDate[d].archiveOnly = false;
             if ((t.type === 'SA' || t.type === 'CR') && !vc541IsSettlement(t)) byDate[d].sales += Number(t.total)||0;
         });
 
@@ -1429,10 +1414,10 @@ function switchScreen(id) {
             const d = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
             const rec = byDate[d];
             if (rec) {
-                cells.push(`<button class="business-day-tile has-day ${d === today ? 'today' : ''} ${rec.archiveOnly ? 'archived-day' : ''}" onclick="typeof openBusinessDayDetail==='function' && openBusinessDayDetail('BD-${d.replaceAll('-', '')}')">
+                cells.push(`<button class="business-day-tile has-day ${d === today ? 'today' : ''}" onclick="typeof openBusinessDayDetail==='function' && openBusinessDayDetail('BD-${d.replaceAll('-', '')}')">
                     <span class="business-day-number">${day}</span>
                     <span class="business-day-sales">${vc541Peso(rec.sales).replace('.00','')}</span>
-                    <span class="business-day-meta">${rec.tx} tx${rec.archiveOnly ? ' · archived' : ''}</span>
+                    <span class="business-day-meta">${rec.tx} tx</span>
                 </button>`);
             } else {
                 cells.push(`<button class="business-day-tile ${d === today ? 'today' : ''}" onclick="typeof openEmptyBusinessDay==='function' && openEmptyBusinessDay('${d}')">
@@ -1491,22 +1476,7 @@ function switchScreen(id) {
     function vc542AllLiveTransactions() {
         // Ledger already trusts state.transactions after Firestore snapshot.
         // Do not let stale per-device deleted cache hide fresh cloud transactions in Insights.
-        //
-        // v8.2.11: This function is what actually drives Insights' day/month/range
-        // totals (see vc560PeriodTransactions, which prefers this over the
-        // archive-aware getPeriodTransactions in insights-base.js). It only ever
-        // read state.transactions, so once old months were archived+deleted from
-        // Firestore, Insights ranges covering those months went empty even though
-        // the Business Calendar (and a loaded backup) still had the data. Merge in
-        // state.archiveTransactions here too so Insights stays consistent with the
-        // calendar view. Live data still wins on id collisions.
-        const live = (state.transactions || []).filter(t => t && t.id && t.timestamp);
-        const archive = Array.isArray(state.archiveTransactions) ? state.archiveTransactions : [];
-        if (!archive.length) return live;
-        const byId = new Map();
-        archive.forEach(t => { if (t && t.id && t.timestamp) byId.set(t.id, { ...t, _fromArchive: true }); });
-        live.forEach(t => byId.set(t.id, t));
-        return Array.from(byId.values());
+        return (state.transactions || []).filter(t => t && t.id && t.timestamp);
     }
 
     function vc542PeriodTransactionsSafe() {
