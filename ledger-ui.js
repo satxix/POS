@@ -490,13 +490,18 @@
         return Object.values(groups)
             .sort((a, b) => b.total - a.total || a.displayName.localeCompare(b.displayName))
             .map(group => {
+                // v8.3.27: Pass the exact ticket IDs currently shown for this
+                // customer (already date/search-filtered) so payFullBalance
+                // settles exactly what's on screen, never a hidden superset
+                // from other dates.
+                const idsCsv = group.items.map(t => t.id).join(',');
                 return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
                     '<div class="vc5629-credit-head">' +
                         '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + (isSettledView ? ' settled ticket(s)' : ' pending ticket(s)') + '</p></div>' +
                         '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong>' +
-                        (isSettledView ? '' : '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button>') + '</div>' +
+                        (isSettledView ? '' : '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\',\'' + vc5632Js(idsCsv) + '\')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button>') + '</div>' +
                     '</div>' +
-                    (isSettledView ? '' : '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>') +
+                    (isSettledView ? '' : '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\',\'' + vc5632Js(idsCsv) + '\')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>') +
                     '<div class="vc5629-credit-list">' +
                         group.items.map(t => vc5632TxCard(t, isSettledView ? 'credit-settled' : 'credit')).join('') +
                     '</div>' +

@@ -217,15 +217,31 @@ async function payIndividualTicket(id) {
   renderLedger();
 }
 
-async function payFullBalance(customerName) {
+async function payFullBalance(customerName, ticketIdsCsv) {
   const normalizedName = customerName.trim().toLowerCase();
+  // v8.3.27: The Ledger's Credit tab defaults to a "Today only" date filter,
+  // so the card a cashier sees may only represent a subset of that
+  // customer's unpaid tickets. This function used to re-scan ALL unpaid
+  // credit transactions for the customer regardless of date, so tapping
+  // "Pay Full Balance" could silently pull in older tickets never shown on
+  // screen — the confirm total wouldn't match what was displayed, and if
+  // the cashier cancelled in surprise, no payment or receipt happened at
+  // all. When the caller passes the exact ticket IDs currently on screen
+  // (ledger-ui.js does this now), only settle those — WYSIWYG. Falls back
+  // to the old customer-wide behavior only if no explicit IDs are given.
+  const explicitIds = typeof ticketIdsCsv === 'string' && ticketIdsCsv
+    ? new Set(ticketIdsCsv.split(',').map(id => id.trim()).filter(Boolean))
+    : null;
   const credits = state.transactions.filter(transaction => transaction.type === 'CR'
     && transaction.customer
     && transaction.customer.trim().toLowerCase() === normalizedName
-    && !transaction.paid);
+    && !transaction.paid
+    && (!explicitIds || explicitIds.has(transaction.id)));
   if (credits.length === 0) return;
   const totalToPay = credits.reduce((sum, transaction) => sum + transaction.total, 0);
-  if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()}?`)) return;
+  const confirmFn = typeof vcConfirm === 'function' ? vcConfirm : (msg) => Promise.resolve(confirm(msg));
+  const confirmed = await confirmFn(`Collect full payment of ₱${totalToPay.toLocaleString()}?`, 'Confirm Payment');
+  if (!confirmed) return;
   const aggregatedItems = {};
   for (const ticket of credits) {
     if (ticket.items && Array.isArray(ticket.items)) {

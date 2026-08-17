@@ -194,7 +194,8 @@
             const creditNote = openCreditTransactions.length
                 ? ('\n\n' + openCreditTransactions.length + ' unpaid credit transaction(s) will be KEPT in Firestore (not deleted) so they stay collectible in the Ledger.')
                 : '';
-            const ok = confirm('Backup file downloaded for records before ' + cutoff + '.\n\nDelete these old transactions/business days from Firestore now?' + creditNote + '\n\nChoose Cancel if you want to verify the file first.');
+            const confirmFn = typeof vcConfirm === 'function' ? vcConfirm : (msg) => Promise.resolve(confirm(msg));
+            const ok = await confirmFn('Backup file downloaded for records before ' + cutoff + '.\n\nDelete these old transactions/business days from Firestore now?' + creditNote + '\n\nChoose Cancel if you want to verify the file first.', 'Delete Old Records?');
             if (!ok) {
                 if (typeof showToast === 'function') showToast('Backup downloaded; cloud delete skipped', 'info');
                 return;
@@ -269,7 +270,7 @@
     }
 
 
-    function clearLoadedArchiveData() {
+    async function clearLoadedArchiveData() {
         const txCount = Array.isArray(state.archiveTransactions) ? state.archiveTransactions.length : 0;
         const dayCount = Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays.length : 0;
         const gcashCount = Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords.length : 0;
@@ -277,7 +278,8 @@
             if (typeof showToast === 'function') showToast('No loaded backup data to delete', 'info');
             return;
         }
-        const ok = confirm('Delete loaded backup/archive data from this device only?\n\nThis will NOT delete Firestore data and will NOT delete your original JSON backup files.');
+        const confirmFn = typeof vcConfirm === 'function' ? vcConfirm : (msg) => Promise.resolve(confirm(msg));
+        const ok = await confirmFn('Delete loaded backup/archive data from this device only?\n\nThis will NOT delete Firestore data and will NOT delete your original JSON backup files.', 'Clear Loaded Backup?');
         if (!ok) return;
         state.archiveTransactions = [];
         state.archiveBusinessDays = [];
