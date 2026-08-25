@@ -1,5 +1,6 @@
 // --- Villacart Receipt UI module ---
 // v8.1.1: Extracted from app.js. Print behavior is intentionally unchanged.
+// v8.7.8: Share Image captures the full natural height of long receipts.
 
     let vc8044ReceiptPrintBusy = false;
     let vc8044ReceiptPrintResetTimer = null;
@@ -269,6 +270,64 @@ body {
         }, 350);
     }
 
+    function vc878ReceiptImageOptions(receiptEl) {
+        const rect = receiptEl.getBoundingClientRect();
+        const width = Math.max(1, Math.ceil(Math.max(rect.width || 0, receiptEl.scrollWidth || 0)));
+        const height = Math.max(1, Math.ceil(Math.max(rect.height || 0, receiptEl.scrollHeight || 0)));
+        const desiredScale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+        // Keep the complete receipt inside conservative Android/Chrome canvas
+        // limits. Ordinary receipts remain at 2x; very long settlements are
+        // scaled only as much as needed instead of being cropped.
+        const maxCanvasHeight = 15000;
+        const maxCanvasPixels = 24000000;
+        const heightSafeScale = maxCanvasHeight / height;
+        const pixelSafeScale = Math.sqrt(maxCanvasPixels / (width * height));
+        const scale = Math.max(0.1, Math.min(desiredScale, heightSafeScale, pixelSafeScale));
+
+        return {
+            scale,
+            width,
+            height,
+            windowWidth: Math.max(width, document.documentElement.clientWidth || width),
+            windowHeight: Math.max(height, document.documentElement.clientHeight || height),
+            scrollX: 0,
+            scrollY: 0,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            logging: false,
+            onclone(clonedDocument) {
+                const clonedReceipt = clonedDocument.getElementById('receipt-content');
+                if (!clonedReceipt) return;
+                const receiptShell = clonedReceipt.parentElement;
+                const receiptModal = clonedDocument.getElementById('receipt-modal');
+                [receiptShell, receiptModal].filter(Boolean).forEach(container => {
+                    container.style.setProperty('height', 'auto', 'important');
+                    container.style.setProperty('max-height', 'none', 'important');
+                    container.style.setProperty('overflow', 'visible', 'important');
+                });
+                if (receiptShell) {
+                    receiptShell.style.setProperty('display', 'block', 'important');
+                    receiptShell.style.setProperty('width', `${width}px`, 'important');
+                    receiptShell.style.setProperty('max-width', `${width}px`, 'important');
+                    receiptShell.style.setProperty('padding', '0', 'important');
+                    receiptShell.style.setProperty('margin', '0', 'important');
+                }
+                clonedReceipt.scrollTop = 0;
+                clonedReceipt.scrollLeft = 0;
+                clonedReceipt.style.setProperty('display', 'block', 'important');
+                clonedReceipt.style.setProperty('position', 'static', 'important');
+                clonedReceipt.style.setProperty('flex', 'none', 'important');
+                clonedReceipt.style.setProperty('width', `${width}px`, 'important');
+                clonedReceipt.style.setProperty('min-height', '0', 'important');
+                clonedReceipt.style.setProperty('height', 'auto', 'important');
+                clonedReceipt.style.setProperty('max-height', 'none', 'important');
+                clonedReceipt.style.setProperty('overflow', 'visible', 'important');
+                clonedReceipt.style.setProperty('overflow-y', 'visible', 'important');
+                clonedReceipt.style.setProperty('background', '#ffffff', 'important');
+            }
+        };
+    }
+
     async function shareReceipt() {
         const tx = state.transactions.find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
         if (!tx) { showToast('Receipt not found', 'error'); return; }
@@ -283,12 +342,7 @@ body {
         try {
             await ensureHtml2CanvasLoaded();
             if (typeof html2canvas !== 'function') throw new Error('Image tool not loaded.');
-            const canvas = await html2canvas(receiptEl, {
-                scale: Math.min(2, window.devicePixelRatio || 2),
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                logging: false
-            });
+            const canvas = await html2canvas(receiptEl, vc878ReceiptImageOptions(receiptEl));
             const blob = await canvasToPngBlob(canvas);
             const fileName = `Villacart_Receipt_${tx.id}.png`;
             const canShareFile = typeof File === 'function' && navigator.share && navigator.canShare;
