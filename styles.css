@@ -2691,6 +2691,37 @@
             .vc558-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
         }
 
+        /* v8.8.1 read-only local data integrity report. */
+        .vc881-integrity-report {
+            margin-top: 14px;
+            border: 1px solid #dbe4ef;
+            border-radius: 18px;
+            background: #f8fafc;
+            padding: 13px;
+        }
+        .vc881-integrity-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+        .vc881-integrity-head h4 { color:#0B1F3A; font-size:13px; font-weight:950; text-transform:uppercase; letter-spacing:.05em; }
+        .vc881-integrity-head p { color:#64748b; font-size:10px; font-weight:800; margin-top:3px; }
+        .vc881-integrity-head > strong { flex:0 0 auto; border-radius:999px; padding:7px 10px; font-size:9px; font-weight:950; text-transform:uppercase; }
+        .vc881-status-ok { color:#065f46; background:#d1fae5; }
+        .vc881-status-warning { color:#92400e; background:#fef3c7; }
+        .vc881-status-error { color:#991b1b; background:#fee2e2; }
+        .vc881-integrity-counts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:12px; }
+        .vc881-integrity-counts > div { background:#fff; border:1px solid #e2e8f0; border-radius:13px; padding:9px; }
+        .vc881-integrity-counts span { display:block; color:#64748b; font-size:8px; font-weight:950; text-transform:uppercase; letter-spacing:.07em; }
+        .vc881-integrity-counts strong { display:block; color:#0B1F3A; font-size:17px; font-weight:950; margin-top:2px; }
+        .vc881-integrity-issues { display:flex; flex-direction:column; gap:9px; margin-top:10px; }
+        .vc881-integrity-issue { background:#fff; border:1px solid #e2e8f0; border-left-width:5px; border-radius:14px; padding:11px; }
+        .vc881-integrity-issue.vc881-error { border-left-color:#dc2626; }
+        .vc881-integrity-issue.vc881-warning { border-left-color:#d97706; }
+        .vc881-integrity-issue span { display:block; color:#64748b; font-size:8px; font-weight:950; text-transform:uppercase; letter-spacing:.07em; }
+        .vc881-integrity-issue strong { display:block; color:#0f172a; font-size:11px; font-weight:950; margin-top:2px; }
+        .vc881-integrity-issue p { color:#64748b; font-size:10px; font-weight:700; line-height:1.35; margin-top:4px; }
+        .vc881-integrity-ids { max-height:150px; overflow:auto; margin-top:8px; padding:8px; border-radius:10px; background:#0f172a; color:#dbeafe; font-family:monospace; font-size:9px; line-height:1.5; overflow-wrap:anywhere; }
+        .vc881-integrity-clear { display:flex; flex-direction:column; gap:3px; border-radius:14px; background:#ecfdf5; color:#065f46; padding:12px; }
+        .vc881-integrity-clear strong { font-size:11px; font-weight:950; }
+        .vc881-integrity-clear span { font-size:10px; font-weight:750; }
+
     
         /* v5.6.1 Clean Sync Fix */
         #vc558-diag-btn,
