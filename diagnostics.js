@@ -208,7 +208,7 @@
     return '<div class="vc558-card '+(cls||'')+'"><label>'+vc559Escape(label)+'</label><strong>'+vc559Escape(value)+'</strong><small>'+vc559Escape(sub||'')+'</small></div>';
   }
 
-  // v8.8.1 Read-only local integrity audit. This code never calls Firestore,
+  // v8.8.2 Read-only local integrity audit. This code never calls Firestore,
   // changes a record, repairs data, or deletes anything.
   function vc881Number(value){
     const number = Number(value);
@@ -240,15 +240,18 @@
   function vc881CheckTransactions(live, archive, issues){
     vc881CheckDuplicateIds(live, 'Live transactions', issues);
     vc881CheckDuplicateIds(archive, 'Loaded backup transactions', issues);
+    const liveById = new Map();
+    const archiveById = new Map();
     const merged = new Map();
-    (archive || []).forEach(record => { const id = vc881RecordId(record); if (id) merged.set(id, record); });
-    (live || []).forEach(record => { const id = vc881RecordId(record); if (id) merged.set(id, record); });
+    (archive || []).forEach(record => { const id = vc881RecordId(record); if (id) { archiveById.set(id, record); merged.set(id, record); } });
+    (live || []).forEach(record => { const id = vc881RecordId(record); if (id) { liveById.set(id, record); merged.set(id, record); } });
     const invalidDates = [];
     const invalidAmounts = [];
     const calculationIssues = [];
     const settlementIssues = [];
     const missingReferences = [];
     const unpaidReferences = [];
+    const fullSettlementsByCredit = new Map();
     const referencePattern = /CR-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+/g;
 
     merged.forEach((tx, id) => {
@@ -289,20 +292,35 @@
         const references = [];
         breakdown.forEach(ticket => { const ref = vc881RecordId(ticket); if (ref) references.push(ref); });
         noteReferences.forEach(ref => references.push(ref));
+        const isPartialSettlement = noteText.trim().toLowerCase().startsWith('partial:');
         Array.from(new Set(references)).forEach(ref => {
-          const credit = merged.get(ref);
-          if (!credit) missingReferences.push(id + ' → ' + ref);
-          else if (!noteText.trim().toLowerCase().startsWith('partial:') && credit.type === 'CR' && !credit.paid) unpaidReferences.push(id + ' → ' + ref);
+          if (!isPartialSettlement) {
+            if (!fullSettlementsByCredit.has(ref)) fullSettlementsByCredit.set(ref, new Set());
+            fullSettlementsByCredit.get(ref).add(id);
+          }
+          const liveCredit = liveById.get(ref);
+          const archiveCredit = archiveById.get(ref);
+          if (!liveCredit && !archiveCredit) missingReferences.push(id + ' → ' + ref);
+          // Archive-only credits are intentionally not rewritten when a later
+          // live settlement closes them. Only a live credit still marked open
+          // is actionable here.
+          else if (!isPartialSettlement && liveCredit && liveCredit.type === 'CR' && !liveCredit.paid) unpaidReferences.push(id + ' → ' + ref);
         });
       }
+    });
+
+    const repeatedFullSettlements = [];
+    fullSettlementsByCredit.forEach((settlementIds, creditId) => {
+      if (settlementIds.size > 1) repeatedFullSettlements.push(creditId + ' → ' + Array.from(settlementIds).sort().join(', '));
     });
 
     if (invalidDates.length) vc881AddIssue(issues, 'warning', 'Transactions', 'Transactions with missing or invalid dates', 'These records may appear under the wrong date or fail date filtering.', invalidDates);
     if (invalidAmounts.length) vc881AddIssue(issues, 'error', 'Transactions', 'Transactions with invalid or negative values', 'Review the total, quantity, and price fields for these records.', invalidAmounts);
     if (calculationIssues.length) vc881AddIssue(issues, 'error', 'Transactions', 'Subtotal, discount, and total do not agree', 'Partially paid credits are excluded from this calculation check.', calculationIssues);
     if (settlementIssues.length) vc881AddIssue(issues, 'error', 'Settlements', 'Settlement breakdown totals do not agree', 'The saved ticket breakdown does not add up to the settlement total.', settlementIssues);
+    if (repeatedFullSettlements.length) vc881AddIssue(issues, 'warning', 'Settlements', 'Credit tickets appear in more than one full settlement', 'Review these credits before deleting or changing anything. Partial settlements are excluded.', repeatedFullSettlements);
     if (missingReferences.length) vc881AddIssue(issues, 'warning', 'Settlements', 'Referenced credit tickets are not loaded locally', 'This can be normal when an older backup is not loaded. The checker does not contact Firestore.', missingReferences);
-    if (unpaidReferences.length) vc881AddIssue(issues, 'warning', 'Settlements', 'Full settlements reference credits still marked open', 'Review whether the original credit ticket should be marked paid.', unpaidReferences);
+    if (unpaidReferences.length) vc881AddIssue(issues, 'warning', 'Settlements', 'Full settlements reference live credits still marked open', 'Archive-only credit tickets are excluded from this warning.', unpaidReferences);
   }
 
   function vc881CheckGcash(live, archive, issues){
@@ -340,8 +358,15 @@
       });
     });
     const duplicateBarcodes = [];
-    barcodes.forEach((ids, barcode) => { if (ids.length > 1) duplicateBarcodes.push(barcode + ' → ' + ids.join(', ')); });
+    const placeholderBarcodes = [];
+    barcodes.forEach((ids, barcode) => {
+      if (ids.length <= 1) return;
+      const item = barcode + ' → ' + ids.join(', ');
+      const looksLikePlaceholder = barcode.length <= 6 && /^(\d)\1+$/.test(barcode);
+      (looksLikePlaceholder ? placeholderBarcodes : duplicateBarcodes).push(item);
+    });
     if (duplicateBarcodes.length) vc881AddIssue(issues, 'warning', 'Inventory', 'Multiple products use the same barcode', 'A scanner may select the wrong product when barcodes are duplicated.', duplicateBarcodes);
+    if (placeholderBarcodes.length) vc881AddIssue(issues, 'info', 'Inventory', 'Shared placeholder barcodes', 'These short repeated-digit barcodes look intentionally reused. They are listed for reference and do not make the audit fail.', placeholderBarcodes);
     if (invalidValues.length) vc881AddIssue(issues, 'error', 'Inventory', 'Products with invalid or negative values', 'Review stock, selling price, and cost price.', invalidValues);
   }
 
@@ -409,6 +434,7 @@
       summary: {
         errors: issues.filter(issue => issue.severity === 'error').length,
         warnings: issues.filter(issue => issue.severity === 'warning').length,
+        notes: issues.filter(issue => issue.severity === 'info').length,
         affectedReferences: issues.reduce((sum, issue) => sum + issue.ids.length, 0)
       },
       storageStatus,
@@ -425,7 +451,8 @@
     if (panel) return panel;
     const log = document.getElementById('vc558-log');
     if (!log) return null;
-    log.insertAdjacentHTML('beforebegin', '<section id="vc881-integrity-report" class="vc881-integrity-report hidden"><div class="vc881-integrity-head"><div><h4>Local Data Integrity</h4><p>Read-only · local data only · zero Firestore usage</p></div><strong id="vc881-integrity-status">Not checked</strong></div><div id="vc881-integrity-counts" class="vc881-integrity-counts"></div><div id="vc881-integrity-issues" class="vc881-integrity-issues"></div></section>');
+    const anchor = document.getElementById('vc881-toggle-tech') || log;
+    anchor.insertAdjacentHTML('beforebegin', '<section id="vc881-integrity-report" class="vc881-integrity-report hidden"><div class="vc881-integrity-head"><div><h4>Local Data Integrity</h4><p>Read-only · local data only · zero Firestore usage</p></div><strong id="vc881-integrity-status">Not checked</strong></div><div id="vc881-integrity-counts" class="vc881-integrity-counts"></div><div id="vc881-integrity-issues" class="vc881-integrity-issues"></div></section>');
     return document.getElementById('vc881-integrity-report');
   }
 
@@ -438,9 +465,10 @@
     const list = document.getElementById('vc881-integrity-issues');
     const errors = result.summary.errors;
     const warnings = result.summary.warnings;
+    const notes = result.summary.notes || 0;
     status.textContent = errors ? 'Needs review' : (warnings ? 'Review warnings' : 'All clear');
     status.className = errors ? 'vc881-status-error' : (warnings ? 'vc881-status-warning' : 'vc881-status-ok');
-    counts.innerHTML = '<div><span>Errors</span><strong>'+errors+'</strong></div><div><span>Warnings</span><strong>'+warnings+'</strong></div><div><span>References</span><strong>'+result.summary.affectedReferences+'</strong></div>';
+    counts.innerHTML = '<div><span>Errors</span><strong>'+errors+'</strong></div><div><span>Warnings</span><strong>'+warnings+'</strong></div><div><span>Notes</span><strong>'+notes+'</strong></div>';
     if (!result.issues.length) {
       list.innerHTML = '<div class="vc881-integrity-clear"><strong>No local integrity problem detected.</strong><span>No records were changed and Firestore was not contacted.</span></div>';
       return;
@@ -483,6 +511,10 @@
     if (report.durableStorage && report.durableStorage.lastError) problems.push('Local storage error');
     if (report.versionInfo && !report.versionInfo.matches) problems.push('App/cache version mismatch');
     if (report.serviceWorker && report.serviceWorker.updateAvailable) problems.push('App update is waiting');
+    if (report.localIntegrity && report.localIntegrity.summary) {
+      if (report.localIntegrity.summary.errors > 0) problems.push('Local data needs review');
+      else if (report.localIntegrity.summary.warnings > 0) problems.push('Local data has warnings');
+    }
     return problems.length ? problems.join(' · ') : 'No obvious issue detected';
   }
 
@@ -499,8 +531,15 @@
       }
     }
 
+    let refreshedIntegrity = null;
+    if (hydrateResult) {
+      try { refreshedIntegrity = await vc881AuditLocalData(); }
+      catch(error) { console.warn('Post-refresh local integrity check failed:', error); }
+    }
+
     const r = await vc559Collect({ readFirestore: false, useLastCloud: !!hydrateResult });
     if (hydrateResult) r.hydrateResult = hydrateResult;
+    if (refreshedIntegrity) r.localIntegrity = refreshedIntegrity;
 
     const txFs = r.firestore.transactions.count;
     const txMem = r.memory.transactions;
@@ -515,8 +554,13 @@
       const storageDetail = storageEstimate
         ? ((storageEstimate.usage / 1048576).toFixed(1) + ' MB used of ' + (storageEstimate.quota / 1048576).toFixed(0) + ' MB')
         : 'browser quota estimate unavailable';
+      const integrity = r.localIntegrity && r.localIntegrity.summary ? r.localIntegrity.summary : null;
+      const integrityValue = !integrity ? 'Not checked' : (integrity.errors ? 'Review' : (integrity.warnings ? 'Warnings' : 'Clear'));
+      const integrityClass = !integrity ? 'vc558-warn' : (integrity.errors ? 'vc558-bad' : (integrity.warnings ? 'vc558-warn' : 'vc558-ok'));
+      const versionReady = !!(r.versionInfo && r.versionInfo.matches && !(r.serviceWorker && r.serviceWorker.updateAvailable));
+      const overallGood = !!(r.online && r.dbReady && r.offlineQueue === 0 && versionReady && !(integrity && integrity.errors));
       grid.innerHTML = [
-        vc559Card('Overall', (r.online && r.dbReady && r.offlineQueue === 0) ? 'Good' : 'Check', vc559Summary(r), (r.online && r.dbReady && r.offlineQueue === 0) ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Overall', overallGood ? 'Good' : 'Check', vc559Summary(r), overallGood ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Project', r.firebaseProjectId || 'Unknown', r.dbReady ? 'Firestore connected' : 'Firestore not ready', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
         vc559Card('Auth', r.authReady ? 'Ready' : 'Not ready', r.authUid ? ('Anonymous ' + String(r.authUid).slice(0, 8) + '...') : ((r.auth && r.auth.error) || 'No anonymous user yet'), r.authReady ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Device ID', r.deviceApproval && r.deviceApproval.ready ? 'Ready' : 'Not ready', r.deviceApproval && r.deviceApproval.uid ? ('UID ' + String(r.deviceApproval.uid).slice(0, 12) + '... / copy report for full ID') : ((r.deviceApproval && r.deviceApproval.error) || 'Run after auth is ready'), r.deviceApproval && r.deviceApproval.ready ? 'vc558-ok' : 'vc558-warn'),
@@ -530,6 +574,7 @@
         vc559Card('Scanner', r.scannerDebug && r.scannerDebug.lastBarcodeAttempt ? r.scannerDebug.lastBarcodeAttempt : 'No scan', r.scannerDebug ? ((r.scannerDebug.lastBarcodeResult || 'waiting') + ' / input: ' + (r.scannerDebug.lastInputValue || '').slice(0, 24)) : 'debug not ready', r.scannerDebug && r.scannerDebug.lastBarcodeResult && r.scannerDebug.lastBarcodeResult.indexOf('matched:') === 0 ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Optional Tools', (r.optionalLibraries && r.optionalLibraries.chartLoaded ? 'Chart ' : '') + (r.optionalLibraries && r.optionalLibraries.html2canvasLoaded ? 'Image ' : '') || 'Deferred', 'Camera scanner: ' + (r.optionalLibraries && r.optionalLibraries.quaggaLoaded ? 'ready' : 'not loaded'), 'vc558-ok'),
         vc559Card('Local Database', r.durableStorage && r.durableStorage.ready ? 'IndexedDB' : 'Fallback', r.durableStorage && r.durableStorage.lastError ? r.durableStorage.lastError : storageDetail, r.durableStorage && r.durableStorage.ready && !r.durableStorage.lastError ? 'vc558-ok' : 'vc558-warn'),
+        vc559Card('Local Integrity', integrityValue, integrity ? (integrity.errors + ' errors · ' + integrity.warnings + ' warnings · local only') : 'Tap Check Local Data', integrityClass),
         vc559Card('Version', versionText, r.versionInfo ? ('app ' + (r.versionInfo.appVersion || 'unknown') + ' / expected ' + (r.versionInfo.expectedVersion || 'unknown')) : 'version info missing', r.versionInfo && r.versionInfo.matches ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Ready' : 'None', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Tap Reload App below' : 'no waiting app update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'vc558-warn' : 'vc558-ok')
       ].join('');
@@ -537,6 +582,13 @@
     if (log) {
       const text = JSON.stringify(r, null, 2);
       log.textContent = text.length > 18000 ? text.slice(0, 18000) + '\n... diagnostics log truncated for performance; use Copy Report for full text ...' : text;
+    }
+    if (refreshedIntegrity) vc881RenderIntegrity(refreshedIntegrity);
+    const reloadBtn = document.getElementById('vc559-reload');
+    if (reloadBtn && !reloadBtn.disabled) {
+      const updateWaiting = !!(r.serviceWorker && r.serviceWorker.updateAvailable);
+      reloadBtn.textContent = updateWaiting ? 'Install Update / Reload' : 'Reload App';
+      reloadBtn.classList.toggle('vc881-update-ready', updateWaiting);
     }
   }
 
@@ -677,7 +729,21 @@
     if (copyBtn) {
       copyBtn.replaceWith(copyBtn.cloneNode(true));
       const newCopy = document.getElementById('vc558-copy');
+      newCopy.textContent = 'Copy Report';
       newCopy.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); vc559Copy(); }, true);
+    }
+    const techBtn = document.getElementById('vc881-toggle-tech');
+    if (techBtn && !techBtn.__vc881Bound) {
+      techBtn.__vc881Bound = true;
+      techBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        const log = document.getElementById('vc558-log');
+        if (!log) return;
+        const willShow = log.classList.contains('hidden');
+        log.classList.toggle('hidden', !willShow);
+        techBtn.textContent = willShow ? 'Hide Technical Report' : 'Show Technical Report';
+      }, true);
     }
     const closeBtn = document.getElementById('vc558-close');
     if (closeBtn && !closeBtn.__vc559CloseBound) {

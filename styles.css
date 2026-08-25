@@ -2685,13 +2685,32 @@
             text-transform:uppercase;
             letter-spacing:.08em;
         }
+        .vc881-toggle-tech {
+            width:100%;
+            min-height:42px;
+            margin-top:12px;
+            border:1px solid #dbe4ef;
+            border-radius:14px;
+            background:#f8fafc;
+            color:#334155;
+            font-size:10px;
+            font-weight:950;
+            text-transform:uppercase;
+            letter-spacing:.07em;
+        }
+        .vc881-update-ready {
+            background:#fef3c7 !important;
+            color:#92400e !important;
+            border-color:#f59e0b !important;
+        }
         @media (min-width:768px) {
             #vc558-diag-btn { bottom: 18px !important; right: 18px !important; }
             #vc558-diag-panel { align-items:center; }
             .vc558-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+            .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.1 read-only local data integrity report. */
+        /* v8.8.2 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -2714,6 +2733,7 @@
         .vc881-integrity-issue { background:#fff; border:1px solid #e2e8f0; border-left-width:5px; border-radius:14px; padding:11px; }
         .vc881-integrity-issue.vc881-error { border-left-color:#dc2626; }
         .vc881-integrity-issue.vc881-warning { border-left-color:#d97706; }
+        .vc881-integrity-issue.vc881-info { border-left-color:#2563eb; }
         .vc881-integrity-issue span { display:block; color:#64748b; font-size:8px; font-weight:950; text-transform:uppercase; letter-spacing:.07em; }
         .vc881-integrity-issue strong { display:block; color:#0f172a; font-size:11px; font-weight:950; margin-top:2px; }
         .vc881-integrity-issue p { color:#64748b; font-size:10px; font-weight:700; line-height:1.35; margin-top:4px; }
