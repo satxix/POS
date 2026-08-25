@@ -1,6 +1,6 @@
 // --- Villacart Receipt UI module ---
 // v8.1.1: Extracted from app.js. Print behavior is intentionally unchanged.
-// v8.7.8: Share Image captures the full natural height of long receipts.
+// v8.7.9: Long Share Image receipts are exported as readable numbered images.
 
     let vc8044ReceiptPrintBusy = false;
     let vc8044ReceiptPrintResetTimer = null;
@@ -270,62 +270,88 @@ body {
         }, 350);
     }
 
-    function vc878ReceiptImageOptions(receiptEl) {
+    function vc879ReceiptPagePlan(receiptEl) {
         const rect = receiptEl.getBoundingClientRect();
         const width = Math.max(1, Math.ceil(Math.max(rect.width || 0, receiptEl.scrollWidth || 0)));
         const height = Math.max(1, Math.ceil(Math.max(rect.height || 0, receiptEl.scrollHeight || 0)));
-        const desiredScale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-        // Keep the complete receipt inside conservative Android/Chrome canvas
-        // limits. Ordinary receipts remain at 2x; very long settlements are
-        // scaled only as much as needed instead of being cropped.
-        const maxCanvasHeight = 15000;
-        const maxCanvasPixels = 24000000;
-        const heightSafeScale = maxCanvasHeight / height;
-        const pixelSafeScale = Math.sqrt(maxCanvasPixels / (width * height));
-        const scale = Math.max(0.1, Math.min(desiredScale, heightSafeScale, pixelSafeScale));
+        const maxPages = 20;
+        const preferredHeight = Math.max(1200, width * 5, Math.ceil(height / maxPages));
+        if (height <= preferredHeight * 1.15) return { rect, width, height, ranges: [{ top: 0, height }] };
 
-        return {
-            scale,
-            width,
-            height,
-            windowWidth: Math.max(width, document.documentElement.clientWidth || width),
-            windowHeight: Math.max(height, document.documentElement.clientHeight || height),
-            scrollX: 0,
-            scrollY: 0,
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            logging: false,
-            onclone(clonedDocument) {
-                const clonedReceipt = clonedDocument.getElementById('receipt-content');
-                if (!clonedReceipt) return;
-                const receiptShell = clonedReceipt.parentElement;
-                const receiptModal = clonedDocument.getElementById('receipt-modal');
-                [receiptShell, receiptModal].filter(Boolean).forEach(container => {
-                    container.style.setProperty('height', 'auto', 'important');
-                    container.style.setProperty('max-height', 'none', 'important');
-                    container.style.setProperty('overflow', 'visible', 'important');
-                });
-                if (receiptShell) {
-                    receiptShell.style.setProperty('display', 'block', 'important');
-                    receiptShell.style.setProperty('width', `${width}px`, 'important');
-                    receiptShell.style.setProperty('max-width', `${width}px`, 'important');
-                    receiptShell.style.setProperty('padding', '0', 'important');
-                    receiptShell.style.setProperty('margin', '0', 'important');
-                }
-                clonedReceipt.scrollTop = 0;
-                clonedReceipt.scrollLeft = 0;
-                clonedReceipt.style.setProperty('display', 'block', 'important');
-                clonedReceipt.style.setProperty('position', 'static', 'important');
-                clonedReceipt.style.setProperty('flex', 'none', 'important');
-                clonedReceipt.style.setProperty('width', `${width}px`, 'important');
-                clonedReceipt.style.setProperty('min-height', '0', 'important');
-                clonedReceipt.style.setProperty('height', 'auto', 'important');
-                clonedReceipt.style.setProperty('max-height', 'none', 'important');
-                clonedReceipt.style.setProperty('overflow', 'visible', 'important');
-                clonedReceipt.style.setProperty('overflow-y', 'visible', 'important');
-                clonedReceipt.style.setProperty('background', '#ffffff', 'important');
+        const rootTop = rect.top;
+        const candidateNodes = Array.from(receiptEl.children);
+        const itemsList = receiptEl.querySelector('#rec-items-list');
+        if (itemsList) candidateNodes.push(...Array.from(itemsList.children));
+        const breakpoints = Array.from(new Set(candidateNodes.map(node => {
+            const nodeRect = node.getBoundingClientRect();
+            return Math.round(nodeRect.bottom - rootTop + (receiptEl.scrollTop || 0));
+        }).filter(value => value > 0 && value < height))).sort((a, b) => a - b);
+
+        const ranges = [];
+        let top = 0;
+        while (top < height) {
+            const idealBottom = Math.min(height, top + preferredHeight);
+            let bottom = idealBottom;
+            if (idealBottom < height) {
+                const minimumUsefulBottom = top + (preferredHeight * 0.58);
+                const safeBreaks = breakpoints.filter(value => value >= minimumUsefulBottom && value <= idealBottom - 8);
+                if (safeBreaks.length) bottom = safeBreaks[safeBreaks.length - 1];
+                if (height - bottom < preferredHeight * 0.22) bottom = height;
             }
-        };
+            if (bottom <= top) bottom = Math.min(height, top + preferredHeight);
+            ranges.push({ top, height: Math.ceil(bottom - top) });
+            top = bottom;
+        }
+        return { rect, width, height, ranges };
+    }
+
+    async function vc879RenderReceiptImages(receiptEl, onProgress) {
+        const plan = vc879ReceiptPagePlan(receiptEl);
+        const blobs = [];
+        for (let index = 0; index < plan.ranges.length; index += 1) {
+            if (typeof onProgress === 'function') onProgress(index + 1, plan.ranges.length);
+            const range = plan.ranges[index];
+            const captureStage = document.createElement('div');
+            const receiptClone = receiptEl.cloneNode(true);
+            const computed = window.getComputedStyle(receiptEl);
+            captureStage.setAttribute('aria-hidden', 'true');
+            captureStage.style.cssText = `position:fixed;left:-10000px;top:0;width:${plan.width}px;height:${range.height}px;overflow:hidden;background:#fff;pointer-events:none;z-index:-1;`;
+            receiptClone.removeAttribute('id');
+            receiptClone.scrollTop = 0;
+            receiptClone.scrollLeft = 0;
+            receiptClone.style.setProperty('display', 'block', 'important');
+            receiptClone.style.setProperty('position', 'absolute', 'important');
+            receiptClone.style.setProperty('left', '0', 'important');
+            receiptClone.style.setProperty('top', `${-range.top}px`, 'important');
+            receiptClone.style.setProperty('flex', 'none', 'important');
+            receiptClone.style.setProperty('box-sizing', computed.boxSizing || 'border-box', 'important');
+            receiptClone.style.setProperty('width', `${plan.width}px`, 'important');
+            receiptClone.style.setProperty('min-height', '0', 'important');
+            receiptClone.style.setProperty('height', 'auto', 'important');
+            receiptClone.style.setProperty('max-height', 'none', 'important');
+            receiptClone.style.setProperty('overflow', 'visible', 'important');
+            receiptClone.style.setProperty('padding', computed.padding, 'important');
+            receiptClone.style.setProperty('background', '#ffffff', 'important');
+            captureStage.appendChild(receiptClone);
+            document.body.appendChild(captureStage);
+            try {
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                const canvas = await html2canvas(captureStage, {
+                    scale: Math.min(2, Math.max(1, window.devicePixelRatio || 1)),
+                    width: plan.width,
+                    height: range.height,
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    logging: false
+                });
+                blobs.push(await canvasToPngBlob(canvas));
+            } finally {
+                captureStage.remove();
+            }
+            // Yield briefly so Android can repaint the progress label between pages.
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        return blobs;
     }
 
     async function shareReceipt() {
@@ -342,16 +368,28 @@ body {
         try {
             await ensureHtml2CanvasLoaded();
             if (typeof html2canvas !== 'function') throw new Error('Image tool not loaded.');
-            const canvas = await html2canvas(receiptEl, vc878ReceiptImageOptions(receiptEl));
-            const blob = await canvasToPngBlob(canvas);
-            const fileName = `Villacart_Receipt_${tx.id}.png`;
+            const blobs = await vc879RenderReceiptImages(receiptEl, (page, total) => {
+                if (shareBtn && total > 1) {
+                    shareBtn.innerHTML = `<span class="material-symbols-outlined text-[20px] animate-spin-custom">sync</span> Image ${page}/${total}`;
+                }
+            });
+            const totalImages = blobs.length;
+            const digits = Math.max(2, String(totalImages).length);
+            const fileNames = blobs.map((blob, index) => {
+                const part = String(index + 1).padStart(digits, '0');
+                const suffix = totalImages > 1 ? `_${part}-of-${String(totalImages).padStart(digits, '0')}` : '';
+                return `Villacart_Receipt_${tx.id}${suffix}.png`;
+            });
+            const files = typeof File === 'function'
+                ? blobs.map((blob, index) => new File([blob], fileNames[index], { type: 'image/png' }))
+                : [];
             const canShareFile = typeof File === 'function' && navigator.share && navigator.canShare;
-            if (canShareFile) {
-                const file = new File([blob], fileName, { type: 'image/png' });
-                if (navigator.canShare({ files: [file] })) {
+            let canShareAllFiles = false;
+            try { canShareAllFiles = !!(canShareFile && navigator.canShare({ files })); } catch (error) {}
+            if (canShareAllFiles) {
                     try {
-                        await navigator.share({ files: [file], title: `Receipt ${tx.id}`, text: `Villacart receipt ${tx.id}` });
-                        showToast('Shared', 'success');
+                        await navigator.share({ files, title: `Receipt ${tx.id}`, text: `Villacart receipt ${tx.id}` });
+                        showToast(totalImages > 1 ? `${totalImages} receipt images shared` : 'Shared', 'success');
                         return;
                     } catch (shareError) {
                         if (shareError && shareError.name === 'AbortError') {
@@ -359,10 +397,9 @@ body {
                             return;
                         }
                     }
-                }
             }
-            downloadBlob(blob, fileName);
-            showToast('Receipt image downloaded', 'success');
+            blobs.forEach((blob, index) => downloadBlob(blob, fileNames[index]));
+            showToast(totalImages > 1 ? `${totalImages} receipt images downloaded` : 'Receipt image downloaded', 'success');
         } catch (error) {
             console.error('Share receipt failed:', error);
             showToast('Could not create image', 'error');
