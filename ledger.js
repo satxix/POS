@@ -235,32 +235,88 @@ async function payIndividualTicket(id) {
   renderLedger();
 }
 
+let vc873PayFullBalanceBusy = false;
+
+function vc873CreditPaymentTransactions() {
+  if (typeof vc710AllTransactionsForLocalViews === 'function') {
+    return vc710AllTransactionsForLocalViews();
+  }
+  const merged = new Map();
+  (Array.isArray(state.archiveTransactions) ? state.archiveTransactions : []).forEach(transaction => {
+    if (transaction && transaction.id) merged.set(transaction.id, { ...transaction, _archiveOnly: true });
+  });
+  (Array.isArray(state.transactions) ? state.transactions : []).forEach(transaction => {
+    if (transaction && transaction.id) merged.set(transaction.id, transaction);
+  });
+  return Array.from(merged.values());
+}
+
+function vc873SetPayFullButtonsBusy(isBusy) {
+  document.querySelectorAll('.vc5629-pay-full, button[onclick^="payFullBalance("]').forEach(button => {
+    if (!button.dataset.vc873PayLabel) button.dataset.vc873PayLabel = button.innerHTML;
+    button.disabled = !!isBusy;
+    button.classList.toggle('opacity-60', !!isBusy);
+    button.innerHTML = isBusy ? 'Preparing Payment...' : button.dataset.vc873PayLabel;
+  });
+}
+
 async function payFullBalance(customerName) {
-  const normalizedName = customerName.trim().toLowerCase();
-  const credits = state.transactions.filter(transaction => transaction.type === 'CR'
+  if (vc873PayFullBalanceBusy) {
+    showToast('Full-balance payment is already preparing', 'info');
+    return;
+  }
+  const normalizedName = String(customerName || '').trim().toLowerCase();
+  const allTransactions = vc873CreditPaymentTransactions();
+  const creditIndex = window.VillacartCreditUtils && typeof window.VillacartCreditUtils.creditStateIndex === 'function'
+    ? window.VillacartCreditUtils.creditStateIndex(allTransactions)
+    : null;
+  const credits = allTransactions.filter(transaction => transaction && transaction.type === 'CR'
     && transaction.customer
     && transaction.customer.trim().toLowerCase() === normalizedName
-    && !transaction.paid);
-  if (credits.length === 0) return;
-  const totalToPay = credits.reduce((sum, transaction) => sum + transaction.total, 0);
-  if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()}?`)) return;
-  const creditBreakdown = credits
-    .map(buildCreditSettlementBreakdown)
-    .sort((a, b) => String(a.timestamp || a.businessDate || '').localeCompare(String(b.timestamp || b.businessDate || '')));
-  for (const ticket of credits) {
-    ticket.paid = true;
-    ticket._offline = true;
-    await directSync('transactions', ticket);
+    && (creditIndex ? !creditIndex.isCreditSettled(transaction) : !transaction.paid));
+  if (credits.length === 0) {
+    showToast('No open credit tickets found for this customer', 'info');
+    return;
   }
-  const settlementId = nextTransactionId('SA');
-  const settlementSubtotal = creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.subtotal) || 0), 0);
-  const settlementDiscount = creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.discount) || 0), 0);
-  const settlement = { id: settlementId, type: 'SA', customer: customerName, total: totalToPay, subtotal: settlementSubtotal, discount: settlementDiscount, creditBreakdown, timestamp: new Date().toISOString(), items: [], notes: credits.map(ticket => ticket.id).join(', '), paid: true, cashReceived: totalToPay, change: 0 };
-  queueTransaction(settlement);
-  renderLedger();
-  showToast('Balance paid', 'success');
-  lastTransactionId = settlementId;
-  viewReceipt(settlementId);
+  const totalToPay = credits.reduce((sum, transaction) => sum + (Number(transaction.total) || 0), 0);
+  if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()} for ${credits.length} ticket(s)?`)) return;
+
+  vc873PayFullBalanceBusy = true;
+  vc873SetPayFullButtonsBusy(true);
+  try {
+    const creditBreakdown = credits
+      .map(buildCreditSettlementBreakdown)
+      .sort((a, b) => String(a.timestamp || a.businessDate || '').localeCompare(String(b.timestamp || b.businessDate || '')));
+    const liveById = new Map((Array.isArray(state.transactions) ? state.transactions : [])
+      .filter(transaction => transaction && transaction.id)
+      .map(transaction => [transaction.id, transaction]));
+
+    // Loaded backup tickets remain local-only. A new settlement closes them in
+    // local views, but only live operational credit documents are updated.
+    for (const ticket of credits) {
+      const liveTicket = liveById.get(ticket.id);
+      if (!liveTicket) continue;
+      liveTicket.paid = true;
+      liveTicket._offline = true;
+      await directSync('transactions', liveTicket);
+    }
+
+    const settlementId = nextTransactionId('SA');
+    const settlementSubtotal = creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.subtotal) || 0), 0);
+    const settlementDiscount = creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.discount) || 0), 0);
+    const settlement = { id: settlementId, type: 'SA', customer: customerName, total: totalToPay, subtotal: settlementSubtotal, discount: settlementDiscount, creditBreakdown, timestamp: new Date().toISOString(), items: [], notes: credits.map(ticket => ticket.id).join(', '), paid: true, cashReceived: totalToPay, change: 0 };
+    queueTransaction(settlement);
+    renderLedger();
+    showToast(`Balance paid for ${credits.length} ticket(s)`, 'success');
+    lastTransactionId = settlement.id;
+    viewReceipt(settlement.id);
+  } catch (error) {
+    console.error('Pay full balance failed:', error);
+    showToast('Could not complete full-balance payment', 'error');
+  } finally {
+    vc873PayFullBalanceBusy = false;
+    vc873SetPayFullButtonsBusy(false);
+  }
 }
 
 // v8.3.22: Pure credit/settlement integrity helpers extracted from app.js.
