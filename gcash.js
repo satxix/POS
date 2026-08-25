@@ -1,4 +1,4 @@
-// Villacart GCash screen logic v8.3.10
+// Villacart GCash screen logic v8.6.1
 // Depends on shared app globals from app.js at call time.
 
     // v8.0.56: Standalone GCash service ledger.
@@ -35,7 +35,41 @@
     window.handleGcashHistoryRangeChange = handleGcashHistoryRangeChange;
 
     function nextGcashId() {
-        return nextTransactionId('GC');
+        // GCash IDs must not rely on the browser's daily counter. Clearing app
+        // data resets that counter and can otherwise reuse an existing
+        // Firestore document ID, causing one record to overwrite another.
+        const now = new Date();
+        const dateCode = String(now.getDate()).padStart(2, '0')
+            + String(now.getMonth() + 1).padStart(2, '0')
+            + String(now.getFullYear()).slice(-2);
+        let entropy = Math.floor(Math.random() * 2176782336).toString(36).padStart(6, '0');
+        try {
+            if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+                const values = new Uint32Array(1);
+                window.crypto.getRandomValues(values);
+                entropy = values[0].toString(36).padStart(7, '0').slice(-7);
+            }
+        } catch (error) {}
+        return `GC-${dateCode}-${Date.now().toString(36)}-${entropy}`.toUpperCase();
+    }
+
+    function gcashRecordRevisionTime(record) {
+        const value = record && (record.updatedAt || record.timestamp || record.createdAt);
+        const parsed = value ? Date.parse(value) : 0;
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function dedupeGcashRecords(records) {
+        const unique = new Map();
+        (Array.isArray(records) ? records : []).forEach(record => {
+            if (!record || !record.id) return;
+            const id = String(record.id);
+            const current = unique.get(id);
+            if (!current || gcashRecordRevisionTime(record) >= gcashRecordRevisionTime(current)) {
+                unique.set(id, record);
+            }
+        });
+        return Array.from(unique.values());
     }
 
     function setGcashType(type) {
@@ -94,7 +128,7 @@
     }
 
     function editGcashRecord(id) {
-        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
+        state.gcashRecords = dedupeGcashRecords(state.gcashRecords);
         const record = state.gcashRecords.find(r => r && r.id === id);
         if (!record) {
             showToast('Only current GCash records can be edited', 'error');
@@ -280,7 +314,7 @@
     }
 
     function renderGcashScreen() {
-        state.gcashRecords = Array.isArray(state.gcashRecords) ? state.gcashRecords : [];
+        state.gcashRecords = dedupeGcashRecords(state.gcashRecords);
         const today = todayDateCode();
         const archiveRecords = (Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : []).map(r => ({ ...r, _archiveOnly: true }));
         const mergedRecords = new Map();
@@ -364,15 +398,31 @@
             return;
         }
         try {
+            // Capture pending work before the network request. A sync can finish
+            // while Refresh Cloud is in flight; preserving this snapshot avoids
+            // briefly dropping a legitimate new offline record.
+            const pendingAtStart = (Array.isArray(offlineQueue) ? offlineQueue : [])
+                .filter(task => task && task.table === 'gcashRecords' && task.data && task.data.id);
             const remote = await readCollectionWithFirestoreRest('gcashRecords');
-            const merged = new Map();
-            [...(state.gcashRecords || []), ...remote].forEach(r => {
-                if (r && r.id) merged.set(r.id, { ...merged.get(r.id), ...r });
+            const reconciled = new Map();
+            dedupeGcashRecords(remote).forEach(record => {
+                reconciled.set(String(record.id), record);
             });
-            state.gcashRecords = Array.from(merged.values()).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            pendingAtStart.forEach(task => {
+                const id = String(task.data.id);
+                if (task.type === 'delete') reconciled.delete(id);
+                else reconciled.set(id, { ...task.data, _offline: true });
+            });
+            const previousCount = dedupeGcashRecords(state.gcashRecords).length;
+            state.gcashRecords = Array.from(reconciled.values())
+                .sort((a, b) => gcashRecordRevisionTime(b) - gcashRecordRevisionTime(a));
+            if (editingGcashRecordId && !state.gcashRecords.some(record => record && record.id === editingGcashRecordId)) {
+                resetGcashForm(false);
+            }
             sync();
             renderGcashScreen();
-            showToast('GCash refreshed', 'success');
+            const removed = Math.max(0, previousCount - state.gcashRecords.length);
+            showToast(removed ? `GCash refreshed · ${removed} stale local record(s) removed` : 'GCash refreshed', 'success');
         } catch (error) {
             syncErrorMsg = error.message || String(error);
             updateSyncUI();
