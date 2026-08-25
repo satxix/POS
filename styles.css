@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.2 read-only local data integrity report. */
+        /* v8.8.3 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -4370,6 +4370,30 @@ body {
 @keyframes vc840-cart-added {
     0% { transform: scale(.975); opacity: .72; }
     100% { transform: scale(1); opacity: 1; }
+}
+
+/* v8.8.3 compact terminal-only daily sales figure. */
+.vc883-today-sales {
+    display:flex;
+    align-items:baseline;
+    gap:.35rem;
+    margin-top:.25rem;
+    color:rgba(255,255,255,.78);
+    font-size:.55rem;
+    font-weight:850;
+    line-height:1;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    white-space:nowrap;
+}
+.vc883-today-sales strong {
+    color:#fff;
+    font-size:.72rem;
+    font-weight:950;
+    letter-spacing:0;
+}
+@media (max-width: 390px) {
+    .vc883-today-sales span { display:none; }
 }
 @media (max-width: 640px) {
     #cart-panel.cart-panel-empty {

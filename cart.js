@@ -109,6 +109,31 @@
         state.cartDiscount = 0;
     }
 
+    function vc883LocalDateCode(value) {
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function vc883TodaySalesTotal() {
+        const today = vc883LocalDateCode(new Date());
+        const utils = window.VillacartUtils || {};
+        return (Array.isArray(state.transactions) ? state.transactions : []).reduce((sum, transaction) => {
+            if (!transaction) return sum;
+            const transactionDate = String(transaction.businessDate || '').slice(0, 10) || vc883LocalDateCode(transaction.timestamp);
+            if (transactionDate !== today) return sum;
+            const isRevenue = typeof utils.isRevenueSale === 'function'
+                ? utils.isRevenueSale(transaction)
+                : ((transaction.type === 'SA' || transaction.type === 'CR') && !String(transaction.notes || '').includes('CR-'));
+            return isRevenue ? sum + (Number(transaction.total) || 0) : sum;
+        }, 0);
+    }
+
+    function updateTerminalTodaySales() {
+        const display = document.querySelector('#terminal-today-sales strong');
+        if (display) display.textContent = formatCurrency(vc883TodaySalesTotal());
+    }
+
     function updateCartUI() {
         const container = document.getElementById('cart-items');
         if (!container) return;
@@ -119,6 +144,7 @@
         const discountEl = document.getElementById('cart-discount');
         const discountBtn = document.getElementById('cart-discount-btn');
         const countPill = document.getElementById('cart-count-pill');
+        updateTerminalTodaySales();
         if (countPill) countPill.innerText = String(getCartCount());
         if (cartPanel) cartPanel.classList.toggle('cart-panel-empty', state.cart.length === 0);
         if (state.cart.length === 0) {
