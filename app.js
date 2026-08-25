@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.7.0';
+    window.VILLACART_APP_VERSION = 'v8.7.1';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -1460,6 +1460,37 @@ function switchScreen(id) {
         return (tx || []).filter(t => t && t.id && !deleted.has(t.id));
     }
 
+    function vc541MergeBusinessRecords(liveRecords, archiveRecords) {
+        const merged = new Map();
+        (Array.isArray(archiveRecords) ? archiveRecords : []).forEach(record => {
+            if (record && record.id) merged.set(String(record.id), record);
+        });
+        // The live copy wins when the same record also exists in a loaded backup.
+        (Array.isArray(liveRecords) ? liveRecords : []).forEach(record => {
+            if (record && record.id) merged.set(String(record.id), record);
+        });
+        return Array.from(merged.values());
+    }
+
+    function vc541AllBusinessTransactions() {
+        return vc541Clean(vc541MergeBusinessRecords(
+            state.transactions || [],
+            state.archiveTransactions || []
+        ));
+    }
+
+    function vc541AllBusinessDays() {
+        return vc541MergeBusinessRecords(
+            state.businessDays || [],
+            state.archiveBusinessDays || []
+        );
+    }
+
+    // Read-only helpers for Business Calendar summaries. Archive rows remain in
+    // their local-only arrays and are never added to the Firestore sync state.
+    window.vc541AllBusinessTransactions = vc541AllBusinessTransactions;
+    window.vc541AllBusinessDays = vc541AllBusinessDays;
+
     function vc541BusinessDate() {
         if (typeof businessCalendarDate !== 'undefined' && businessCalendarDate instanceof Date) return businessCalendarDate;
         return new Date();
@@ -1479,13 +1510,19 @@ function switchScreen(id) {
         const month = current.getMonth();
         const today = vc541DateCode(new Date());
 
-        const tx = vc541Clean(state.transactions || []).filter(t => {
+        const tx = vc541AllBusinessTransactions().filter(t => {
             const d = t.businessDate || (t.timestamp ? vc541DateCode(t.timestamp) : '');
             const dt = new Date(d + 'T00:00:00');
             return dt.getFullYear() === year && dt.getMonth() === month;
         });
 
         const byDate = {};
+        vc541AllBusinessDays().forEach(day => {
+            const d = day.date || (day.openedAt ? vc541DateCode(day.openedAt) : '');
+            const dt = new Date(d + 'T00:00:00');
+            if (!d || Number.isNaN(dt.getTime()) || dt.getFullYear() !== year || dt.getMonth() !== month) return;
+            if (!byDate[d]) byDate[d] = { sales: 0, tx: 0 };
+        });
         tx.forEach(t => {
             const d = t.businessDate || (t.timestamp ? vc541DateCode(t.timestamp) : '');
             if (!byDate[d]) byDate[d] = { sales: 0, tx: 0 };

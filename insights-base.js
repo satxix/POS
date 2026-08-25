@@ -561,12 +561,26 @@ function vc531RefreshBusinessCalendarSafe() {
 
     const year = (typeof businessCalendarDate !== 'undefined' ? businessCalendarDate : new Date()).getFullYear();
     const month = (typeof businessCalendarDate !== 'undefined' ? businessCalendarDate : new Date()).getMonth();
-    const tx = vc531CleanTransactions(state.transactions || []).filter(t => {
+    const calendarTransactions = typeof window.vc541AllBusinessTransactions === 'function'
+        ? window.vc541AllBusinessTransactions()
+        : (state.transactions || []).concat(state.archiveTransactions || []);
+    const tx = vc531CleanTransactions(calendarTransactions).filter(t => {
         const d = new Date((t.businessDate || (t.timestamp ? vc531DateCode(t.timestamp) : '')) + 'T00:00:00');
         return d.getFullYear() === year && d.getMonth() === month;
     });
     const m = vc531Metrics(tx);
     const businessDates = new Set(tx.map(t => t.businessDate || (t.timestamp ? vc531DateCode(t.timestamp) : '')).filter(Boolean));
+
+    const calendarDays = typeof window.vc541AllBusinessDays === 'function'
+        ? window.vc541AllBusinessDays()
+        : (state.businessDays || []).concat(state.archiveBusinessDays || []);
+    calendarDays.forEach(day => {
+        const code = day && (day.date || (day.openedAt ? vc531DateCode(day.openedAt) : ''));
+        const d = new Date(String(code || '') + 'T00:00:00');
+        if (code && !Number.isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month) {
+            businessDates.add(code);
+        }
+    });
 
     vc531SetText('month-business-days', businessDates.size);
     vc531SetMoney('month-total-sales', m.totalSales);
