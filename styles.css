@@ -4472,6 +4472,39 @@ body {
     box-shadow: 0 3px 10px rgba(127, 29, 29, .28);
 }
 
+/* v8.7.7: lightweight woven/dimple texture made entirely with CSS. */
+#favorites-grid .favorite-color-texture-red,
+#favorites-grid .favorite-color-texture-charcoal,
+#favorites-grid .favorite-color-texture-silver,
+#favorites-grid .favorite-color-texture-blue,
+#favorites-grid .favorite-color-texture-green,
+#favorites-grid .favorite-color-texture-gold {
+    background-image:
+        linear-gradient(135deg, rgba(255,255,255,.15), rgba(0,0,0,.13)),
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,.34) 1px, transparent 1.25px);
+    background-size: 100% 100%, 4px 4px;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, .24);
+}
+#favorites-grid .favorite-color-texture-red { border-color: #8F1023; }
+#favorites-grid .favorite-color-texture-charcoal { border-color: #111827; }
+#favorites-grid .favorite-color-texture-silver { border-color: #7C8796; }
+#favorites-grid .favorite-color-texture-blue { border-color: #123F84; }
+#favorites-grid .favorite-color-texture-green { border-color: #0E593A; }
+#favorites-grid .favorite-color-texture-gold { border-color: #80600F; }
+#favorites-grid .favorite-color-texture-dark > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color: #FFFDF8 !important;
+    text-shadow: 0 1px 1px rgba(0,0,0,.22);
+}
+#favorites-grid .favorite-color-texture-dark .favorite-product-price {
+    color: #FEF3C7 !important;
+}
+#favorites-grid .favorite-color-texture-light > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color: #172033 !important;
+}
+#favorites-grid .favorite-color-texture-light .favorite-product-price {
+    color: #173F79 !important;
+}
+
 /* v8.4.7: tablet-landscape senior compact favorites.
    Preserve six wide touch targets while fitting four readable rows. */
 @media (min-width: 1024px) and (orientation: landscape) {

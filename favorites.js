@@ -64,6 +64,12 @@
         if (value === '#D9E2EA') return ' favorite-color-rgd-light';
         if (value === '#0B0C0F') return ' favorite-color-modern-black';
         if (value === '#9D1118') return ' favorite-color-modern-red';
+        if (value === '#C4142E') return ' favorite-color-texture-red favorite-color-texture-dark';
+        if (value === '#23262B') return ' favorite-color-texture-charcoal favorite-color-texture-dark';
+        if (value === '#B8BEC8') return ' favorite-color-texture-silver favorite-color-texture-light';
+        if (value === '#1758B8') return ' favorite-color-texture-blue favorite-color-texture-dark';
+        if (value === '#177A50') return ' favorite-color-texture-green favorite-color-texture-dark';
+        if (value === '#B48518') return ' favorite-color-texture-gold favorite-color-texture-light';
         return '';
     }
 

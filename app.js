@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.7.6';
+    window.VILLACART_APP_VERSION = 'v8.7.7';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -311,6 +311,12 @@
         { name: 'RGD Light', value: '#D9E2EA', swatch: 'linear-gradient(135deg, #F8FAFC 0%, #CBD5E1 55%, #93A9BC 100%)' },
         { name: 'Modern Black', value: '#0B0C0F', swatch: 'linear-gradient(135deg, #050506 0%, #30343A 52%, #070708 100%)' },
         { name: 'Modern Red', value: '#9D1118', swatch: 'linear-gradient(135deg, #4B060A 0%, #C61A25 55%, #64080E 100%)' },
+        { name: 'Texture Red', value: '#C4142E', swatch: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.42) 1px, transparent 1.2px) 0 0 / 4px 4px, linear-gradient(135deg, #E51C3A, #99152A)' },
+        { name: 'Texture Charcoal', value: '#23262B', swatch: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.30) 1px, transparent 1.2px) 0 0 / 4px 4px, linear-gradient(135deg, #444952, #15171A)' },
+        { name: 'Texture Silver', value: '#B8BEC8', swatch: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.65) 1px, transparent 1.2px) 0 0 / 4px 4px, linear-gradient(135deg, #E2E6EC, #929AA7)' },
+        { name: 'Texture Blue', value: '#1758B8', swatch: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.38) 1px, transparent 1.2px) 0 0 / 4px 4px, linear-gradient(135deg, #2875D5, #113E87)' },
+        { name: 'Texture Green', value: '#177A50', swatch: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.38) 1px, transparent 1.2px) 0 0 / 4px 4px, linear-gradient(135deg, #219969, #0F583A)' },
+        { name: 'Texture Gold', value: '#B48518', swatch: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.48) 1px, transparent 1.2px) 0 0 / 4px 4px, linear-gradient(135deg, #D6A72F, #8A6410)' },
         { name: 'Black', value: '#111827' }
     ];
     let favoriteSlotColors = safeLocalJson(FAV_COLOR_KEY, {}, 'favorite colors');
@@ -2982,4 +2988,5 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
     };
 })();
+
 
