@@ -241,15 +241,20 @@
 
 
     function saveLocalArchive() {
-        try {
-            localStorage.setItem(ARCHIVE_KEY, JSON.stringify({
-                transactions: Array.isArray(state.archiveTransactions) ? state.archiveTransactions : [],
-                businessDays: Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays : [],
-                gcashRecords: Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : [],
-                meta: state.archiveMeta && typeof state.archiveMeta === 'object' ? state.archiveMeta : {},
-                savedAt: new Date().toISOString()
-            }));
-        } catch(e) {}
+        const archive = {
+            transactions: Array.isArray(state.archiveTransactions) ? state.archiveTransactions : [],
+            businessDays: Array.isArray(state.archiveBusinessDays) ? state.archiveBusinessDays : [],
+            gcashRecords: Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : [],
+            meta: state.archiveMeta && typeof state.archiveMeta === 'object' ? state.archiveMeta : {},
+            savedAt: new Date().toISOString()
+        };
+        const durableStorage = window.VillacartStorage;
+        if (durableStorage && typeof durableStorage.saveArchive === 'function') {
+            durableStorage.saveArchive(archive).catch(() => {});
+            return;
+        }
+        // Compatibility fallback for browsers without IndexedDB.
+        try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); } catch(e) {}
     }
 
     function sync() { 
@@ -261,10 +266,18 @@
         delete stateForStorage.archiveBusinessDays;
         delete stateForStorage.archiveGcashRecords;
         delete stateForStorage.archiveMeta;
-        localStorage.setItem(DB_KEY, JSON.stringify(stateForStorage)); 
         offlineQueue = offlineQueue.filter(task => task && isFirestoreSyncTable(task.table) && task.data && task.data.id && !isArchiveOnlyRecord(task.data));
-        localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue));
-        localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites));
+        const durableStorage = window.VillacartStorage;
+        if (durableStorage && typeof durableStorage.saveMain === 'function') {
+            durableStorage.saveMain(stateForStorage).catch(() => {});
+            durableStorage.saveQueue(offlineQueue).catch(() => {});
+        } else {
+            // Compatibility fallback only. Normal v8.6+ operation uses IndexedDB
+            // so transaction growth cannot exhaust localStorage.
+            try { localStorage.setItem(DB_KEY, JSON.stringify(stateForStorage)); } catch(e) {}
+            try { localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueue)); } catch(e) {}
+        }
+        try { localStorage.setItem(FAV_KEY, JSON.stringify(state.favorites)); } catch(e) {}
         saveLocalArchive();
         updateQueueBadge();
     }

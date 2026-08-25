@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.5.4';
+    window.VILLACART_APP_VERSION = 'v8.6.0';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -136,6 +136,14 @@
     } = window.VillacartReceipts || {};
 
     vcStartupMark('before-local-state-load');
+    let vc860HasLegacyMain = false;
+    let vc860HasLegacyArchive = false;
+    let vc860HasLegacyQueue = false;
+    try {
+        vc860HasLegacyMain = localStorage.getItem(DB_KEY) !== null;
+        vc860HasLegacyArchive = localStorage.getItem(ARCHIVE_KEY) !== null;
+        vc860HasLegacyQueue = localStorage.getItem(QUEUE_KEY) !== null;
+    } catch (storageReadError) {}
     let state = safeLocalJson(DB_KEY, {
         inventory: [],
         transactions: [],
@@ -164,6 +172,85 @@
     let offlineQueue = safeLocalJson(QUEUE_KEY, [], 'offline queue');
     if (!Array.isArray(offlineQueue)) offlineQueue = [];
     offlineQueue = offlineQueue.filter(task => task && isFirestoreSyncTable(task.table) && task.data && task.data.id && !isArchiveOnlyRecord(task.data));
+    let vc860StorageHydrated = false;
+    let vc860StorageHydrationPromise = null;
+
+    async function vc860HydrateDurableStorage() {
+        if (vc860StorageHydrated) return;
+        if (vc860StorageHydrationPromise) return vc860StorageHydrationPromise;
+        vc860StorageHydrationPromise = (async () => {
+            const storage = window.VillacartStorage;
+            if (!storage || typeof storage.hydrate !== 'function') {
+                vcStartupMark('indexeddb-storage-unavailable');
+                vc860StorageHydrated = true;
+                return;
+            }
+            vcStartupMark('indexeddb-hydrate-start');
+            const result = await storage.hydrate({
+                main: state,
+                archive: {
+                    transactions: state.archiveTransactions || [],
+                    businessDays: state.archiveBusinessDays || [],
+                    gcashRecords: state.archiveGcashRecords || [],
+                    meta: state.archiveMeta || {}
+                },
+                queue: offlineQueue,
+                hasLegacyMain: vc860HasLegacyMain,
+                hasLegacyArchive: vc860HasLegacyArchive,
+                hasLegacyQueue: vc860HasLegacyQueue,
+                keys: { main: DB_KEY, archive: ARCHIVE_KEY, queue: QUEUE_KEY }
+            });
+            state = result && result.main ? result.main : state;
+            const archive = result && result.archive ? result.archive : {};
+            state.archiveTransactions = Array.isArray(archive.transactions) ? archive.transactions : [];
+            state.archiveBusinessDays = Array.isArray(archive.businessDays) ? archive.businessDays : [];
+            state.archiveGcashRecords = Array.isArray(archive.gcashRecords) ? archive.gcashRecords : [];
+            state.archiveMeta = archive.meta && typeof archive.meta === 'object' ? archive.meta : {};
+            offlineQueue = result && Array.isArray(result.queue) ? result.queue : offlineQueue;
+            offlineQueue = offlineQueue.filter(task => task && isFirestoreSyncTable(task.table) && task.data && task.data.id && !isArchiveOnlyRecord(task.data));
+            if (!Array.isArray(state.inventory)) state.inventory = [];
+            if (!Array.isArray(state.transactions)) state.transactions = [];
+            if (!Array.isArray(state.businessDays)) state.businessDays = [];
+            if (!Array.isArray(state.gcashRecords)) state.gcashRecords = [];
+            if (!Array.isArray(state.cart)) state.cart = [];
+            if (!Array.isArray(state.favorites)) state.favorites = new Array(8).fill(null);
+            if (localFavs && Array.isArray(localFavs)) state.favorites = localFavs;
+            state.cartDiscount = Math.max(0, Number(state.cartDiscount) || 0);
+            vc860StorageHydrated = true;
+            window.__villacartStorageHydration = {
+                ready: true,
+                source: result && result.source ? result.source : 'unknown',
+                at: new Date().toISOString()
+            };
+            vcStartupMark('indexeddb-hydrate-complete', {
+                source: window.__villacartStorageHydration.source,
+                transactions: state.transactions.length,
+                inventory: state.inventory.length,
+                queue: offlineQueue.length
+            });
+        })().catch(error => {
+            vc860StorageHydrated = true;
+            window.__villacartStorageHydration = {
+                ready: false,
+                source: 'legacy-recovery',
+                at: new Date().toISOString(),
+                error: error && error.message ? error.message : String(error)
+            };
+            vcStartupMark('indexeddb-hydrate-failed', { error: window.__villacartStorageHydration.error });
+            console.error('Villacart IndexedDB hydration failed; retaining legacy state.', error);
+        });
+        return vc860StorageHydrationPromise;
+    }
+
+    window.addEventListener('villacart-storage-error', event => {
+        const message = event && event.detail && event.detail.message
+            ? event.detail.message
+            : 'Local device storage could not be saved.';
+        if (typeof showToast === 'function') {
+            showToast('Local storage needs attention. Keep this app open and check Diagnostics.', 'error');
+        }
+        console.error(message);
+    });
     // Firestore is authoritative for transaction existence. Older versions
     // stored deleted IDs indefinitely and could hide valid cloud transactions.
     try { localStorage.removeItem('villacart_deleted_transactions'); } catch (e) {}
@@ -2049,11 +2136,12 @@ function switchScreen(id) {
 
     // Delayed Insights repaint disabled to prevent flicker.
 
-function vc7218StartApp() {
+async function vc7218StartApp() {
         if (window.__vc7218Started) return;
         window.__vc7218Started = true;
         vcStartupMark('app-start-called');
         try {
+            await vc860HydrateDurableStorage();
             vcStartupMark('pos-switch-start');
             switchScreen('pos');
             vcStartupMark('pos-screen-shown', {

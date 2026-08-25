@@ -141,6 +141,11 @@
       try { deviceApproval = await window.villacartGetDeviceApprovalInfo(); }
       catch(e) { deviceApproval = { error: e && e.message ? e.message : String(e) }; }
     }
+    let durableStorage = null;
+    if (window.VillacartStorage && typeof window.VillacartStorage.getStatus === 'function') {
+      try { durableStorage = await window.VillacartStorage.getStatus(); }
+      catch(e) { durableStorage = { ready:false, lastError:e && e.message ? e.message : String(e) }; }
+    }
 
     const report = {
       at: new Date().toISOString(),
@@ -168,6 +173,8 @@
       })) : [],
       syncErrorMsg: typeof syncErrorMsg !== 'undefined' ? (syncErrorMsg || null) : null,
       lastHydrate: window.__vc559LastHydrate || null,
+      durableStorage,
+      storageHydration: window.__villacartStorageHydration || null,
       startup: window.__villacartStartup || null,
       optionalLibraries: {
         quaggaLoaded: typeof Quagga !== 'undefined',
@@ -214,6 +221,7 @@
     if (!report.online) problems.push('Device is offline');
     if (!report.dbReady) problems.push('Firestore is not ready');
     if (report.offlineQueue > 0) problems.push(report.offlineQueue + ' pending sync item(s)');
+    if (report.durableStorage && report.durableStorage.lastError) problems.push('Local storage error');
     if (report.versionInfo && !report.versionInfo.matches) problems.push('App/cache version mismatch');
     if (report.serviceWorker && report.serviceWorker.updateAvailable) problems.push('App update is waiting');
     return problems.length ? problems.join(' · ') : 'No obvious issue detected';
@@ -244,6 +252,10 @@
       const posMark = vc559PosVisibleMark(r.startup);
       const lastMark = vc559LastStartupMark(r.startup);
       const versionText = r.versionInfo && r.versionInfo.matches ? 'Current' : 'Check';
+      const storageEstimate = r.durableStorage && r.durableStorage.estimate ? r.durableStorage.estimate : null;
+      const storageDetail = storageEstimate
+        ? ((storageEstimate.usage / 1048576).toFixed(1) + ' MB used of ' + (storageEstimate.quota / 1048576).toFixed(0) + ' MB')
+        : 'browser quota estimate unavailable';
       grid.innerHTML = [
         vc559Card('Overall', (r.online && r.dbReady && r.offlineQueue === 0) ? 'Good' : 'Check', vc559Summary(r), (r.online && r.dbReady && r.offlineQueue === 0) ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Project', r.firebaseProjectId || 'Unknown', r.dbReady ? 'Firestore connected' : 'Firestore not ready', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
@@ -258,6 +270,7 @@
         vc559Card('Background Ready', lastMark ? (lastMark.msSinceScriptStart + 'ms') : 'N/A', lastMark ? ('last: ' + (r.startup.lastMark || lastMark.name || 'unknown')) : 'not recorded', lastMark ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Scanner', r.scannerDebug && r.scannerDebug.lastBarcodeAttempt ? r.scannerDebug.lastBarcodeAttempt : 'No scan', r.scannerDebug ? ((r.scannerDebug.lastBarcodeResult || 'waiting') + ' / input: ' + (r.scannerDebug.lastInputValue || '').slice(0, 24)) : 'debug not ready', r.scannerDebug && r.scannerDebug.lastBarcodeResult && r.scannerDebug.lastBarcodeResult.indexOf('matched:') === 0 ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Optional Tools', (r.optionalLibraries && r.optionalLibraries.chartLoaded ? 'Chart ' : '') + (r.optionalLibraries && r.optionalLibraries.html2canvasLoaded ? 'Image ' : '') || 'Deferred', 'Camera scanner: ' + (r.optionalLibraries && r.optionalLibraries.quaggaLoaded ? 'ready' : 'not loaded'), 'vc558-ok'),
+        vc559Card('Local Database', r.durableStorage && r.durableStorage.ready ? 'IndexedDB' : 'Fallback', r.durableStorage && r.durableStorage.lastError ? r.durableStorage.lastError : storageDetail, r.durableStorage && r.durableStorage.ready && !r.durableStorage.lastError ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Version', versionText, r.versionInfo ? ('app ' + (r.versionInfo.appVersion || 'unknown') + ' / expected ' + (r.versionInfo.expectedVersion || 'unknown')) : 'version info missing', r.versionInfo && r.versionInfo.matches ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Ready' : 'None', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Tap Reload App below' : 'no waiting app update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'vc558-warn' : 'vc558-ok')
       ].join('');
@@ -313,6 +326,8 @@
       syncErrorMsg: r.syncErrorMsg || null,
       lastHydrate: r.lastHydrate || null,
       hydrateResult: r.hydrateResult || null,
+      durableStorage: r.durableStorage || null,
+      storageHydration: r.storageHydration || null,
       startup: {
         posVisibleMs: posMark ? posMark.msSinceScriptStart : null,
         lastMark: startup.lastMark || (lastMark && lastMark.name) || null,
