@@ -60,6 +60,10 @@
         if (value === '#111827') return ' favorite-color-dark';
         if (value === '#B91C1C') return ' favorite-color-marlboro-red';
         if (value === '#D6B45A') return ' favorite-color-marlboro-gold';
+        if (value === '#56070B') return ' favorite-color-rgd-red';
+        if (value === '#D9E2EA') return ' favorite-color-rgd-light';
+        if (value === '#0B0C0F') return ' favorite-color-modern-black';
+        if (value === '#9D1118') return ' favorite-color-modern-red';
         return '';
     }
 
@@ -273,7 +277,7 @@
         const current = favoriteColorValue(index);
         list.innerHTML = favoriteColorPalette.map(color => {
             const selected = current === color.value;
-            const swatch = color.value || '#EAF1F8';
+            const swatch = color.swatch || color.value || '#EAF1F8';
             return `<button onclick="setFavoriteColor('${color.value}', ${index})" class="fav-color-chip ${selected ? 'selected' : ''}" style="--fav-chip-color:${swatch}"><span></span><small>${escapeHTML(color.name)}</small></button>`;
         }).join('');
         closeModal('fav-picker-modal');

@@ -4433,6 +4433,45 @@ body {
     color: #713F12 !important;
 }
 
+/* v8.7.6: cigarette-brand palettes requested for quick visual recognition.
+   These are CSS-only surfaces and do not add images, network work, or Firestore usage. */
+#favorites-grid .favorite-color-rgd-red {
+    background-image: linear-gradient(135deg, #150304 0%, #A40B13 52%, #240405 100%);
+    border-color: #7F1D1D;
+    box-shadow: 0 3px 10px rgba(69, 10, 10, .30);
+}
+#favorites-grid .favorite-color-rgd-red > span:not(.favorite-stock-pill):not(.favorite-cart-qty),
+#favorites-grid .favorite-color-modern-red > span:not(.favorite-stock-pill):not(.favorite-cart-qty),
+#favorites-grid .favorite-color-modern-black > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color: #FFF7ED !important;
+}
+#favorites-grid .favorite-color-rgd-red .favorite-product-price,
+#favorites-grid .favorite-color-modern-red .favorite-product-price,
+#favorites-grid .favorite-color-modern-black .favorite-product-price {
+    color: #FDE68A !important;
+}
+#favorites-grid .favorite-color-rgd-light {
+    background-image: linear-gradient(135deg, #F8FAFC 0%, #CBD5E1 55%, #93A9BC 100%);
+    border-color: #7890A5;
+    box-shadow: 0 3px 10px rgba(51, 65, 85, .18);
+}
+#favorites-grid .favorite-color-rgd-light > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color: #172B3F !important;
+}
+#favorites-grid .favorite-color-rgd-light .favorite-product-price {
+    color: #0B4F8A !important;
+}
+#favorites-grid .favorite-color-modern-black {
+    background-image: linear-gradient(135deg, #050506 0%, #30343A 52%, #070708 100%);
+    border-color: #4B5563;
+    box-shadow: 0 3px 10px rgba(3, 7, 18, .34);
+}
+#favorites-grid .favorite-color-modern-red {
+    background-image: linear-gradient(135deg, #4B060A 0%, #C61A25 55%, #64080E 100%);
+    border-color: #991B1B;
+    box-shadow: 0 3px 10px rgba(127, 29, 29, .28);
+}
+
 /* v8.4.7: tablet-landscape senior compact favorites.
    Preserve six wide touch targets while fitting four readable rows. */
 @media (min-width: 1024px) and (orientation: landscape) {

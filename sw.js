@@ -1,58 +1,58 @@
-const APP_VERSION = '8.7.5';
+const APP_VERSION = '8.7.6';
 const CACHE_NAME = 'villacart-pos-v' + APP_VERSION;
 const OFFLINE_ENTRY = './index.html?v=' + APP_VERSION;
 const APP_SHELL = [
   OFFLINE_ENTRY,
-  './manifest.webmanifest?v=8.7.5',
-  './styles.css?v=8.7.5',
-  './vendor/tailwind-forms-container.js?v=8.7.5',
-  './vendor/fonts/fonts.css?v=8.7.5',
+  './manifest.webmanifest?v=8.7.6',
+  './styles.css?v=8.7.6',
+  './vendor/tailwind-forms-container.js?v=8.7.6',
+  './vendor/fonts/fonts.css?v=8.7.6',
   './vendor/fonts/inter-latin.woff2',
   './vendor/fonts/material-symbols-outlined.woff2',
-  './vendor/quagga.min.js?v=8.7.5',
-  './vendor/firebase-app-compat.js?v=8.7.5',
-  './vendor/firebase-auth-compat.js?v=8.7.5',
-  './vendor/firebase-firestore-compat.js?v=8.7.5',
-  './utils.js?v=8.7.5',
-  './ledger.js?v=8.7.5',
-  './receipts.js?v=8.7.5',
+  './vendor/quagga.min.js?v=8.7.6',
+  './vendor/firebase-app-compat.js?v=8.7.6',
+  './vendor/firebase-auth-compat.js?v=8.7.6',
+  './vendor/firebase-firestore-compat.js?v=8.7.6',
+  './utils.js?v=8.7.6',
+  './ledger.js?v=8.7.6',
+  './receipts.js?v=8.7.6',
   
-    './receipt-ui.js?v=8.7.5',
-    './scanner.js?v=8.7.5',
-    './camera-scanner.js?v=8.7.5',
+    './receipt-ui.js?v=8.7.6',
+    './scanner.js?v=8.7.6',
+    './camera-scanner.js?v=8.7.6',
   
     
-    './cart.js?v=8.7.5',
-    './payment-ui.js?v=8.7.5',
-    './favorites.js?v=8.7.5',
+    './cart.js?v=8.7.6',
+    './payment-ui.js?v=8.7.6',
+    './favorites.js?v=8.7.6',
     
-    './notifications.js?v=8.7.5',
+    './notifications.js?v=8.7.6',
     
-    './stock-ui.js?v=8.7.5',
-    './gcash.js?v=8.7.5',
+    './stock-ui.js?v=8.7.6',
+    './gcash.js?v=8.7.6',
   
-    './expenses.js?v=8.7.5',
-    './status-ui.js?v=8.7.5',
-    './pwa-lifecycle.js?v=8.7.5',
-    './insights-base.js?v=8.7.5',
-    './reporting-ui.js?v=8.7.5',
-    './storage-db.js?v=8.7.5',
-    './sync-engine.js?v=8.7.5',
-    './app.js?v=8.7.5',
-    './item-sales.js?v=8.7.5',
-    './ledger-ui.js?v=8.7.5',
-    './backup-actions.js?v=8.7.5',
-    './business-actions.js?v=8.7.5',
+    './expenses.js?v=8.7.6',
+    './status-ui.js?v=8.7.6',
+    './pwa-lifecycle.js?v=8.7.6',
+    './insights-base.js?v=8.7.6',
+    './reporting-ui.js?v=8.7.6',
+    './storage-db.js?v=8.7.6',
+    './sync-engine.js?v=8.7.6',
+    './app.js?v=8.7.6',
+    './item-sales.js?v=8.7.6',
+    './ledger-ui.js?v=8.7.6',
+    './backup-actions.js?v=8.7.6',
+    './business-actions.js?v=8.7.6',
   
-    './business-ui.js?v=8.7.5',
+    './business-ui.js?v=8.7.6',
     
-    './ui-core.js?v=8.7.5',
-    './product.js?v=8.7.5',
-    './settings.js?v=8.7.5',
-    './inventory-actions.js?v=8.7.5',
-    './sales-export.js?v=8.7.5',
-    './transaction-detail.js?v=8.7.5',
-    './diagnostics.js?v=8.7.5',
+    './ui-core.js?v=8.7.6',
+    './product.js?v=8.7.6',
+    './settings.js?v=8.7.6',
+    './inventory-actions.js?v=8.7.6',
+    './sales-export.js?v=8.7.6',
+    './transaction-detail.js?v=8.7.6',
+    './diagnostics.js?v=8.7.6',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
@@ -146,5 +146,6 @@ function compareVersions(left, right) {
   }
   return 0;
 }
+
 
 
