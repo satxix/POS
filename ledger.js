@@ -184,6 +184,23 @@ function renderLedger() {
   container.innerHTML = html;
 }
 
+function buildCreditSettlementBreakdown(ticket) {
+  const items = JSON.parse(JSON.stringify(Array.isArray(ticket && ticket.items) ? ticket.items : []));
+  const itemSubtotal = items.reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.qty) || 0)), 0);
+  const total = Number(ticket && ticket.total) || 0;
+  const subtotal = Number(ticket && ticket.subtotal) || itemSubtotal || (total + (Number(ticket && ticket.discount) || 0));
+  const discount = Math.max(0, Number(ticket && ticket.discount) || (subtotal - total));
+  return {
+    id: ticket && ticket.id ? ticket.id : '',
+    timestamp: ticket && ticket.timestamp ? ticket.timestamp : '',
+    businessDate: ticket && ticket.businessDate ? ticket.businessDate : '',
+    items,
+    subtotal,
+    discount,
+    total
+  };
+}
+
 async function payIndividualTicket(id) {
   const ticket = state.transactions.find(transaction => transaction.id === id);
   if (!ticket) return;
@@ -205,9 +222,10 @@ async function payIndividualTicket(id) {
     queueTransaction(settlement);
     showToast(`Partial payment ₱${amount.toLocaleString()} recorded`, 'success');
   } else {
+    const creditBreakdown = [buildCreditSettlementBreakdown(ticket)];
     ticket.paid = true;
     ticket._offline = true;
-    const settlement = { id: settlementId, type: 'SA', total: ticket.total, timestamp: new Date().toISOString(), items: JSON.parse(JSON.stringify(ticket.items || [])), customer: ticket.customer, paid: true, cashReceived: ticket.total, change: 0, notes: ticket.id };
+    const settlement = { id: settlementId, type: 'SA', total: ticket.total, subtotal: creditBreakdown[0].subtotal, discount: creditBreakdown[0].discount, creditBreakdown, timestamp: new Date().toISOString(), items: [], customer: ticket.customer, paid: true, cashReceived: ticket.total, change: 0, notes: ticket.id };
     await directSync('transactions', ticket);
     queueTransaction(settlement);
     showToast('Ticket paid', 'success');
@@ -226,21 +244,18 @@ async function payFullBalance(customerName) {
   if (credits.length === 0) return;
   const totalToPay = credits.reduce((sum, transaction) => sum + transaction.total, 0);
   if (!confirm(`Collect full payment of ₱${totalToPay.toLocaleString()}?`)) return;
-  const aggregatedItems = {};
+  const creditBreakdown = credits
+    .map(buildCreditSettlementBreakdown)
+    .sort((a, b) => String(a.timestamp || a.businessDate || '').localeCompare(String(b.timestamp || b.businessDate || '')));
   for (const ticket of credits) {
-    if (ticket.items && Array.isArray(ticket.items)) {
-      ticket.items.forEach(item => {
-        const key = `${item.id}-${item.type}-${ticket.id}`;
-        if (aggregatedItems[key]) aggregatedItems[key].qty += item.qty;
-        else aggregatedItems[key] = { ...item, originalTicketId: ticket.id };
-      });
-    }
     ticket.paid = true;
     ticket._offline = true;
     await directSync('transactions', ticket);
   }
   const settlementId = nextTransactionId('SA');
-  const settlement = { id: settlementId, type: 'SA', customer: customerName, total: totalToPay, timestamp: new Date().toISOString(), items: Object.values(aggregatedItems), notes: credits.map(ticket => ticket.id).join(', '), paid: true, cashReceived: totalToPay, change: 0 };
+  const settlementSubtotal = creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.subtotal) || 0), 0);
+  const settlementDiscount = creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.discount) || 0), 0);
+  const settlement = { id: settlementId, type: 'SA', customer: customerName, total: totalToPay, subtotal: settlementSubtotal, discount: settlementDiscount, creditBreakdown, timestamp: new Date().toISOString(), items: [], notes: credits.map(ticket => ticket.id).join(', '), paid: true, cashReceived: totalToPay, change: 0 };
   queueTransaction(settlement);
   renderLedger();
   showToast('Balance paid', 'success');

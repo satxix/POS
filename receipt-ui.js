@@ -47,6 +47,58 @@
         return `${receiptTitle || ''}\u0000${receiptText || ''}`;
     }
 
+    function vc872NormalizeCreditTicket(ticket) {
+        const items = Array.isArray(ticket && ticket.items) ? ticket.items.map(item => ({ ...item })) : [];
+        const itemSubtotal = items.reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.qty) || 0)), 0);
+        const total = Number(ticket && ticket.total) || 0;
+        const subtotal = Number(ticket && ticket.subtotal) || itemSubtotal || (total + (Number(ticket && ticket.discount) || 0));
+        const discount = Math.max(0, Number(ticket && ticket.discount) || (subtotal - total));
+        return {
+            id: String((ticket && ticket.id) || ''),
+            timestamp: (ticket && ticket.timestamp) || '',
+            businessDate: (ticket && ticket.businessDate) || '',
+            items,
+            subtotal,
+            discount,
+            total
+        };
+    }
+
+    function vc872SettlementCreditIds(tx) {
+        const ids = [];
+        const add = value => {
+            const id = String(value || '').trim();
+            if (id && id.startsWith('CR-') && !ids.includes(id)) ids.push(id);
+        };
+        (Array.isArray(tx && tx.creditBreakdown) ? tx.creditBreakdown : []).forEach(ticket => add(ticket && ticket.id));
+        [tx && tx.settlementFor, tx && tx.creditRef, tx && tx.relatedCreditId].forEach(add);
+        const matches = String((tx && tx.notes) || '').match(/CR-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+/g) || [];
+        matches.forEach(add);
+        return ids;
+    }
+
+    function vc872PrepareReceiptTransaction(tx) {
+        if (!tx || tx.type !== 'SA' || !(tx.creditBreakdown || String(tx.notes || '').includes('CR-'))) return tx;
+        // A partial payment does not settle the original ticket, so its current
+        // remaining balance cannot be used as a historical itemized receipt.
+        if (!tx.creditBreakdown && String(tx.notes || '').trim().toLowerCase().startsWith('partial:')) return tx;
+        let breakdown = Array.isArray(tx.creditBreakdown)
+            ? tx.creditBreakdown.map(vc872NormalizeCreditTicket)
+            : [];
+        if (!breakdown.length) {
+            const all = (state.transactions || []).concat(state.archiveTransactions || []);
+            const byId = new Map(all.filter(record => record && record.id).map(record => [String(record.id), record]));
+            breakdown = vc872SettlementCreditIds(tx)
+                .map(id => byId.get(id))
+                .filter(Boolean)
+                .map(vc872NormalizeCreditTicket);
+        }
+        breakdown.sort((a, b) => String(a.timestamp || a.businessDate || '').localeCompare(String(b.timestamp || b.businessDate || '')));
+        return breakdown.length ? { ...tx, creditBreakdown: breakdown } : tx;
+    }
+
+    window.vc872PrepareReceiptTransaction = vc872PrepareReceiptTransaction;
+
     function vc854BuildReceiptIntentUrl(receiptText, receiptTitle) {
         const key = vc854ReceiptIntentKey(receiptText, receiptTitle);
         if (vc854ReceiptIntentCache.key === key) {
@@ -79,8 +131,9 @@
     }
 
     function vc854GetReceiptPrintData() {
-        const tx = (state.transactions || []).find(t => t.id === lastTransactionId)
+        const found = (state.transactions || []).find(t => t.id === lastTransactionId)
             || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
+        const tx = vc872PrepareReceiptTransaction(found);
         const receiptEl = document.getElementById('receipt-content');
         if (!tx && !receiptEl) return null;
         return {
@@ -140,7 +193,8 @@
     }
 
     function printBrowserThermalReceipt() {
-        const tx = (state.transactions || []).find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
+        const found = (state.transactions || []).find(t => t.id === lastTransactionId) || (state.archiveTransactions || []).find(t => t.id === lastTransactionId);
+        const tx = vc872PrepareReceiptTransaction(found);
         const receiptEl = document.getElementById('receipt-content');
         if (!tx && !receiptEl) {
             if (typeof showToast === 'function') showToast('Receipt not ready', 'error');
@@ -308,7 +362,7 @@ body {
     }
 
     function viewReceipt(id) {
-        const tx = findReceiptTransaction(id);
+        const tx = vc872PrepareReceiptTransaction(findReceiptTransaction(id));
         if (!tx) {
             showToast('Receipt not found', 'error');
             return;
@@ -341,6 +395,7 @@ body {
     }
 
     function buildSettlementRcpt(tx) {
+        tx = vc872PrepareReceiptTransaction(tx);
         resetReceiptFields();
         document.getElementById('receipt-title').innerText = 'CREDIT SETTLEMENT';
         document.getElementById('receipt-standard-fields').classList.add('hidden');
@@ -353,7 +408,22 @@ body {
         document.getElementById('rec-total').innerText = formatCurrency(tx.total);
         const itemsList = document.getElementById('rec-items-list');
         let html = '';
-        if (tx.items && tx.items.length > 0) {
+        if (Array.isArray(tx.creditBreakdown) && tx.creditBreakdown.length > 0) {
+            tx.creditBreakdown.forEach(ticket => {
+                const ticketDate = ticket.timestamp || ticket.businessDate;
+                const dateLabel = ticketDate ? new Date(ticketDate.length === 10 ? ticketDate + 'T00:00:00' : ticketDate).toLocaleDateString() : '';
+                html += `<div class="mt-4 mb-1.5 border-b border-black pb-0.5 flex justify-between gap-2"><span class="font-bold uppercase text-[10px]">Ticket: ${escapeHTML(ticket.id || 'Credit')}</span><span class="text-[9px] font-bold">${escapeHTML(dateLabel)}</span></div>`;
+                html += renderReceiptItems(ticket.items || []);
+                html += `<div class="mt-1.5 pt-1.5 border-t border-black/30 space-y-0.5 text-[10px]"><div class="flex justify-between"><span>Subtotal</span><span>${formatCurrency(ticket.subtotal)}</span></div>`;
+                if ((Number(ticket.discount) || 0) > 0) html += `<div class="flex justify-between"><span>Discount</span><span>-${formatCurrency(ticket.discount)}</span></div>`;
+                html += `<div class="flex justify-between font-black"><span>Ticket Total</span><span>${formatCurrency(ticket.total)}</span></div></div>`;
+            });
+            const originalSubtotal = tx.creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.subtotal) || 0), 0);
+            const totalDiscount = tx.creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.discount) || 0), 0);
+            html += `<div class="mt-4 pt-2 border-t-2 border-black space-y-1 font-bold"><div class="flex justify-between"><span>Original Subtotal</span><span>${formatCurrency(originalSubtotal)}</span></div>`;
+            if (totalDiscount > 0) html += `<div class="flex justify-between"><span>Total Discounts</span><span>-${formatCurrency(totalDiscount)}</span></div>`;
+            html += `</div>`;
+        } else if (tx.items && tx.items.length > 0) {
             const ticketGroups = {};
             tx.items.forEach(item => {
                 const ticketId = item.originalTicketId || tx.notes || 'Original Order';

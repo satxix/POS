@@ -85,7 +85,31 @@
 
         if (isSettlement) {
             lines.push('Settlement Breakdown');
-            if (tx.items && tx.items.length) {
+            if (Array.isArray(tx.creditBreakdown) && tx.creditBreakdown.length) {
+                tx.creditBreakdown.forEach((ticket, index) => {
+                    if (index > 0) lines.push(thermalLine(width));
+                    const rawDate = ticket.timestamp || ticket.businessDate || '';
+                    const parsedDate = rawDate ? new Date(String(rawDate).length === 10 ? rawDate + 'T00:00:00' : rawDate) : null;
+                    const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toLocaleDateString() : '';
+                    lines.push(thermalFit(`${dateLabel}${dateLabel ? ' ' : ''}${ticket.id || 'Credit Ticket'}`, width));
+                    lines.push('Item'.padEnd(16) + 'Qty'.padStart(4) + 'Price'.padStart(14));
+                    (ticket.items || []).forEach(item => {
+                        const qty = Number(item.qty) || 0;
+                        const lineTotal = (Number(item.price) || 0) * qty;
+                        thermalItemRows(item.name, qty, thermalMoney(lineTotal), width).forEach(line => lines.push(line));
+                    });
+                    lines.push(thermalRow('Subtotal:', thermalMoney(ticket.subtotal), width));
+                    if ((Number(ticket.discount) || 0) > 0) {
+                        lines.push(thermalRow('Discount:', '-' + thermalMoney(ticket.discount), width));
+                    }
+                    lines.push(thermalRow('Ticket Total:', thermalMoney(ticket.total), width));
+                });
+                const originalSubtotal = tx.creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.subtotal) || 0), 0);
+                const totalDiscount = tx.creditBreakdown.reduce((sum, ticket) => sum + (Number(ticket.discount) || 0), 0);
+                lines.push(thermalLine(width));
+                lines.push(thermalRow('Original Subtotal:', thermalMoney(originalSubtotal), width));
+                if (totalDiscount > 0) lines.push(thermalRow('Total Discounts:', '-' + thermalMoney(totalDiscount), width));
+            } else if (tx.items && tx.items.length) {
                 tx.items.forEach(item => {
                     thermalItemRows(item.name, item.qty, thermalMoney(Number(item.price) * Number(item.qty)), width).forEach(line => lines.push(line));
                 });
