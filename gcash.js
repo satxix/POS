@@ -1,4 +1,4 @@
-// Villacart GCash screen logic v8.6.1
+// Villacart GCash screen logic v8.6.2
 // Depends on shared app globals from app.js at call time.
 
     // v8.0.56: Standalone GCash service ledger.
@@ -34,7 +34,32 @@
 
     window.handleGcashHistoryRangeChange = handleGcashHistoryRangeChange;
 
-    function nextGcashId() {
+    function nextGcashDisplayId(referenceDate = new Date()) {
+        const now = referenceDate instanceof Date && !isNaN(referenceDate) ? referenceDate : new Date();
+        const dateCode = String(now.getDate()).padStart(2, '0')
+            + String(now.getMonth() + 1).padStart(2, '0')
+            + String(now.getFullYear()).slice(-2);
+        const prefix = `GC-${dateCode}-`;
+        const knownRecords = [
+            ...(Array.isArray(state.gcashRecords) ? state.gcashRecords : []),
+            ...(Array.isArray(state.archiveGcashRecords) ? state.archiveGcashRecords : [])
+        ];
+        let highest = 0;
+        knownRecords.forEach(record => {
+            const visibleId = String(record && (record.displayId || record.id) || '').toUpperCase();
+            const match = visibleId.match(new RegExp(`^${prefix}(\\d+)$`));
+            if (match) highest = Math.max(highest, Number(match[1]) || 0);
+        });
+        const counterKey = 'villacart_gcash_display_counters' + (typeof STORAGE_SUFFIX !== 'undefined' ? STORAGE_SUFFIX : '');
+        const counters = safeLocalJson(counterKey, {}, 'GCash display counters');
+        const safeCounters = counters && typeof counters === 'object' && !Array.isArray(counters) ? counters : {};
+        const next = Math.max(highest, Number(safeCounters[dateCode]) || 0) + 1;
+        safeCounters[dateCode] = next;
+        try { localStorage.setItem(counterKey, JSON.stringify(safeCounters)); } catch (error) {}
+        return prefix + String(next).padStart(3, '0');
+    }
+
+    function nextGcashId(displayId) {
         // GCash IDs must not rely on the browser's daily counter. Clearing app
         // data resets that counter and can otherwise reuse an existing
         // Firestore document ID, causing one record to overwrite another.
@@ -50,7 +75,18 @@
                 entropy = values[0].toString(36).padStart(7, '0').slice(-7);
             }
         } catch (error) {}
-        return `GC-${dateCode}-${Date.now().toString(36)}-${entropy}`.toUpperCase();
+        const visiblePrefix = String(displayId || `GC-${dateCode}`).toUpperCase();
+        return `${visiblePrefix}-${Date.now().toString(36)}-${entropy}`.toUpperCase();
+    }
+
+    function gcashVisibleId(record) {
+        if (!record) return '';
+        if (record.displayId) return String(record.displayId);
+        const id = String(record.id || '');
+        // Records created before hidden technical IDs already have a friendly
+        // document ID, so keep displaying it unchanged.
+        if (/^GC-\d{6}-\d{3,}$/i.test(id)) return id;
+        return id;
     }
 
     function gcashRecordRevisionTime(record) {
@@ -209,9 +245,13 @@
             updateGcashSaveButtonState();
             return;
         }
+        const displayId = existing
+            ? (existing.displayId || gcashVisibleId(existing))
+            : nextGcashDisplayId(now);
         const record = {
             ...(existing || {}),
-            id: existing?.id || nextGcashId(),
+            id: existing?.id || nextGcashId(displayId),
+            displayId,
             type: activeGcashType,
             amount,
             fee,
@@ -265,7 +305,7 @@
         return `<div class="bg-surface-container/40 border border-border-subtle rounded-3xl p-4 flex justify-between gap-3">
             <div class="min-w-0">
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
-                    <p class="font-black text-sm ${isOut ? 'text-error' : 'text-primary'}">${escapeHTML(r.id)}</p>
+                    <p class="font-black text-sm ${isOut ? 'text-error' : 'text-primary'}">${escapeHTML(gcashVisibleId(r))}</p>
                     <span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-black ${isOut ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}">${isOut ? 'Cash Out' : 'Cash In'}</span>
                     ${pending ? '<span class="text-[7px] px-2 py-0.5 rounded-full uppercase font-black bg-orange-500 text-white">Pending</span>' : ''}
                 </div>

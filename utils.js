@@ -358,6 +358,7 @@
     function gcashSearchText(record) {
         return [
             record && record.id,
+            record && record.displayId,
             record && record.customerName,
             record && record.referenceNotes,
             record && record.notes,
