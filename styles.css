@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.6 read-only local data integrity report. */
+        /* v8.8.7 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -4372,7 +4372,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.6 compact terminal-only daily sales figure. */
+/* v8.8.7 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4393,7 +4393,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.6 compact local-stock indicator in terminal search results. */
+/* v8.8.7 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4596,7 +4596,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.6 eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.7 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4626,7 +4626,7 @@ body {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
-/* v8.8.6 dark-card comfort: retain the black/charcoal identity without the
+/* v8.8.7 dark-card comfort: retain the black/charcoal identity without the
    harsh near-black versus pure-white contrast that is tiring in a large grid. */
 #favorites-grid .favorite-color-dark {
     background-color:#28313C !important;
@@ -4653,6 +4653,43 @@ body {
 #favorites-grid .favorite-color-modern-black .favorite-product-price,
 #favorites-grid .favorite-color-texture-charcoal .favorite-product-price {
     color:#F0D58A !important;
+}
+
+/* v8.8.7 red-card comfort: use muted reds and warm rose lettering instead of
+   saturated red against near-white type. */
+#favorites-grid .favorite-color-marlboro-red {
+    background-color:#91313A !important;
+    border-color:#A05259;
+    box-shadow:0 2px 7px rgba(69,10,10,.12);
+}
+#favorites-grid .favorite-color-rgd-red {
+    background-color:#7F2630 !important;
+    background-image:linear-gradient(135deg,#321012 0%,#7F2630 52%,#3B1417 100%);
+    border-color:#91414A;
+    box-shadow:0 2px 7px rgba(69,10,10,.12);
+}
+#favorites-grid .favorite-color-modern-red {
+    background-color:#87303A !important;
+    background-image:linear-gradient(135deg,#5A2026 0%,#963B45 55%,#65252C 100%);
+    border-color:#A04B54;
+    box-shadow:0 2px 7px rgba(69,10,10,.12);
+}
+#favorites-grid .favorite-color-texture-red {
+    background-color:#963746 !important;
+    border-color:#A95662;
+}
+#favorites-grid .favorite-color-marlboro-red > span:not(.favorite-stock-pill):not(.favorite-cart-qty),
+#favorites-grid .favorite-color-rgd-red > span:not(.favorite-stock-pill):not(.favorite-cart-qty),
+#favorites-grid .favorite-color-modern-red > span:not(.favorite-stock-pill):not(.favorite-cart-qty),
+#favorites-grid .favorite-color-texture-red > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color:#F0D9D6 !important;
+    text-shadow:none !important;
+}
+#favorites-grid .favorite-color-marlboro-red .favorite-product-price,
+#favorites-grid .favorite-color-rgd-red .favorite-product-price,
+#favorites-grid .favorite-color-modern-red .favorite-product-price,
+#favorites-grid .favorite-color-texture-red .favorite-product-price {
+    color:#F3D08A !important;
 }
 
 /* v8.4.7: tablet-landscape senior compact favorites.
