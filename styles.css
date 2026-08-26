@@ -2323,8 +2323,18 @@
             border: 1px solid rgba(255,255,255,.16);
             color: #DBEAFE;
         }
-        #vc551-date {
+        .vc551-version-mobile {
+            display: none;
+        }
+        .vc551-meta-row {
+            display: flex;
+            align-items: center;
+            gap: .34rem;
+            min-width: 0;
             margin-top: .28rem;
+        }
+        #vc551-date {
+            margin-top: 0;
             font-size: .56rem;
             line-height: 1;
             font-weight: 850;
@@ -2452,7 +2462,11 @@
             .vc551-title-row h1 {
                 font-size: .8rem;
             }
-            .vc551-version {
+            .vc551-version-title {
+                display: none;
+            }
+            .vc551-version-mobile {
+                display: inline-flex;
                 font-size: .44rem;
                 padding: .16rem .28rem;
             }
@@ -2468,6 +2482,14 @@
             }
             main {
                 padding-top: 62px !important;
+            }
+        }
+        @media (min-width: 391px) and (max-width: 767px) {
+            .vc551-version-title {
+                display: none;
+            }
+            .vc551-version-mobile {
+                display: inline-flex;
             }
         }
         @media (min-width: 768px) {
@@ -4240,6 +4262,23 @@
     background: #ffffff !important;
     border-top: 1px solid rgba(148, 163, 184, .26);
     box-shadow: 0 -10px 24px rgba(15, 23, 42, .12);
+}
+
+#receipt-actions .vc-receipt-close-action {
+    color: #17324d !important;
+    background: #e2e8f0 !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
+}
+
+#receipt-actions .vc-receipt-close-action .material-symbols-outlined {
+    color: inherit !important;
+}
+
+html.vc-soft-dark #receipt-actions .vc-receipt-close-action {
+    color: #102a43 !important;
+    background: #d7e0ea !important;
+    border-color: #b8c6d5 !important;
 }
 
 @media (max-width: 420px) {
