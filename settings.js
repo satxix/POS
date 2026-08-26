@@ -2,6 +2,42 @@
 // Depends on app globals: hashPin, STORED_PIN_HASH, PIN_KEY, closeModal, showToast.
 
 const STOCK_PIN_REQUIRED_KEY = 'villacart_stock_pin_required';
+const SOFT_DARK_THEME_KEY = 'villacart_soft_dark_theme';
+
+function isSoftDarkThemeEnabled() {
+    try { return localStorage.getItem(SOFT_DARK_THEME_KEY) === 'true'; }
+    catch (error) { return false; }
+}
+
+function applySoftDarkTheme(enabled) {
+    const active = !!enabled;
+    document.documentElement.classList.toggle('vc-soft-dark', active);
+    const button = document.getElementById('vc887-theme-toggle');
+    const icon = document.getElementById('vc887-theme-icon');
+    if (button) {
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.setAttribute('aria-label', active ? 'Switch to Light theme' : 'Turn Soft Dark on');
+        button.title = active ? 'Switch to Light theme' : 'Turn Soft Dark on';
+        button.classList.toggle('active', active);
+    }
+    if (icon) icon.textContent = active ? 'light_mode' : 'dark_mode';
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', active ? '#18283D' : '#1e3a5f');
+}
+
+function toggleSoftDarkTheme() {
+    const enabled = !isSoftDarkThemeEnabled();
+    try { localStorage.setItem(SOFT_DARK_THEME_KEY, enabled ? 'true' : 'false'); } catch (error) {}
+    applySoftDarkTheme(enabled);
+    if (typeof showToast === 'function') showToast(enabled ? 'Soft Dark theme on' : 'Light theme on', 'success');
+}
+
+function initializeSoftDarkTheme() {
+    applySoftDarkTheme(isSoftDarkThemeEnabled());
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeSoftDarkTheme);
+else initializeSoftDarkTheme();
 
 function isStockPinRequired() {
     return localStorage.getItem(STOCK_PIN_REQUIRED_KEY) !== 'false';
