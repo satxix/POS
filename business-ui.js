@@ -8,6 +8,16 @@
         return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    function archiveSafe(value) {
+        if (typeof escapeHTML === 'function') return escapeHTML(String(value == null ? '' : value));
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function updateArchiveMeta(patch) {
         state.archiveMeta = { ...(state.archiveMeta || {}), ...(patch || {}), updatedAt: new Date().toISOString() };
         if (typeof saveLocalArchive === 'function') saveLocalArchive();
@@ -25,6 +35,20 @@
         const lastLoad = archiveFormatDateTime(meta.lastLoadAt);
         const loadFile = meta.lastLoadFile ? ' • ' + String(meta.lastLoadFile) : '';
         const exportScope = meta.lastArchiveBefore ? 'Before ' + String(meta.lastArchiveBefore) : 'No archive export yet';
+        const deleteFailed = !!(meta.lastDeleteError && meta.lastDeleteStatus !== 'verified');
+        const deleteProgress = Number(meta.lastDeleteEligible) > 0
+            ? String(Number(meta.lastDeleteCompleted) || 0) + '/' + String(Number(meta.lastDeleteEligible) || 0) + ' deleted'
+            : 'Deletion did not start';
+        const deleteFailureHtml = deleteFailed
+            ? '<div class="vc887-backup-error mt-3 rounded-2xl border p-3">' +
+                '<div class="flex items-start gap-2"><span class="material-symbols-outlined text-[20px] shrink-0">error</span><div class="min-w-0">' +
+                    '<strong class="block text-[11px] font-black uppercase tracking-wider">Cloud deletion incomplete</strong>' +
+                    '<span class="block mt-1 text-[10px] font-bold">' + archiveSafe(deleteProgress) + (meta.lastDeleteTable ? ' · stopped at ' + archiveSafe(meta.lastDeleteTable) : '') + '</span>' +
+                    '<span class="block mt-1 text-[10px] font-bold break-words">' + archiveSafe(meta.lastDeleteError) + '</span>' +
+                    '<span class="block mt-2 text-[9px] font-black uppercase tracking-wider">The downloaded JSON backup is still safe. Correct the error before running deletion again.</span>' +
+                '</div></div>' +
+            '</div>'
+            : '';
         panel.innerHTML = '<div class="flex items-start gap-3">' +
             '<div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[20px]">verified_user</span></div>' +
             '<div class="min-w-0 flex-1">' +
@@ -33,6 +57,7 @@
                     '<span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase">Local archive only</span>' +
                 '</div>' +
                 '<p class="mt-1 text-xs font-bold text-on-surface-variant">Loaded archives stay on this device and are not written back to Firestore.</p>' +
+                deleteFailureHtml +
                 '<div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-bold">' +
                     '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Last export</span><strong class="text-primary">' + lastExport + '</strong><span class="block text-on-surface-variant mt-1">' + exportScope + '</span></div>' +
                     '<div class="rounded-2xl bg-white/80 border border-border-subtle p-3"><span class="block uppercase text-[9px] tracking-widest text-on-surface-variant">Last local load</span><strong class="text-primary">' + lastLoad + '</strong><span class="block text-on-surface-variant mt-1 truncate">' + (loadFile || 'No file loaded') + '</span></div>' +

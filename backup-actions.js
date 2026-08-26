@@ -239,6 +239,7 @@
         let deletionStarted = false;
         let deletionCompleted = 0;
         let deletionTotal = 0;
+        let deletionTable = null;
         try {
             const pendingCount = typeof offlineQueue !== 'undefined' && Array.isArray(offlineQueue) ? offlineQueue.length : 0;
             if (pendingCount > 0) {
@@ -316,9 +317,13 @@
                 const retryText = info && info.retry ? ` · retry ${info.retry}` : '';
                 setBackupButtonStatus(btn, `Deleting ${deletionCompleted}/${deletionTotal}${retryText}`, 'delete_sweep', false);
             };
+            deletionTable = 'transactions';
             await deleteCloudDocs('transactions', transactionsToDelete, progress);
+            deletionTable = 'businessDays';
             await deleteCloudDocs('businessDays', businessDays, progress);
+            deletionTable = 'gcashRecords';
             await deleteCloudDocs('gcashRecords', gcashRecords, progress);
+            deletionTable = 'verification';
             setBackupButtonStatus(btn, 'Verifying cloud…', 'fact_check', true);
             const remaining = await verifyDeletedTargets(targets);
             if (remaining.length) {
@@ -335,7 +340,9 @@
                 lastDeleteStatus: 'verified',
                 lastDeleteEligible: deletionTotal,
                 lastDeleteCompleted: deletionTotal,
-                lastDeleteProtectedCreditTransactions: protectedOldTransactions.length
+                lastDeleteProtectedCreditTransactions: protectedOldTransactions.length,
+                lastDeleteTable: null,
+                lastDeleteError: null
             });
             if (typeof sync === 'function') sync();
             if (typeof renderLedger === 'function') renderLedger();
@@ -350,12 +357,19 @@
                     lastDeleteStatus: deletionStarted ? 'incomplete' : 'not-started',
                     lastDeleteEligible: deletionTotal,
                     lastDeleteCompleted: deletionCompleted,
+                    lastDeleteTable: deletionTable,
                     lastDeleteError: error && error.message ? error.message : String(error)
                 });
             } catch (metaError) {}
             const prefix = backupDownloaded ? 'Backup saved; cloud deletion incomplete: ' : 'Backup failed: ';
-            if (typeof showToast === 'function') showToast(prefix + (error.message || error), 'error');
-            else alert(prefix + (error.message || error));
+            const detail = error && error.message ? error.message : String(error);
+            const progressText = deletionStarted
+                ? `\n\nStopped at: ${deletionTable || 'cloud deletion'}\nDeleted: ${deletionCompleted}/${deletionTotal}`
+                : '';
+            if (typeof showToast === 'function') showToast('Backup/delete needs attention. Full details are saved in Backup Safety.', 'error');
+            // A backup/delete failure is important enough to remain visible until
+            // acknowledged. The same details are also retained in archiveMeta.
+            alert(prefix + detail + progressText);
         } finally {
             if (btn) {
                 btn.disabled = false;

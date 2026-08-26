@@ -188,6 +188,15 @@
       } : null,
       versionInfo: vc559VersionInfo(),
       scannerDebug: window.__villacartScannerDebug || null,
+      archiveStatus: (typeof state !== 'undefined' && state && state.archiveMeta) ? {
+        lastDeleteStatus: state.archiveMeta.lastDeleteStatus || null,
+        lastDeleteAttemptAt: state.archiveMeta.lastDeleteAttemptAt || null,
+        lastDeleteAt: state.archiveMeta.lastDeleteAt || null,
+        lastDeleteEligible: Number(state.archiveMeta.lastDeleteEligible) || 0,
+        lastDeleteCompleted: Number(state.archiveMeta.lastDeleteCompleted) || 0,
+        lastDeleteTable: state.archiveMeta.lastDeleteTable || null,
+        lastDeleteError: state.archiveMeta.lastDeleteError || null
+      } : null,
       localIntegrity: window.__vc881LastIntegrity || null,
       diagnosticsMode: opts.useLastCloud ? 'full-refresh-result' : (opts.readFirestore ? 'cloud-check' : 'local-check')
     };
@@ -511,6 +520,9 @@
     if (report.durableStorage && report.durableStorage.lastError) problems.push('Local storage error');
     if (report.versionInfo && !report.versionInfo.matches) problems.push('App/cache version mismatch');
     if (report.serviceWorker && report.serviceWorker.updateAvailable) problems.push('App update is waiting');
+    if (report.archiveStatus && report.archiveStatus.lastDeleteError && report.archiveStatus.lastDeleteStatus !== 'verified') {
+      problems.push('Backup cloud deletion is incomplete');
+    }
     if (report.localIntegrity && report.localIntegrity.summary) {
       if (report.localIntegrity.summary.errors > 0) problems.push('Local data needs review');
       else if (report.localIntegrity.summary.warnings > 0) problems.push('Local data has warnings');
@@ -558,7 +570,14 @@
       const integrityValue = !integrity ? 'Not checked' : (integrity.errors ? 'Review' : (integrity.warnings ? 'Warnings' : 'Clear'));
       const integrityClass = !integrity ? 'vc558-warn' : (integrity.errors ? 'vc558-bad' : (integrity.warnings ? 'vc558-warn' : 'vc558-ok'));
       const versionReady = !!(r.versionInfo && r.versionInfo.matches && !(r.serviceWorker && r.serviceWorker.updateAvailable));
-      const overallGood = !!(r.online && r.dbReady && r.offlineQueue === 0 && versionReady && !(integrity && integrity.errors));
+      const archive = r.archiveStatus || null;
+      const archiveFailed = !!(archive && archive.lastDeleteError && archive.lastDeleteStatus !== 'verified');
+      const archiveVerified = !!(archive && archive.lastDeleteStatus === 'verified');
+      const archiveValue = archiveFailed ? 'Incomplete' : (archiveVerified ? 'Verified' : 'No failure');
+      const archiveDetail = archiveFailed
+        ? ((archive.lastDeleteCompleted || 0) + '/' + (archive.lastDeleteEligible || 0) + ' deleted' + (archive.lastDeleteTable ? ' · ' + archive.lastDeleteTable : '') + ' · ' + archive.lastDeleteError)
+        : (archiveVerified ? ((archive.lastDeleteCompleted || 0) + ' cloud record(s) verified deleted') : 'No incomplete backup deletion recorded');
+      const overallGood = !!(r.online && r.dbReady && r.offlineQueue === 0 && versionReady && !archiveFailed && !(integrity && integrity.errors));
       grid.innerHTML = [
         vc559Card('Overall', overallGood ? 'Good' : 'Check', vc559Summary(r), overallGood ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Project', r.firebaseProjectId || 'Unknown', r.dbReady ? 'Firestore connected' : 'Firestore not ready', r.dbReady ? 'vc558-ok' : 'vc558-bad'),
@@ -575,6 +594,7 @@
         vc559Card('Optional Tools', (r.optionalLibraries && r.optionalLibraries.chartLoaded ? 'Chart ' : '') + (r.optionalLibraries && r.optionalLibraries.html2canvasLoaded ? 'Image ' : '') || 'Deferred', 'Camera scanner: ' + (r.optionalLibraries && r.optionalLibraries.quaggaLoaded ? 'ready' : 'not loaded'), 'vc558-ok'),
         vc559Card('Local Database', r.durableStorage && r.durableStorage.ready ? 'IndexedDB' : 'Fallback', r.durableStorage && r.durableStorage.lastError ? r.durableStorage.lastError : storageDetail, r.durableStorage && r.durableStorage.ready && !r.durableStorage.lastError ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Local Integrity', integrityValue, integrity ? (integrity.errors + ' errors · ' + integrity.warnings + ' warnings · local only') : 'Tap Check Local Data', integrityClass),
+        vc559Card('Backup Delete', archiveValue, archiveDetail, archiveFailed ? 'vc558-bad' : 'vc558-ok'),
         vc559Card('Version', versionText, r.versionInfo ? ('app ' + (r.versionInfo.appVersion || 'unknown') + ' / expected ' + (r.versionInfo.expectedVersion || 'unknown')) : 'version info missing', r.versionInfo && r.versionInfo.matches ? 'vc558-ok' : 'vc558-warn'),
         vc559Card('Update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Ready' : 'None', r.serviceWorker && r.serviceWorker.updateAvailable ? 'Tap Reload App below' : 'no waiting app update', r.serviceWorker && r.serviceWorker.updateAvailable ? 'vc558-warn' : 'vc558-ok')
       ].join('');
@@ -655,6 +675,7 @@
         lastHandledAt: r.scannerDebug.lastHandledAt || null,
         appVersion: r.scannerDebug.appVersion || null
       } : null,
+      archiveStatus: r.archiveStatus || null,
       localIntegrity: r.localIntegrity || window.__vc881LastIntegrity || null,
       diagnosticsMode: r.diagnosticsMode || null
     };

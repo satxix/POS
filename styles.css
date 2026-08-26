@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.7.6 read-only local data integrity report. */
+        /* v8.8.7.7 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -2782,7 +2782,7 @@
     --vc560-red-soft: #fee2e2;
 }
 
-/* v8.8.7.6 temporary, device-local Soft Dark theme switch. */
+/* v8.8.7.7 temporary, device-local Soft Dark theme switch. */
 .vc887-theme-toggle {
     width:30px;
     height:28px;
@@ -4727,7 +4727,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.7.6 compact terminal-only daily sales figure. */
+/* v8.8.7.7 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4748,7 +4748,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.7.6 compact local-stock indicator in terminal search results. */
+/* v8.8.7.7 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4951,7 +4951,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.7.6 eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.7.7 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4981,7 +4981,7 @@ body {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
-/* v8.8.7.6 dark-card comfort: retain the black/charcoal identity without the
+/* v8.8.7.7 dark-card comfort: retain the black/charcoal identity without the
    harsh near-black versus pure-white contrast that is tiring in a large grid. */
 #favorites-grid .favorite-color-dark {
     background-color:#28313C !important;
@@ -5010,7 +5010,7 @@ body {
     color:#F0D58A !important;
 }
 
-/* v8.8.7.6 red-card comfort: use muted reds and warm rose lettering instead of
+/* v8.8.7.7 red-card comfort: use muted reds and warm rose lettering instead of
    saturated red against near-white type. */
 #favorites-grid .favorite-color-marlboro-red {
     background-color:#91313A !important;
@@ -5376,4 +5376,81 @@ body {
     html.vc-soft-dark #item-sales-selected-name {
         color:#C8E4FF !important;
     }
+}
+
+/* v8.8.7.7 diagnostics severity colors and persistent backup failure. */
+@media screen {
+    html.vc-soft-dark .vc558-card {
+        background:#46515C !important;
+        border-color:#687581 !important;
+    }
+    html.vc-soft-dark .vc558-card label { color:#D0D9E2 !important; }
+    html.vc-soft-dark .vc558-card small { color:#D6DEE6 !important; }
+
+    html.vc-soft-dark .vc558-card.vc558-ok {
+        background:#43584E !important;
+        border-color:#67947D !important;
+    }
+    html.vc-soft-dark .vc558-card.vc558-ok label { color:#C3DCCF !important; }
+    html.vc-soft-dark .vc558-card.vc558-ok strong { color:#C6EBD5 !important; }
+
+    html.vc-soft-dark .vc558-card.vc558-warn {
+        background:#574E3D !important;
+        border-color:#8D7748 !important;
+    }
+    html.vc-soft-dark .vc558-card.vc558-warn label { color:#E6D5B0 !important; }
+    html.vc-soft-dark .vc558-card.vc558-warn strong { color:#F2C66D !important; }
+
+    html.vc-soft-dark .vc558-card.vc558-bad {
+        background:#5B4247 !important;
+        border-color:#8A6267 !important;
+    }
+    html.vc-soft-dark .vc558-card.vc558-bad label { color:#E5C9CB !important; }
+    html.vc-soft-dark .vc558-card.vc558-bad strong { color:#F5B4B0 !important; }
+
+    /* Errors, warnings, and notes stay distinguishable at a glance. */
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(1) {
+        background:#5B4247 !important;
+        border-color:#8A6267 !important;
+    }
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(1) span,
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(1) strong { color:#F5B4B0 !important; }
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(2) {
+        background:#574E3D !important;
+        border-color:#8D7748 !important;
+    }
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(2) span,
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(2) strong { color:#F2C66D !important; }
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(3) {
+        background:#40536A !important;
+        border-color:#6684A4 !important;
+    }
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(3) span,
+    html.vc-soft-dark .vc881-integrity-counts > div:nth-child(3) strong { color:#C8E4FF !important; }
+
+    html.vc-soft-dark .vc881-integrity-issue.vc881-error {
+        background:#5B4247 !important;
+        border-color:#8A6267 !important;
+        border-left-color:#F29A96 !important;
+    }
+    html.vc-soft-dark .vc881-integrity-issue.vc881-warning {
+        background:#574E3D !important;
+        border-color:#8D7748 !important;
+        border-left-color:#F2C66D !important;
+    }
+    html.vc-soft-dark .vc881-integrity-issue.vc881-info {
+        background:#40536A !important;
+        border-color:#6684A4 !important;
+        border-left-color:#8EC5F4 !important;
+    }
+    html.vc-soft-dark .vc881-integrity-issue span,
+    html.vc-soft-dark .vc881-integrity-issue p { color:#D7E0E8 !important; }
+    html.vc-soft-dark .vc881-integrity-issue strong { color:#F1F5F8 !important; }
+
+    html.vc-soft-dark .vc887-backup-error {
+        background:#5B4247 !important;
+        border-color:#9A686D !important;
+        color:#F7CECB !important;
+    }
+    html.vc-soft-dark .vc887-backup-error .material-symbols-outlined { color:#F29A96 !important; }
 }
