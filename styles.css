@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.7a read-only local data integrity report. */
+        /* v8.8.7.0 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -2782,7 +2782,7 @@
     --vc560-red-soft: #fee2e2;
 }
 
-/* v8.8.7a temporary, device-local Soft Dark theme switch. */
+/* v8.8.7.0 temporary, device-local Soft Dark theme switch. */
 .vc887-theme-toggle {
     width:30px;
     height:28px;
@@ -4499,7 +4499,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.7a compact terminal-only daily sales figure. */
+/* v8.8.7.0 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4520,7 +4520,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.7a compact local-stock indicator in terminal search results. */
+/* v8.8.7.0 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4723,7 +4723,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.7a eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.7.0 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4753,7 +4753,7 @@ body {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
-/* v8.8.7a dark-card comfort: retain the black/charcoal identity without the
+/* v8.8.7.0 dark-card comfort: retain the black/charcoal identity without the
    harsh near-black versus pure-white contrast that is tiring in a large grid. */
 #favorites-grid .favorite-color-dark {
     background-color:#28313C !important;
@@ -4782,7 +4782,7 @@ body {
     color:#F0D58A !important;
 }
 
-/* v8.8.7a red-card comfort: use muted reds and warm rose lettering instead of
+/* v8.8.7.0 red-card comfort: use muted reds and warm rose lettering instead of
    saturated red against near-white type. */
 #favorites-grid .favorite-color-marlboro-red {
     background-color:#91313A !important;

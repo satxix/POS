@@ -1,58 +1,58 @@
-const APP_VERSION = '8.8.7a';
+const APP_VERSION = '8.8.7.0';
 const CACHE_NAME = 'villacart-pos-v' + APP_VERSION;
 const OFFLINE_ENTRY = './index.html?v=' + APP_VERSION;
 const APP_SHELL = [
   OFFLINE_ENTRY,
-  './manifest.webmanifest?v=8.8.7a',
-  './styles.css?v=8.8.7a',
-  './vendor/tailwind-forms-container.js?v=8.8.7a',
-  './vendor/fonts/fonts.css?v=8.8.7a',
+  './manifest.webmanifest?v=8.8.7.0',
+  './styles.css?v=8.8.7.0',
+  './vendor/tailwind-forms-container.js?v=8.8.7.0',
+  './vendor/fonts/fonts.css?v=8.8.7.0',
   './vendor/fonts/inter-latin.woff2',
   './vendor/fonts/material-symbols-outlined.woff2',
-  './vendor/quagga.min.js?v=8.8.7a',
-  './vendor/firebase-app-compat.js?v=8.8.7a',
-  './vendor/firebase-auth-compat.js?v=8.8.7a',
-  './vendor/firebase-firestore-compat.js?v=8.8.7a',
-  './utils.js?v=8.8.7a',
-  './ledger.js?v=8.8.7a',
-  './receipts.js?v=8.8.7a',
+  './vendor/quagga.min.js?v=8.8.7.0',
+  './vendor/firebase-app-compat.js?v=8.8.7.0',
+  './vendor/firebase-auth-compat.js?v=8.8.7.0',
+  './vendor/firebase-firestore-compat.js?v=8.8.7.0',
+  './utils.js?v=8.8.7.0',
+  './ledger.js?v=8.8.7.0',
+  './receipts.js?v=8.8.7.0',
   
-    './receipt-ui.js?v=8.8.7a',
-    './scanner.js?v=8.8.7a',
-    './camera-scanner.js?v=8.8.7a',
+    './receipt-ui.js?v=8.8.7.0',
+    './scanner.js?v=8.8.7.0',
+    './camera-scanner.js?v=8.8.7.0',
   
     
-    './cart.js?v=8.8.7a',
-    './payment-ui.js?v=8.8.7a',
-    './favorites.js?v=8.8.7a',
+    './cart.js?v=8.8.7.0',
+    './payment-ui.js?v=8.8.7.0',
+    './favorites.js?v=8.8.7.0',
     
-    './notifications.js?v=8.8.7a',
+    './notifications.js?v=8.8.7.0',
     
-    './stock-ui.js?v=8.8.7a',
-    './gcash.js?v=8.8.7a',
+    './stock-ui.js?v=8.8.7.0',
+    './gcash.js?v=8.8.7.0',
   
-    './expenses.js?v=8.8.7a',
-    './status-ui.js?v=8.8.7a',
-    './pwa-lifecycle.js?v=8.8.7a',
-    './insights-base.js?v=8.8.7a',
-    './reporting-ui.js?v=8.8.7a',
-    './storage-db.js?v=8.8.7a',
-    './sync-engine.js?v=8.8.7a',
-    './app.js?v=8.8.7a',
-    './item-sales.js?v=8.8.7a',
-    './ledger-ui.js?v=8.8.7a',
-    './backup-actions.js?v=8.8.7a',
-    './business-actions.js?v=8.8.7a',
+    './expenses.js?v=8.8.7.0',
+    './status-ui.js?v=8.8.7.0',
+    './pwa-lifecycle.js?v=8.8.7.0',
+    './insights-base.js?v=8.8.7.0',
+    './reporting-ui.js?v=8.8.7.0',
+    './storage-db.js?v=8.8.7.0',
+    './sync-engine.js?v=8.8.7.0',
+    './app.js?v=8.8.7.0',
+    './item-sales.js?v=8.8.7.0',
+    './ledger-ui.js?v=8.8.7.0',
+    './backup-actions.js?v=8.8.7.0',
+    './business-actions.js?v=8.8.7.0',
   
-    './business-ui.js?v=8.8.7a',
+    './business-ui.js?v=8.8.7.0',
     
-    './ui-core.js?v=8.8.7a',
-    './product.js?v=8.8.7a',
-    './settings.js?v=8.8.7a',
-    './inventory-actions.js?v=8.8.7a',
-    './sales-export.js?v=8.8.7a',
-    './transaction-detail.js?v=8.8.7a',
-    './diagnostics.js?v=8.8.7a',
+    './ui-core.js?v=8.8.7.0',
+    './product.js?v=8.8.7.0',
+    './settings.js?v=8.8.7.0',
+    './inventory-actions.js?v=8.8.7.0',
+    './sales-export.js?v=8.8.7.0',
+    './transaction-detail.js?v=8.8.7.0',
+    './diagnostics.js?v=8.8.7.0',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
@@ -133,13 +133,24 @@ self.addEventListener('message', event => {
 });
 
 function htmlAppVersion(html) {
-  const match = String(html || '').match(/VILLACART_EXPECTED_VERSION\s*=\s*['"]v?(\d+\.\d+\.\d+)['"]/);
-  return match ? match[1] : '';
+  const source = String(html || '');
+  const pattern = /VILLACART_EXPECTED_VERSION\s*=\s*['"]v?(\d+(?:\.\d+){2,}(?:[-+][0-9A-Za-z.-]+)?)['"]/g;
+  let version = '';
+  let match;
+  // Use the final assignment. The page may include an earlier compatibility
+  // marker so older three-part workers can safely hand over to this build.
+  while ((match = pattern.exec(source))) version = match[1];
+  return version;
 }
 
 function compareVersions(left, right) {
-  const a = String(left || '').split('.').map(value => Number(value) || 0);
-  const b = String(right || '').split('.').map(value => Number(value) || 0);
+  const numericParts = value => String(value || '')
+    .replace(/^v/i, '')
+    .split(/[+-]/, 1)[0]
+    .split('.')
+    .map(part => Number(part) || 0);
+  const a = numericParts(left);
+  const b = numericParts(right);
   for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
     const difference = (a[i] || 0) - (b[i] || 0);
     if (difference) return difference;
