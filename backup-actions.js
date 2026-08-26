@@ -153,34 +153,24 @@
     }
 
     async function deleteBatchRequest(table, docs) {
-        if (typeof firestoreRestAuthHeaders !== 'function' || typeof firebaseConfig === 'undefined') {
-            throw new Error('Authenticated batch-delete helper unavailable.');
+        if (typeof db === 'undefined' || !db || typeof db.batch !== 'function') {
+            throw new Error('Authenticated Firestore batch helper unavailable.');
         }
-        const projectId = firebaseConfig.projectId;
-        const databaseRoot = `projects/${projectId}/databases/(default)/documents`;
-        const writes = (docs || []).map(doc => {
+        const batch = db.batch();
+        (docs || []).forEach(doc => {
             const id = String(doc && doc.id || '');
             if (!id || id.includes('/')) throw new Error(`Invalid ${table} document ID.`);
-            return { delete: `${databaseRoot}/${table}/${id}` };
+            batch.delete(db.collection(table).doc(id));
         });
-        if (!writes.length) return;
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timer = controller ? setTimeout(() => controller.abort(), DELETE_TIMEOUT_MS) : null;
+        if (!(docs || []).length) return;
+        let timer = null;
         try {
-            const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:batchWrite?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: await firestoreRestAuthHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({ writes }),
-                ...(controller ? { signal: controller.signal } : {})
-            });
-            if (!response.ok) throw new Error(`Firestore batch delete ${response.status}: ${(await response.text()).slice(0, 240)}`);
-            const payload = await response.json();
-            const failed = (payload.status || []).filter(status => status && status.code !== undefined && status.code !== null && Number(status.code) !== 0);
-            if (failed.length) throw new Error(`${failed.length} document delete(s) were rejected: ${failed[0].message || 'unknown Firestore error'}`);
-        } catch (error) {
-            if (error && error.name === 'AbortError') throw new Error('Firestore delete batch timed out.');
-            throw error;
+            await Promise.race([
+                batch.commit(),
+                new Promise((_, reject) => {
+                    timer = setTimeout(() => reject(new Error('Firestore delete batch timed out.')), DELETE_TIMEOUT_MS);
+                })
+            ]);
         } finally {
             if (timer) clearTimeout(timer);
         }
