@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.7.1 read-only local data integrity report. */
+        /* v8.8.7.2 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -2782,7 +2782,7 @@
     --vc560-red-soft: #fee2e2;
 }
 
-/* v8.8.7.1 temporary, device-local Soft Dark theme switch. */
+/* v8.8.7.2 temporary, device-local Soft Dark theme switch. */
 .vc887-theme-toggle {
     width:30px;
     height:28px;
@@ -2982,6 +2982,84 @@
         color:#F4F7FA !important;
     }
     html.vc-soft-dark #cart-subtotal { color:#BCE8CF !important; }
+}
+
+/* Soft Dark contrast pass 2: totals, analytics, and archive/business panels. */
+@media screen {
+    /* Discount editor: dark summary surfaces with calm, readable accents. */
+    html.vc-soft-dark #cart-discount-modal [class~="bg-primary/5"] {
+        background:#40536A !important;
+        border-color:#6684A4 !important;
+    }
+    html.vc-soft-dark #cart-discount-modal [class~="bg-secondary/5"] {
+        background:#43584E !important;
+        border-color:#67947D !important;
+    }
+    html.vc-soft-dark #cart-discount-modal [class~="bg-primary/5"] > span:first-child,
+    html.vc-soft-dark #cart-discount-modal [class~="bg-secondary/5"] > span:first-child,
+    html.vc-soft-dark #cart-discount-modal label { color:#D8E0E8 !important; }
+    html.vc-soft-dark #discount-modal-subtotal { color:#C8E4FF !important; }
+    html.vc-soft-dark #discount-modal-input {
+        color:#F2F6F9 !important;
+        caret-color:#A7D7FF;
+    }
+    html.vc-soft-dark #discount-modal-total { color:#C6EBD5 !important; }
+
+    /* A deduction stays distinct without using a harsh alarm red. */
+    html.vc-soft-dark #cart-discount-row,
+    html.vc-soft-dark #cart-discount-row span,
+    html.vc-soft-dark #cart-discount { color:#F29A96 !important; }
+
+    /* Ledger summary cards. */
+    html.vc-soft-dark .vc5629-summary-card p,
+    html.vc-soft-dark .vc5629-summary-card span { color:#CAD4DE !important; }
+    html.vc-soft-dark .vc5629-summary-card strong { color:#BCE8CF !important; }
+    html.vc-soft-dark .vc5629-summary-card.vc5629-orange strong { color:#F4BF83 !important; }
+    html.vc-soft-dark .vc5629-summary-card.vc5629-red strong { color:#F3AAA6 !important; }
+
+    /* Insights heading, action buttons, business-day status, and dark summaries. */
+    html.vc-soft-dark .vc560-insights-subtitle { color:#CDD6DF !important; }
+    html.vc-soft-dark #screen-insights [class~="bg-primary/10"] {
+        background:#40536A !important;
+        border-color:#6684A4 !important;
+        color:#D5E9FF !important;
+    }
+    html.vc-soft-dark #business-day-status-card {
+        background:#46515C !important;
+        border-color:#697681 !important;
+        color:#EDF2F6 !important;
+    }
+    html.vc-soft-dark #business-day-status-card p { color:#CDD6DF !important; }
+    html.vc-soft-dark #bd-status-title { color:#C8E4FF !important; }
+    html.vc-soft-dark #business-dashboard-cards .business-label,
+    html.vc-soft-dark #business-dashboard-cards .business-sub { color:#C7D1DB !important; }
+    html.vc-soft-dark #business-dashboard-cards .business-value { color:#BCE8CF !important; }
+    html.vc-soft-dark #business-dashboard-cards .business-card-outstanding .business-value {
+        color:#F4BF83 !important;
+    }
+
+    /* Business archive safety panel and monthly totals. */
+    html.vc-soft-dark #vc728-archive-safety {
+        background:#414953 !important;
+        border-color:#65717C !important;
+        color:#EDF2F6 !important;
+    }
+    html.vc-soft-dark #vc728-archive-safety [class*="bg-white"] {
+        background:#515B67 !important;
+        border-color:#71808E !important;
+    }
+    html.vc-soft-dark #vc728-archive-safety [class*="text-on-surface-variant"] {
+        color:#D0D9E2 !important;
+    }
+    html.vc-soft-dark #vc728-archive-safety strong { color:#C8E4FF !important; }
+    html.vc-soft-dark #screen-business .business-calendar-action-row [class~="bg-primary/10"] {
+        background:#40536A !important;
+        border-color:#6684A4 !important;
+        color:#D5E9FF !important;
+    }
+    html.vc-soft-dark #business-month-summary .business-stat-card p { color:#C7D1DB !important; }
+    html.vc-soft-dark #business-month-summary .business-stat-card h3 { color:#BCE8CF !important; }
+    html.vc-soft-dark .business-week-header span { color:#BFCAD5 !important; }
 }
 
 .vc560-insights > .flex:first-child {
@@ -4574,7 +4652,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.7.1 compact terminal-only daily sales figure. */
+/* v8.8.7.2 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4595,7 +4673,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.7.1 compact local-stock indicator in terminal search results. */
+/* v8.8.7.2 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4798,7 +4876,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.7.1 eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.7.2 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4828,7 +4906,7 @@ body {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
-/* v8.8.7.1 dark-card comfort: retain the black/charcoal identity without the
+/* v8.8.7.2 dark-card comfort: retain the black/charcoal identity without the
    harsh near-black versus pure-white contrast that is tiring in a large grid. */
 #favorites-grid .favorite-color-dark {
     background-color:#28313C !important;
@@ -4857,7 +4935,7 @@ body {
     color:#F0D58A !important;
 }
 
-/* v8.8.7.1 red-card comfort: use muted reds and warm rose lettering instead of
+/* v8.8.7.2 red-card comfort: use muted reds and warm rose lettering instead of
    saturated red against near-white type. */
 #favorites-grid .favorite-color-marlboro-red {
     background-color:#91313A !important;
