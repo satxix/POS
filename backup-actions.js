@@ -19,10 +19,71 @@
         return String((tx && (tx.businessDate || tx.date || tx.timestamp)) || '').slice(0, 10);
     }
 
-    function vc710MergeArchiveById(existing, incoming) {
+    function archiveRecordStateRank(item) {
+        if (!item || typeof item !== 'object') return 0;
+        const status = String(item.status || '').trim().toUpperCase();
+        if (item.paid === true || item.settled === true || status === 'PAID' || status === 'SETTLED') return 3;
+        if (String(item.type || '').trim().toUpperCase() === 'CR') {
+            const hasZeroBalance = ['balance', 'balanceDue', 'remaining', 'amountDue'].some(key => {
+                if (item[key] === undefined || item[key] === null || item[key] === '') return false;
+                const value = Number(item[key]);
+                return Number.isFinite(value) && value === 0;
+            });
+            if (hasZeroBalance) return 3;
+            if (item.paid === false || item.settled === false || status === 'OPEN' || status === 'UNPAID') return 1;
+        }
+        return 2;
+    }
+
+    function archiveRecordMoment(item) {
+        if (!item || typeof item !== 'object') return 0;
+        const fields = ['updatedAt', 'modifiedAt', 'settledAt', 'paidAt', 'closedAt', 'timestamp', 'date', 'businessDate'];
+        for (const field of fields) {
+            const raw = item[field];
+            if (raw === undefined || raw === null || raw === '') continue;
+            const value = raw && typeof raw.toDate === 'function' ? raw.toDate() : new Date(raw);
+            const time = value instanceof Date ? value.getTime() : NaN;
+            if (Number.isFinite(time)) return time;
+        }
+        return 0;
+    }
+
+    function archiveSnapshotMoment(item) {
+        const value = new Date(item && item._archiveSnapshotAt || 0).getTime();
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    function preferredArchiveRecord(current, candidate) {
+        const currentRank = archiveRecordStateRank(current);
+        const candidateRank = archiveRecordStateRank(candidate);
+        if (currentRank !== candidateRank) return candidateRank > currentRank ? candidate : current;
+        const currentMoment = archiveRecordMoment(current);
+        const candidateMoment = archiveRecordMoment(candidate);
+        if (currentMoment !== candidateMoment) return candidateMoment > currentMoment ? candidate : current;
+        const currentSnapshot = archiveSnapshotMoment(current);
+        const candidateSnapshot = archiveSnapshotMoment(candidate);
+        if (currentSnapshot !== candidateSnapshot) return candidateSnapshot > currentSnapshot ? candidate : current;
+        return current;
+    }
+
+    function vc710MergeArchiveById(existing, incoming, snapshotAt) {
         const map = new Map();
-        (Array.isArray(existing) ? existing : []).forEach(item => { if (item && item.id) map.set(item.id, item); });
-        (Array.isArray(incoming) ? incoming : []).forEach(item => { if (item && item.id) map.set(item.id, { ...item, _archiveOnly: true }); });
+        (Array.isArray(existing) ? existing : []).forEach(item => {
+            if (item && item.id) map.set(String(item.id), { ...item, _archiveOnly: true });
+        });
+        (Array.isArray(incoming) ? incoming : []).forEach(item => {
+            if (!item || !item.id) return;
+            const id = String(item.id);
+            const candidate = { ...item, _archiveOnly: true, _archiveSnapshotAt: snapshotAt || item._archiveSnapshotAt || null };
+            const current = map.get(id);
+            if (!current) {
+                map.set(id, candidate);
+                return;
+            }
+            const winner = preferredArchiveRecord(current, candidate);
+            const other = winner === current ? candidate : current;
+            map.set(id, { ...other, ...winner, _archiveOnly: true });
+        });
         return Array.from(map.values()).sort((a, b) => String(b.timestamp || b.date || '').localeCompare(String(a.timestamp || a.date || '')));
     }
 
@@ -381,9 +442,11 @@
                 const bd = Array.isArray(data.businessDays) ? data.businessDays : [];
                 const gr = Array.isArray(data.gcashRecords) ? data.gcashRecords : [];
                 if (!tx.length && !bd.length && !gr.length) throw new Error('No transactions/businessDays/gcashRecords found in backup.');
-                state.archiveTransactions = vc710MergeArchiveById(state.archiveTransactions || [], tx);
-                state.archiveBusinessDays = vc710MergeArchiveById(state.archiveBusinessDays || [], bd);
-                state.archiveGcashRecords = vc710MergeArchiveById(state.archiveGcashRecords || [], gr);
+                const fileModifiedAt = file && Number(file.lastModified) ? new Date(file.lastModified).toISOString() : null;
+                const snapshotAt = data.createdAt || fileModifiedAt || new Date().toISOString();
+                state.archiveTransactions = vc710MergeArchiveById(state.archiveTransactions || [], tx, snapshotAt);
+                state.archiveBusinessDays = vc710MergeArchiveById(state.archiveBusinessDays || [], bd, snapshotAt);
+                state.archiveGcashRecords = vc710MergeArchiveById(state.archiveGcashRecords || [], gr, snapshotAt);
                 updateArchiveMeta({
                     lastLoadAt: new Date().toISOString(),
                     lastLoadFile: file.name || 'archive.json',
