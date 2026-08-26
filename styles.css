@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.7.2 read-only local data integrity report. */
+        /* v8.8.7.3 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -2782,7 +2782,7 @@
     --vc560-red-soft: #fee2e2;
 }
 
-/* v8.8.7.2 temporary, device-local Soft Dark theme switch. */
+/* v8.8.7.3 temporary, device-local Soft Dark theme switch. */
 .vc887-theme-toggle {
     width:30px;
     height:28px;
@@ -3060,6 +3060,81 @@
     html.vc-soft-dark #business-month-summary .business-stat-card p { color:#C7D1DB !important; }
     html.vc-soft-dark #business-month-summary .business-stat-card h3 { color:#BCE8CF !important; }
     html.vc-soft-dark .business-week-header span { color:#BFCAD5 !important; }
+}
+
+/* Soft Dark contrast pass 3: GCash, checkout, cart controls, and insight values. */
+@media screen {
+    /* GCash headings and summary values. */
+    html.vc-soft-dark #screen-gcash [class*="text-emerald-700"] { color:#9EDDBB !important; }
+    html.vc-soft-dark #screen-gcash [class*="text-primary/60"] { color:#AFCFEF !important; }
+    html.vc-soft-dark #gcash-summary-cards p { color:#CED7E0 !important; }
+    html.vc-soft-dark #gcash-sum-out,
+    html.vc-soft-dark #gcash-sum-in { color:#C8E4FF !important; }
+    html.vc-soft-dark #gcash-sum-fees,
+    html.vc-soft-dark #gcash-sum-profit { color:#BCE8CF !important; }
+
+    html.vc-soft-dark #gcash-preview-card {
+        background:#40536A !important;
+        border-color:#6684A4 !important;
+        color:#E7EEF5 !important;
+    }
+    html.vc-soft-dark #gcash-preview-card span { color:#D8E1EA !important; }
+    html.vc-soft-dark #gcash-preview-card strong { color:#C8E4FF !important; }
+    html.vc-soft-dark #gcash-preview-card #gcash-preview-fee { color:#BCE8CF !important; }
+
+    html.vc-soft-dark #screen-gcash button[onclick="refreshGcashRecords()"],
+    html.vc-soft-dark #gcash-record-list button[onclick^="editGcashRecord"] {
+        background:#405F7D !important;
+        color:#D5E9FF !important;
+        border:1px solid #6684A4 !important;
+    }
+    html.vc-soft-dark #gcash-record-list .text-error { color:#F29A96 !important; }
+    html.vc-soft-dark #gcash-record-list [class*="bg-error/10"] {
+        background:#5B4247 !important;
+        color:#F5B4B0 !important;
+    }
+
+    /* Complete Sale amount and primary confirmation action. */
+    html.vc-soft-dark #review-modal [class~="bg-secondary/5"] {
+        background:#43584E !important;
+        border-color:#67947D !important;
+    }
+    html.vc-soft-dark #review-modal [class~="bg-secondary/5"] > span:first-child {
+        color:#D8E1EA !important;
+    }
+    html.vc-soft-dark #rev-total { color:#C6EBD5 !important; }
+    html.vc-soft-dark #confirm-checkout {
+        background:linear-gradient(135deg,#3478BC 0%,#245A94 100%) !important;
+        color:#FFFFFF !important;
+        border:1px solid #75AFE5 !important;
+    }
+    html.vc-soft-dark #confirm-checkout:disabled { opacity:.55 !important; }
+
+    /* Cart quantity buttons: softer hues with filled tap targets. */
+    html.vc-soft-dark #cart-items .cart-item-row button.text-error {
+        color:#F5A7A2 !important;
+        background:rgba(242,154,150,.13) !important;
+        border-radius:10px;
+    }
+    html.vc-soft-dark #cart-items .cart-item-row button.text-secondary {
+        color:#A9E4C2 !important;
+        background:rgba(157,216,180,.13) !important;
+        border-radius:10px;
+    }
+    html.vc-soft-dark #cart-items .cart-item-row input[type="number"] {
+        background:#5A6571 !important;
+        color:#FFFFFF !important;
+    }
+
+    /* Insight money and inventory tracking values. */
+    html.vc-soft-dark #daily-cogs,
+    html.vc-soft-dark #inventory-value { color:#BCE8CF !important; }
+    html.vc-soft-dark #daily-expenses { color:#F3AAA6 !important; }
+    html.vc-soft-dark #inventory-count {
+        background:#40536A !important;
+        color:#D5E9FF !important;
+        border:1px solid #6684A4 !important;
+    }
 }
 
 .vc560-insights > .flex:first-child {
@@ -4652,7 +4727,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.7.2 compact terminal-only daily sales figure. */
+/* v8.8.7.3 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4673,7 +4748,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.7.2 compact local-stock indicator in terminal search results. */
+/* v8.8.7.3 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4876,7 +4951,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.7.2 eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.7.3 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4906,7 +4981,7 @@ body {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
-/* v8.8.7.2 dark-card comfort: retain the black/charcoal identity without the
+/* v8.8.7.3 dark-card comfort: retain the black/charcoal identity without the
    harsh near-black versus pure-white contrast that is tiring in a large grid. */
 #favorites-grid .favorite-color-dark {
     background-color:#28313C !important;
@@ -4935,7 +5010,7 @@ body {
     color:#F0D58A !important;
 }
 
-/* v8.8.7.2 red-card comfort: use muted reds and warm rose lettering instead of
+/* v8.8.7.3 red-card comfort: use muted reds and warm rose lettering instead of
    saturated red against near-white type. */
 #favorites-grid .favorite-color-marlboro-red {
     background-color:#91313A !important;
