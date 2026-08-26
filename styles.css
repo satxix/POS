@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.5 read-only local data integrity report. */
+        /* v8.8.6 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -4372,7 +4372,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.5 compact terminal-only daily sales figure. */
+/* v8.8.6 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4393,7 +4393,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.5 compact local-stock indicator in terminal search results. */
+/* v8.8.6 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4596,7 +4596,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.5 eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.6 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4624,6 +4624,35 @@ body {
         radial-gradient(circle at 1px 1px, rgba(255,255,255,.17) .7px, transparent 1px);
     background-size: 100% 100%, 6px 6px;
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
+}
+
+/* v8.8.6 dark-card comfort: retain the black/charcoal identity without the
+   harsh near-black versus pure-white contrast that is tiring in a large grid. */
+#favorites-grid .favorite-color-dark {
+    background-color:#28313C !important;
+    border-color:#596575;
+    box-shadow:0 2px 7px rgba(15,23,42,.12);
+}
+#favorites-grid .favorite-color-modern-black {
+    background-color:#292D33 !important;
+    background-image:linear-gradient(135deg,#25292F 0%,#424850 52%,#292D33 100%);
+    border-color:#5B6470;
+    box-shadow:0 2px 7px rgba(15,23,42,.12);
+}
+#favorites-grid .favorite-color-texture-charcoal {
+    background-color:#363B43 !important;
+    border-color:#626B77;
+}
+#favorites-grid .favorite-color-dark > span:not(.favorite-stock-pill):not(.favorite-cart-qty),
+#favorites-grid .favorite-color-modern-black > span:not(.favorite-stock-pill):not(.favorite-cart-qty),
+#favorites-grid .favorite-color-texture-charcoal > span:not(.favorite-stock-pill):not(.favorite-cart-qty) {
+    color:#E1E7ED !important;
+    text-shadow:none !important;
+}
+#favorites-grid .favorite-color-dark .favorite-product-price,
+#favorites-grid .favorite-color-modern-black .favorite-product-price,
+#favorites-grid .favorite-color-texture-charcoal .favorite-product-price {
+    color:#F0D58A !important;
 }
 
 /* v8.4.7: tablet-landscape senior compact favorites.
