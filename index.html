@@ -6,13 +6,13 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="#1e3a5f" name="theme-color"/>
-<title>Villacart POS v8.8.7.0</title>
+<title>Villacart POS v8.8.7.1</title>
 
 <link rel="icon" href="assets/icons/villacart-logo.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png"/>
 
 <!-- PWA Manifest & Service Worker Setup -->
-<link rel="manifest" href="manifest.webmanifest?v=8.8.7.0"/>
+<link rel="manifest" href="manifest.webmanifest?v=8.8.7.1"/>
 <meta name="description" content="Villacart POS is a lightweight point-of-sale app with inventory, ledger, insights, offline support, and Firestore sync."/>
 <script>
         (function() {
@@ -24,7 +24,7 @@
 // Compatibility marker for the already-installed numeric three-part worker.
 // The current assignment immediately below remains the version used by the app.
 window.VILLACART_EXPECTED_VERSION = 'v8.8.7';
-window.VILLACART_EXPECTED_VERSION = 'v8.8.7.0';
+window.VILLACART_EXPECTED_VERSION = 'v8.8.7.1';
             window.__villacartUpdateAvailable = false;
             window.__villacartSWRegistration = null;
             window.__villacartUpdateReloadRequested = false;
@@ -59,7 +59,7 @@ window.VILLACART_EXPECTED_VERSION = 'v8.8.7.0';
                 // Register immediately. Waiting for window.load also waits for
                 // remote fonts/CDNs, which can leave a TWA cold launch without
                 // an installed offline worker.
-navigator.serviceWorker.register('sw.js?v=8.8.7.0').then(function(reg) {
+navigator.serviceWorker.register('sw.js?v=8.8.7.1').then(function(reg) {
                         window.__villacartSWRegistration = reg;
                         if (navigator.storage && navigator.storage.persist) {
                             navigator.storage.persist().catch(function(){});
@@ -79,13 +79,13 @@ navigator.serviceWorker.register('sw.js?v=8.8.7.0').then(function(reg) {
             }
         })();
     </script>
-<script src="vendor/tailwind-forms-container.js?v=8.8.7.0"></script>
-<link href="vendor/fonts/fonts.css?v=8.8.7.0" rel="stylesheet"/>
-<script src="vendor/quagga.min.js?v=8.8.7.0"></script>
+<script src="vendor/tailwind-forms-container.js?v=8.8.7.1"></script>
+<link href="vendor/fonts/fonts.css?v=8.8.7.1" rel="stylesheet"/>
+<script src="vendor/quagga.min.js?v=8.8.7.1"></script>
 <!-- Firebase SDKs -->
-<script src="vendor/firebase-app-compat.js?v=8.8.7.0"></script>
-<script src="vendor/firebase-auth-compat.js?v=8.8.7.0"></script>
-<script src="vendor/firebase-firestore-compat.js?v=8.8.7.0"></script>
+<script src="vendor/firebase-app-compat.js?v=8.8.7.1"></script>
+<script src="vendor/firebase-auth-compat.js?v=8.8.7.1"></script>
+<script src="vendor/firebase-firestore-compat.js?v=8.8.7.1"></script>
 <script id="tailwind-config">
       tailwind.config = {
         theme: {
@@ -138,7 +138,7 @@ navigator.serviceWorker.register('sw.js?v=8.8.7.0').then(function(reg) {
         },
       }
     </script>
-<link rel="stylesheet" href="styles.css?v=8.8.7.0"/>
+<link rel="stylesheet" href="styles.css?v=8.8.7.1"/>
 </head>
 <body class="selection:bg-primary-container selection:text-primary text-sm">
 <!-- Toast Notification Container -->
@@ -151,7 +151,7 @@ navigator.serviceWorker.register('sw.js?v=8.8.7.0').then(function(reg) {
             <div class="vc551-copy">
                 <div class="vc551-title-row">
                     <h1>VILLACART POS</h1>
-<span class="vc551-version">v8.8.7.0</span>
+<span class="vc551-version">v8.8.7.1</span>
                 </div>
                 <p id="vc551-date">Today</p>
             </div>
@@ -1247,46 +1247,46 @@ navigator.serviceWorker.register('sw.js?v=8.8.7.0').then(function(reg) {
 </div>
 </div>
 <!-- Application logic -->
-<script src="utils.js?v=8.8.7.0"></script>
-<script src="ledger.js?v=8.8.7.0"></script>
-<script src="receipts.js?v=8.8.7.0"></script>
+<script src="utils.js?v=8.8.7.1"></script>
+<script src="ledger.js?v=8.8.7.1"></script>
+<script src="receipts.js?v=8.8.7.1"></script>
 
-<script src="receipt-ui.js?v=8.8.7.0"></script>
-<script src="scanner.js?v=8.8.7.0"></script>
-<script src="camera-scanner.js?v=8.8.7.0"></script>
-
-    
-<script src="cart.js?v=8.8.7.0"></script>
-<script src="payment-ui.js?v=8.8.7.0"></script>
-<script src="favorites.js?v=8.8.7.0"></script>
-    
-<script src="notifications.js?v=8.8.7.0"></script>
-    
-<script src="stock-ui.js?v=8.8.7.0"></script>
-<script src="gcash.js?v=8.8.7.0"></script>
-
-<script src="expenses.js?v=8.8.7.0"></script>
-<script src="status-ui.js?v=8.8.7.0"></script>
-<script src="pwa-lifecycle.js?v=8.8.7.0"></script>
-<script src="insights-base.js?v=8.8.7.0"></script>
-<script src="reporting-ui.js?v=8.8.7.0"></script>
-<script src="storage-db.js?v=8.8.7.0"></script>
-<script src="sync-engine.js?v=8.8.7.0"></script>
-<script src="business-ui.js?v=8.8.7.0"></script>
-<script src="app.js?v=8.8.7.0"></script>
-<script src="item-sales.js?v=8.8.7.0"></script>
-<script src="ledger-ui.js?v=8.8.7.0"></script>
-<script src="backup-actions.js?v=8.8.7.0"></script>
-<script src="business-actions.js?v=8.8.7.0"></script>
-
+<script src="receipt-ui.js?v=8.8.7.1"></script>
+<script src="scanner.js?v=8.8.7.1"></script>
+<script src="camera-scanner.js?v=8.8.7.1"></script>
 
     
-<script src="ui-core.js?v=8.8.7.0"></script>
-<script src="product.js?v=8.8.7.0"></script>
-<script src="settings.js?v=8.8.7.0"></script>
-<script src="inventory-actions.js?v=8.8.7.0"></script>
-<script src="sales-export.js?v=8.8.7.0"></script>
-<script src="transaction-detail.js?v=8.8.7.0"></script>
+<script src="cart.js?v=8.8.7.1"></script>
+<script src="payment-ui.js?v=8.8.7.1"></script>
+<script src="favorites.js?v=8.8.7.1"></script>
+    
+<script src="notifications.js?v=8.8.7.1"></script>
+    
+<script src="stock-ui.js?v=8.8.7.1"></script>
+<script src="gcash.js?v=8.8.7.1"></script>
+
+<script src="expenses.js?v=8.8.7.1"></script>
+<script src="status-ui.js?v=8.8.7.1"></script>
+<script src="pwa-lifecycle.js?v=8.8.7.1"></script>
+<script src="insights-base.js?v=8.8.7.1"></script>
+<script src="reporting-ui.js?v=8.8.7.1"></script>
+<script src="storage-db.js?v=8.8.7.1"></script>
+<script src="sync-engine.js?v=8.8.7.1"></script>
+<script src="business-ui.js?v=8.8.7.1"></script>
+<script src="app.js?v=8.8.7.1"></script>
+<script src="item-sales.js?v=8.8.7.1"></script>
+<script src="ledger-ui.js?v=8.8.7.1"></script>
+<script src="backup-actions.js?v=8.8.7.1"></script>
+<script src="business-actions.js?v=8.8.7.1"></script>
+
+
+    
+<script src="ui-core.js?v=8.8.7.1"></script>
+<script src="product.js?v=8.8.7.1"></script>
+<script src="settings.js?v=8.8.7.1"></script>
+<script src="inventory-actions.js?v=8.8.7.1"></script>
+<script src="sales-export.js?v=8.8.7.1"></script>
+<script src="transaction-detail.js?v=8.8.7.1"></script>
 
     <button id="vc558-diag-btn" type="button" class="no-print" aria-label="Open Diagnostics">
     <span class="material-symbols-outlined">monitoring</span>
@@ -1317,7 +1317,7 @@ navigator.serviceWorker.register('sw.js?v=8.8.7.0').then(function(reg) {
 
 
 <!-- Diagnostics -->
-<script src="diagnostics.js?v=8.8.7.0"></script>
+<script src="diagnostics.js?v=8.8.7.1"></script>
 
 
 

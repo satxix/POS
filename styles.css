@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.7.0 read-only local data integrity report. */
+        /* v8.8.7.1 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -2782,7 +2782,7 @@
     --vc560-red-soft: #fee2e2;
 }
 
-/* v8.8.7.0 temporary, device-local Soft Dark theme switch. */
+/* v8.8.7.1 temporary, device-local Soft Dark theme switch. */
 .vc887-theme-toggle {
     width:30px;
     height:28px;
@@ -2908,6 +2908,81 @@
 }
 #favorites-grid .favorite-color-texture-gold .favorite-product-price,
 #favorites-grid .favorite-color-marlboro-gold .favorite-product-price { color:#654A15 !important; }
+
+/* Soft Dark contrast pass: navigation and terminal interaction surfaces. */
+@media screen {
+    /* A filled active destination is easier to recognize than blue text alone. */
+    html.vc-soft-dark nav .nav-item.nav-active,
+    html.vc-soft-dark nav .nav-item.text-primary {
+        background:linear-gradient(145deg,#3478BC 0%,#245A94 100%) !important;
+        border-color:#75AFE5 !important;
+        color:#FFFFFF !important;
+        box-shadow:0 10px 22px rgba(10,31,55,.34),inset 0 0 0 1px rgba(255,255,255,.10) !important;
+    }
+    html.vc-soft-dark nav .nav-item.nav-active span,
+    html.vc-soft-dark nav .nav-item.text-primary span { color:#FFFFFF !important; }
+    html.vc-soft-dark nav .nav-item.nav-active .material-symbols-outlined,
+    html.vc-soft-dark nav .nav-item.text-primary .material-symbols-outlined {
+        color:#FDE68A !important;
+    }
+    html.vc-soft-dark nav .nav-item.nav-active::after,
+    html.vc-soft-dark nav .nav-item.text-primary::after {
+        background:#70C7FF !important;
+        box-shadow:0 0 0 4px rgba(112,199,255,.16),0 0 12px rgba(112,199,255,.48) !important;
+    }
+
+    /* Default and pastel favorite cards stay light, so use dark money ink. */
+    html.vc-soft-dark #favorites-grid .favorite-product-button:not([class*="favorite-color-"]) .favorite-product-name {
+        color:#075E49 !important;
+    }
+    html.vc-soft-dark #favorites-grid .favorite-product-button:not([class*="favorite-color-"]) .favorite-product-price {
+        color:#08644D !important;
+        text-shadow:none !important;
+    }
+
+    /* Physical-scanner piece/pack choice. */
+    html.vc-soft-dark #scan-choice-name { color:#BCDDFD !important; }
+    html.vc-soft-dark #scan-choice-piece-btn {
+        background:#515B67 !important;
+        border-color:#718091 !important;
+    }
+    html.vc-soft-dark #scan-choice-piece-price { color:#C8E4FF !important; }
+    html.vc-soft-dark #scan-choice-pack-btn {
+        background:#43584E !important;
+        border-color:#67947D !important;
+    }
+    html.vc-soft-dark #scan-choice-pack-btn .text-secondary,
+    html.vc-soft-dark #scan-choice-pack-label,
+    html.vc-soft-dark #scan-choice-pack-price { color:#C6EBD5 !important; }
+    html.vc-soft-dark #scan-choice-modal > div > div:last-child button { color:#D5DDE5 !important; }
+
+    /* Search results use dark choice cards instead of pale cards with pale ink. */
+    html.vc-soft-dark #search-results-container { background:#414953 !important; }
+    html.vc-soft-dark #product-grid .bg-surface-container {
+        background:#515B67 !important;
+        color:#EDF2F7 !important;
+    }
+    html.vc-soft-dark #product-grid .bg-primary-container {
+        background:#315F8B !important;
+        color:#F2F7FC !important;
+    }
+    html.vc-soft-dark #product-grid .text-primary { color:#C8E4FF !important; }
+    html.vc-soft-dark #product-grid [class*="bg-secondary/5"] {
+        background:#43584E !important;
+        color:#E3F2E9 !important;
+    }
+    html.vc-soft-dark #product-grid .text-secondary { color:#C6EBD5 !important; }
+
+    /* Current-order secondary values were too dim on gray rows. */
+    html.vc-soft-dark #cart-items .cart-item-row p.opacity-50 {
+        color:#D1DAE3 !important;
+        opacity:.82 !important;
+    }
+    html.vc-soft-dark #cart-items .cart-item-row > .flex > span.font-black {
+        color:#F4F7FA !important;
+    }
+    html.vc-soft-dark #cart-subtotal { color:#BCE8CF !important; }
+}
 
 .vc560-insights > .flex:first-child {
     align-items: flex-start !important;
@@ -4499,7 +4574,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.7.0 compact terminal-only daily sales figure. */
+/* v8.8.7.1 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4520,7 +4595,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.7.0 compact local-stock indicator in terminal search results. */
+/* v8.8.7.1 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4723,7 +4798,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.7.0 eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.7.1 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4753,7 +4828,7 @@ body {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
-/* v8.8.7.0 dark-card comfort: retain the black/charcoal identity without the
+/* v8.8.7.1 dark-card comfort: retain the black/charcoal identity without the
    harsh near-black versus pure-white contrast that is tiring in a large grid. */
 #favorites-grid .favorite-color-dark {
     background-color:#28313C !important;
@@ -4782,7 +4857,7 @@ body {
     color:#F0D58A !important;
 }
 
-/* v8.8.7.0 red-card comfort: use muted reds and warm rose lettering instead of
+/* v8.8.7.1 red-card comfort: use muted reds and warm rose lettering instead of
    saturated red against near-white type. */
 #favorites-grid .favorite-color-marlboro-red {
     background-color:#91313A !important;
