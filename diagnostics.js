@@ -850,28 +850,29 @@
 
   function vc561BindVersionShortcut() {
     const candidates = Array.from(document.querySelectorAll('.vc551-version, .vc550-version, .vc-build-badge, [class*="version"], [class*="badge"]'));
-    const badge = candidates.find(el => /v5\.6\.1|v\d+\.\d+\.\d+/.test(el.textContent || ''));
-    if (!badge || badge.__vc561Bound) return;
+    const badges = candidates.filter(el => /v5\.6\.1|v\d+\.\d+\.\d+/.test(el.textContent || ''));
+    badges.forEach(badge => {
+      if (badge.__vc561Bound) return;
+      badge.__vc561Bound = true;
+      badge.style.cursor = 'pointer';
+      badge.title = 'Tap 5 times for diagnostics';
 
-    badge.__vc561Bound = true;
-    badge.style.cursor = 'pointer';
-    badge.title = 'Tap 5 times for diagnostics';
+      badge.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
 
-    badge.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
+        vc561VersionTapCount++;
+        clearTimeout(vc561VersionTapTimer);
+        vc561VersionTapTimer = setTimeout(() => vc561VersionTapCount = 0, 1800);
 
-      vc561VersionTapCount++;
-      clearTimeout(vc561VersionTapTimer);
-      vc561VersionTapTimer = setTimeout(() => vc561VersionTapCount = 0, 1800);
-
-      if (vc561VersionTapCount < 5) {
-        vc561ShowHint(`${5 - vc561VersionTapCount} more tap${5 - vc561VersionTapCount === 1 ? '' : 's'} for diagnostics`);
-      } else {
-        vc561VersionTapCount = 0;
-        vc561OpenDiagnostics();
-      }
-    }, true);
+        if (vc561VersionTapCount < 5) {
+          vc561ShowHint(`${5 - vc561VersionTapCount} more tap${5 - vc561VersionTapCount === 1 ? '' : 's'} for diagnostics`);
+        } else {
+          vc561VersionTapCount = 0;
+          vc561OpenDiagnostics();
+        }
+      }, true);
+    });
   }
 
   window.villacartOpenDiagnostics = vc561OpenDiagnostics;

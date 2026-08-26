@@ -52,7 +52,7 @@ const APP_SHELL = [
     './inventory-actions.js?v=8.8.8',
     './sales-export.js?v=8.8.8',
     './transaction-detail.js?v=8.8.8',
-    './diagnostics.js?v=8.8.8',
+    './diagnostics.js?v=8.8.8-mobile-pill',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/maskable-512.png',
