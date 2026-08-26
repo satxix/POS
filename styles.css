@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.4 read-only local data integrity report. */
+        /* v8.8.5 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -4372,14 +4372,14 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.4 compact terminal-only daily sales figure. */
+/* v8.8.5 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
     gap:.35rem;
     margin-top:.25rem;
-    color:rgba(255,255,255,.78);
-    font-size:.55rem;
+    color:rgba(255,255,255,.92);
+    font-size:.64rem;
     font-weight:850;
     line-height:1;
     text-transform:uppercase;
@@ -4388,12 +4388,12 @@ body {
 }
 .vc883-today-sales strong {
     color:#fff;
-    font-size:.72rem;
+    font-size:.86rem;
     font-weight:950;
     letter-spacing:0;
 }
 
-/* v8.8.4 compact local-stock indicator in terminal search results. */
+/* v8.8.5 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4594,6 +4594,36 @@ body {
 }
 #favorites-grid .favorite-color-texture-light .favorite-product-price {
     color: #173F79 !important;
+}
+
+/* v8.8.5 eye-comfort pass: keep color recognition while reducing competing
+   texture contrast, heavy borders, and shadows across a full favorites grid. */
+#favorites-grid .favorite-product-button {
+    box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
+}
+#favorites-grid .favorite-color-rgd-red {
+    background-image: linear-gradient(135deg, #2B090B 0%, #8B1820 52%, #320B0D 100%);
+}
+#favorites-grid .favorite-color-rgd-light {
+    background-image: linear-gradient(135deg, #F1F5F9 0%, #D3DCE5 55%, #AEBECA 100%);
+}
+#favorites-grid .favorite-color-modern-black {
+    background-image: linear-gradient(135deg, #111318 0%, #343840 52%, #14161A 100%);
+}
+#favorites-grid .favorite-color-modern-red {
+    background-image: linear-gradient(135deg, #5F1116 0%, #AD2730 55%, #71131A 100%);
+}
+#favorites-grid .favorite-color-texture-red,
+#favorites-grid .favorite-color-texture-charcoal,
+#favorites-grid .favorite-color-texture-silver,
+#favorites-grid .favorite-color-texture-blue,
+#favorites-grid .favorite-color-texture-green,
+#favorites-grid .favorite-color-texture-gold {
+    background-image:
+        linear-gradient(135deg, rgba(255,255,255,.08), rgba(0,0,0,.07)),
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,.17) .7px, transparent 1px);
+    background-size: 100% 100%, 6px 6px;
+    box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
 /* v8.4.7: tablet-landscape senior compact favorites.
