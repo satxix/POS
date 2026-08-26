@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.7.4 read-only local data integrity report. */
+        /* v8.8.7.5 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -2782,7 +2782,7 @@
     --vc560-red-soft: #fee2e2;
 }
 
-/* v8.8.7.4 temporary, device-local Soft Dark theme switch. */
+/* v8.8.7.5 temporary, device-local Soft Dark theme switch. */
 .vc887-theme-toggle {
     width:30px;
     height:28px;
@@ -4727,7 +4727,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.7.4 compact terminal-only daily sales figure. */
+/* v8.8.7.5 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4748,7 +4748,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.7.4 compact local-stock indicator in terminal search results. */
+/* v8.8.7.5 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4951,7 +4951,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.7.4 eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.7.5 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4981,7 +4981,7 @@ body {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
-/* v8.8.7.4 dark-card comfort: retain the black/charcoal identity without the
+/* v8.8.7.5 dark-card comfort: retain the black/charcoal identity without the
    harsh near-black versus pure-white contrast that is tiring in a large grid. */
 #favorites-grid .favorite-color-dark {
     background-color:#28313C !important;
@@ -5010,7 +5010,7 @@ body {
     color:#F0D58A !important;
 }
 
-/* v8.8.7.4 red-card comfort: use muted reds and warm rose lettering instead of
+/* v8.8.7.5 red-card comfort: use muted reds and warm rose lettering instead of
    saturated red against near-white type. */
 #favorites-grid .favorite-color-marlboro-red {
     background-color:#91313A !important;
@@ -5255,4 +5255,77 @@ body {
     html.vc-soft-dark #notif-list > div:not(.bg-yellow-50) { background:#414953 !important; }
     html.vc-soft-dark #notif-list .text-orange-600 { color:#F4BF83 !important; }
     html.vc-soft-dark #notif-list .text-on-surface { color:#EDF2F6 !important; }
+}
+
+/* Soft Dark contrast pass 5: transaction metadata and closing summaries. */
+@media screen {
+    /* Transaction eye/details modal Date, Type, and Customer summary. */
+    html.vc-soft-dark #txdetail > div:first-child {
+        background:#40536A !important;
+        border-color:#6684A4 !important;
+        color:#EDF2F6 !important;
+    }
+    html.vc-soft-dark #txdetail > div:first-child span:first-child {
+        color:#CAD5DF !important;
+        opacity:1 !important;
+    }
+    html.vc-soft-dark #txdetail > div:first-child span:last-child {
+        color:#F2F6F9 !important;
+    }
+
+    /* Store Closing Summary and calendar-day closing details. */
+    html.vc-soft-dark #closing-summary-modal > div,
+    html.vc-soft-dark #business-calendar-detail-modal > div {
+        background:#414953 !important;
+        border:1px solid #64717D !important;
+        color:#EDF2F6 !important;
+    }
+    html.vc-soft-dark .closing-hero {
+        background:linear-gradient(135deg,#3478BC 0%,#245A94 100%) !important;
+        border:1px solid #75AFE5 !important;
+    }
+    html.vc-soft-dark .closing-label,
+    html.vc-soft-dark .closing-sub { color:#E0ECF7 !important; }
+    html.vc-soft-dark .closing-mini {
+        background:#515B67 !important;
+        border-color:#71808E !important;
+    }
+    html.vc-soft-dark .closing-mini span { color:#D0D9E2 !important; }
+    html.vc-soft-dark .closing-mini strong { color:#BCE8CF !important; }
+    html.vc-soft-dark .closing-section {
+        background:#46515C !important;
+        border-color:#687581 !important;
+    }
+    html.vc-soft-dark .closing-row {
+        color:#D8E0E8 !important;
+        border-color:#66727E !important;
+    }
+    html.vc-soft-dark .closing-row strong { color:#BCE8CF !important; }
+    html.vc-soft-dark .closing-count {
+        background:#40536A !important;
+        border:1px solid #6684A4 !important;
+    }
+    html.vc-soft-dark .closing-count strong { color:#C8E4FF !important; }
+    html.vc-soft-dark .closing-count span { color:#D0D9E2 !important; }
+    html.vc-soft-dark #closing-summary-modal [class*="text-primary/60"] {
+        color:#BCDDFD !important;
+    }
+    html.vc-soft-dark #closing-summary-modal [class*="bg-surface-container"] {
+        background:#515B67 !important;
+        border-color:#71808E !important;
+    }
+    html.vc-soft-dark #closing-summary-modal > div > div:last-child {
+        background:#414953 !important;
+        border-color:#64717D !important;
+    }
+    html.vc-soft-dark #closing-summary-modal > div > div:last-child button[class*="bg-error/10"] {
+        background:#5B4247 !important;
+        border-color:#8A6267 !important;
+        color:#F5B4B0 !important;
+    }
+    html.vc-soft-dark #closing-summary-modal > div > div:last-child button[class*="bg-surface-container"] {
+        background:#515B67 !important;
+        border:1px solid #71808E !important;
+        color:#D5E9FF !important;
+    }
 }
