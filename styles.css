@@ -2710,7 +2710,7 @@
             .vc558-actions { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
         }
 
-        /* v8.8.7.5 read-only local data integrity report. */
+        /* v8.8.7.6 read-only local data integrity report. */
         .vc881-integrity-report {
             margin-top: 14px;
             border: 1px solid #dbe4ef;
@@ -2782,7 +2782,7 @@
     --vc560-red-soft: #fee2e2;
 }
 
-/* v8.8.7.5 temporary, device-local Soft Dark theme switch. */
+/* v8.8.7.6 temporary, device-local Soft Dark theme switch. */
 .vc887-theme-toggle {
     width:30px;
     height:28px;
@@ -4727,7 +4727,7 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* v8.8.7.5 compact terminal-only daily sales figure. */
+/* v8.8.7.6 compact terminal-only daily sales figure. */
 .vc883-today-sales {
     display:flex;
     align-items:baseline;
@@ -4748,7 +4748,7 @@ body {
     letter-spacing:0;
 }
 
-/* v8.8.7.5 compact local-stock indicator in terminal search results. */
+/* v8.8.7.6 compact local-stock indicator in terminal search results. */
 .vc884-stock-pill {
     flex:0 0 auto;
     border-radius:999px;
@@ -4951,7 +4951,7 @@ body {
     color: #173F79 !important;
 }
 
-/* v8.8.7.5 eye-comfort pass: keep color recognition while reducing competing
+/* v8.8.7.6 eye-comfort pass: keep color recognition while reducing competing
    texture contrast, heavy borders, and shadows across a full favorites grid. */
 #favorites-grid .favorite-product-button {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .10);
@@ -4981,7 +4981,7 @@ body {
     box-shadow: 0 2px 7px rgba(15, 23, 42, .11);
 }
 
-/* v8.8.7.5 dark-card comfort: retain the black/charcoal identity without the
+/* v8.8.7.6 dark-card comfort: retain the black/charcoal identity without the
    harsh near-black versus pure-white contrast that is tiring in a large grid. */
 #favorites-grid .favorite-color-dark {
     background-color:#28313C !important;
@@ -5010,7 +5010,7 @@ body {
     color:#F0D58A !important;
 }
 
-/* v8.8.7.5 red-card comfort: use muted reds and warm rose lettering instead of
+/* v8.8.7.6 red-card comfort: use muted reds and warm rose lettering instead of
    saturated red against near-white type. */
 #favorites-grid .favorite-color-marlboro-red {
     background-color:#91313A !important;
@@ -5327,5 +5327,53 @@ body {
         background:#515B67 !important;
         border:1px solid #71808E !important;
         color:#D5E9FF !important;
+    }
+}
+
+/* Soft Dark contrast pass 6: final small labels, badges, and selections. */
+@media screen {
+    /* GCash denomination shortcuts and record-type badge. */
+    html.vc-soft-dark #screen-gcash button[onclick^="addGcashAmount"] {
+        background:#43584E !important;
+        border-color:#67947D !important;
+        color:#C6EBD5 !important;
+        box-shadow:inset 0 0 0 1px rgba(198,235,213,.05) !important;
+    }
+    html.vc-soft-dark #screen-gcash button[onclick^="addGcashAmount"]:active {
+        background:#4B6558 !important;
+    }
+    html.vc-soft-dark #gcash-record-list span[class~="bg-primary/10"] {
+        background:#405F7D !important;
+        border:1px solid #6684A4 !important;
+        color:#D5E9FF !important;
+    }
+
+    /* Transaction discount: softer rose, still clearly a deduction. */
+    html.vc-soft-dark #txdetail .text-error {
+        color:#E8AAA8 !important;
+    }
+
+    /* Terminal favorite-section labels. */
+    html.vc-soft-dark #terminal-favorites-section > div:first-child p {
+        color:#C8E4FF !important;
+    }
+    html.vc-soft-dark #fav-mode-btn {
+        color:#BCDDFD !important;
+    }
+    html.vc-soft-dark #fav-mode-btn:hover,
+    html.vc-soft-dark #fav-mode-btn.text-primary {
+        color:#FFFFFF !important;
+    }
+
+    /* Item Sales selected-product confirmation card. */
+    html.vc-soft-dark #item-sales-selected {
+        background:#40536A !important;
+        border-color:#6684A4 !important;
+    }
+    html.vc-soft-dark #item-sales-selected > p:first-child {
+        color:#CAD5DF !important;
+    }
+    html.vc-soft-dark #item-sales-selected-name {
+        color:#C8E4FF !important;
     }
 }
