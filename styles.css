@@ -4005,6 +4005,34 @@
     flex-wrap: wrap;
     justify-content: flex-end;
 }
+.vc5632-credit-head-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .45rem;
+}
+.vc5632-credit-collapse-toggle {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border: 1px solid rgba(37,99,235,.16);
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--vc5629-blue-soft);
+    color: var(--vc5629-blue);
+}
+.vc5632-credit-collapse-toggle .material-symbols-outlined {
+    transition: transform .18s ease;
+}
+.vc5632-credit-customer-group.collapsed .vc5632-credit-collapse-toggle .material-symbols-outlined {
+    transform: rotate(-90deg);
+}
+.vc5632-credit-collapsible-body {
+    display: grid;
+    gap: .9rem;
+}
 .vc5632-pay-full-inline {
     display: none;
     min-height: 40px;
@@ -5277,6 +5305,11 @@ body {
         background:#405F7D !important;
         color:#D5E9FF !important;
         border:1px solid #6684A4 !important;
+    }
+    html.vc-soft-dark .vc5632-credit-collapse-toggle {
+        background:#405F7D !important;
+        color:#C8E4FF !important;
+        border-color:#71808E !important;
     }
 
     /* Bell modal: all low-stock items remain listed alphabetically. */

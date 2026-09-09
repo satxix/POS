@@ -237,6 +237,10 @@
         if (typeof renderLedger === 'function') renderLedger();
     };
 
+    window.vc5632ToggleCreditCustomer = function(key, currentCollapsed) {
+        window.vc5632ToggleLedgerDate(key, currentCollapsed);
+    };
+
     let vc5632CreditLedgerView = 'open';
     window.vc5632SetCreditLedgerView = function(view) {
         vc5632CreditLedgerView = view === 'settled' ? 'settled' : 'open';
@@ -444,15 +448,20 @@
                         customers[key].items.push(t);
                         customers[key].total += Number(t.total || 0);
                     });
-                    body = Object.values(customers)
-                        .sort((a, b) => b.total - a.total || a.displayName.localeCompare(b.displayName))
-                        .map(group => {
-                            return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
+                    body = Object.entries(customers)
+                        .sort((a, b) => b[1].total - a[1].total || a[1].displayName.localeCompare(b[1].displayName))
+                        .map(([customerKey, group]) => {
+                            const customerCollapseKey = 'credit-customer:settled:' + dateKey + ':' + customerKey;
+                            const customerCollapsed = !hasSearch && !!collapsed[customerCollapseKey];
+                            const customerBody = customerCollapsed ? '' : '<div class="vc5632-credit-collapsible-body"><div class="vc5629-credit-list">' + group.items.map(t => vc5632TxCard(t, 'credit-settled')).join('') + '</div></div>';
+                            return '<section class="vc5629-credit-group vc5632-credit-customer-group ' + (customerCollapsed ? 'collapsed' : '') + '">' +
                                 '<div class="vc5629-credit-head">' +
                                     '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + ' settled ticket(s)</p></div>' +
-                                    '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong></div>' +
+                                    '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong><div class="vc5632-credit-head-buttons">' +
+                                        '<button type="button" class="vc5632-credit-collapse-toggle" onclick="vc5632ToggleCreditCustomer(\'' + vc5632Js(customerCollapseKey) + '\',' + (customerCollapsed ? 'true' : 'false') + ')" aria-expanded="' + (!customerCollapsed) + '" aria-label="' + (customerCollapsed ? 'Expand' : 'Collapse') + ' credits for ' + vc5632Safe(group.displayName) + '"><span class="material-symbols-outlined">expand_more</span></button>' +
+                                    '</div></div>' +
                                 '</div>' +
-                                '<div class="vc5629-credit-list">' + group.items.map(t => vc5632TxCard(t, 'credit-settled')).join('') + '</div>' +
+                                customerBody +
                             '</section>';
                         }).join('');
                 }
@@ -487,19 +496,25 @@
             groups[key].items.push(t);
             groups[key].total += Number(t.total || 0);
         });
-        return Object.values(groups)
-            .sort((a, b) => b.total - a.total || a.displayName.localeCompare(b.displayName))
-            .map(group => {
-                return '<section class="vc5629-credit-group vc5632-credit-customer-group">' +
+        const collapsed = vc5632LoadCollapsed();
+        const hasSearch = !!String(document.getElementById('vc5629-ledger-search')?.value || '').trim();
+        return Object.entries(groups)
+            .sort((a, b) => b[1].total - a[1].total || a[1].displayName.localeCompare(b[1].displayName))
+            .map(([customerKey, group]) => {
+                const collapseKey = 'credit-customer:open:' + customerKey;
+                const isCollapsed = !hasSearch && !!collapsed[collapseKey];
+                const body = isCollapsed ? '' : '<div class="vc5632-credit-collapsible-body">' +
+                    '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>' +
+                    '<div class="vc5629-credit-list">' + group.items.map(t => vc5632TxCard(t, 'credit')).join('') + '</div></div>';
+                return '<section class="vc5629-credit-group vc5632-credit-customer-group ' + (isCollapsed ? 'collapsed' : '') + '">' +
                     '<div class="vc5629-credit-head">' +
-                        '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + (isSettledView ? ' settled ticket(s)' : ' pending ticket(s)') + '</p></div>' +
-                        '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong>' +
-                        (isSettledView ? '' : '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button>') + '</div>' +
+                        '<div><h3>' + vc5632Safe(group.displayName) + '</h3><p>' + group.items.length + ' pending ticket(s)</p></div>' +
+                        '<div class="vc5632-credit-head-actions"><strong>' + vc5632Peso(group.total) + '</strong><div class="vc5632-credit-head-buttons">' +
+                            '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-inline">Pay Full</button>' +
+                            '<button type="button" class="vc5632-credit-collapse-toggle" onclick="vc5632ToggleCreditCustomer(\'' + vc5632Js(collapseKey) + '\',' + (isCollapsed ? 'true' : 'false') + ')" aria-expanded="' + (!isCollapsed) + '" aria-label="' + (isCollapsed ? 'Expand' : 'Collapse') + ' credits for ' + vc5632Safe(group.displayName) + '"><span class="material-symbols-outlined">expand_more</span></button>' +
+                        '</div></div>' +
                     '</div>' +
-                    (isSettledView ? '' : '<button type="button" onclick="payFullBalance(\'' + vc5632Js(group.rawName) + '\')" class="vc5629-pay-full vc5632-pay-full-block">Pay Full Balance</button>') +
-                    '<div class="vc5629-credit-list">' +
-                        group.items.map(t => vc5632TxCard(t, isSettledView ? 'credit-settled' : 'credit')).join('') +
-                    '</div>' +
+                    body +
                 '</section>';
             }).join('');
     }

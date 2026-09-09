@@ -4,7 +4,7 @@ const OFFLINE_ENTRY = './index.html?v=' + APP_VERSION;
 const APP_SHELL = [
   OFFLINE_ENTRY,
   './manifest.webmanifest?v=8.8.8',
-  './styles.css?v=8.8.8',
+  './styles.css?v=8.8.8-credit-collapse',
   './vendor/tailwind-forms-container.js?v=8.8.8',
   './vendor/fonts/fonts.css?v=8.8.8',
   './vendor/fonts/inter-latin.woff2',
@@ -40,7 +40,7 @@ const APP_SHELL = [
     './sync-engine.js?v=8.8.8',
     './app.js?v=8.8.8',
     './item-sales.js?v=8.8.8',
-    './ledger-ui.js?v=8.8.8',
+    './ledger-ui.js?v=8.8.8-credit-collapse',
     './backup-actions.js?v=8.8.8',
     './business-actions.js?v=8.8.8',
   
