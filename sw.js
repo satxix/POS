@@ -41,7 +41,7 @@ const APP_SHELL = [
     './app.js?v=8.8.8',
     './item-sales.js?v=8.8.8',
     './ledger-ui.js?v=8.8.8-credit-collapse',
-    './backup-actions.js?v=8.8.8',
+    './backup-actions.js?v=8.8.8-delete-resume',
     './business-actions.js?v=8.8.8',
   
     './business-ui.js?v=8.8.8',

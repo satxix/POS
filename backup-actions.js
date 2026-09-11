@@ -100,12 +100,50 @@
         }, 500);
     }
 
-    const DELETE_BATCH_SIZE = 100;
+    // Keep archive cleanup gentle enough for mobile connections. Large SDK
+    // batches can remain queued locally even while REST reads are online.
+    const DELETE_BATCH_SIZE = 25;
     const DELETE_MAX_ATTEMPTS = 3;
-    const DELETE_TIMEOUT_MS = 30000;
+    const DELETE_TIMEOUT_MS = 120000;
+    const DELETE_READY_TIMEOUT_MS = 20000;
+    let deleteReadyPromise = null;
 
     function wait(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function rejectAfter(ms, message) {
+        return new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms));
+    }
+
+    async function ensureFirestoreDeleteReady() {
+        if (deleteReadyPromise) return deleteReadyPromise;
+        deleteReadyPromise = (async () => {
+            if (window.villacartAuthReady && typeof window.villacartAuthReady.then === 'function') {
+                await Promise.race([
+                    window.villacartAuthReady,
+                    rejectAfter(DELETE_READY_TIMEOUT_MS, 'Firebase sign-in timed out before cloud deletion.')
+                ]);
+            }
+            const currentUser = typeof firebase !== 'undefined' && firebase.auth
+                ? firebase.auth().currentUser
+                : null;
+            if (!currentUser) throw new Error('Firebase sign-in is not ready. Reopen the app online, then resume the backup.');
+            if (typeof db === 'undefined' || !db || typeof db.batch !== 'function') {
+                throw new Error('Authenticated Firestore batch helper unavailable.');
+            }
+            if (typeof db.enableNetwork === 'function') {
+                await Promise.race([
+                    db.enableNetwork(),
+                    rejectAfter(DELETE_READY_TIMEOUT_MS, 'Firestore network did not become ready for cloud deletion.')
+                ]);
+            }
+            return true;
+        })().catch(error => {
+            deleteReadyPromise = null;
+            throw error;
+        });
+        return deleteReadyPromise;
     }
 
     function setBackupButtonStatus(button, text, icon = 'refresh', spinning = false) {
@@ -214,9 +252,7 @@
     }
 
     async function deleteBatchRequest(table, docs) {
-        if (typeof db === 'undefined' || !db || typeof db.batch !== 'function') {
-            throw new Error('Authenticated Firestore batch helper unavailable.');
-        }
+        await ensureFirestoreDeleteReady();
         const batch = db.batch();
         (docs || []).forEach(doc => {
             const id = String(doc && doc.id || '');
@@ -229,7 +265,11 @@
             await Promise.race([
                 batch.commit(),
                 new Promise((_, reject) => {
-                    timer = setTimeout(() => reject(new Error('Firestore delete batch timed out.')), DELETE_TIMEOUT_MS);
+                    timer = setTimeout(() => {
+                        const error = new Error('Firestore delete batch timed out.');
+                        error.code = 'archive-delete-timeout';
+                        reject(error);
+                    }, DELETE_TIMEOUT_MS);
                 })
             ]);
         } finally {
@@ -237,19 +277,38 @@
         }
     }
 
+    async function remainingAfterTimedOutBatch(table, docs) {
+        if (typeof readCollectionWithFirestoreRest !== 'function') return docs;
+        const liveRows = await readCollectionWithFirestoreRest(table);
+        const liveIds = new Set((liveRows || []).filter(Boolean).map(row => String(row.id || '')));
+        return (docs || []).filter(doc => liveIds.has(String(doc.id || '')));
+    }
+
     async function deleteCloudDocs(table, docs, onProgress) {
         const rows = (Array.isArray(docs) ? docs : []).filter(doc => doc && doc.id);
         let completed = 0;
         for (let offset = 0; offset < rows.length; offset += DELETE_BATCH_SIZE) {
             const chunk = rows.slice(offset, offset + DELETE_BATCH_SIZE);
+            let pendingChunk = chunk;
             let lastError = null;
             for (let attempt = 1; attempt <= DELETE_MAX_ATTEMPTS; attempt++) {
                 try {
-                    await deleteBatchRequest(table, chunk);
+                    await deleteBatchRequest(table, pendingChunk);
                     lastError = null;
                     break;
                 } catch (error) {
                     lastError = error;
+                    if (error && error.code === 'archive-delete-timeout') {
+                        try {
+                            pendingChunk = await remainingAfterTimedOutBatch(table, pendingChunk);
+                            if (!pendingChunk.length) {
+                                lastError = null;
+                                break;
+                            }
+                        } catch (verifyError) {
+                            console.warn('Could not verify timed-out archive batch', verifyError);
+                        }
+                    }
                     if (attempt < DELETE_MAX_ATTEMPTS) {
                         if (typeof onProgress === 'function') onProgress({ table, completed, retry: attempt, error });
                         await wait(750 * attempt);
