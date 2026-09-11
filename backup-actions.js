@@ -100,50 +100,39 @@
         }, 500);
     }
 
-    // Keep archive cleanup gentle enough for mobile connections. Large SDK
-    // batches can remain queued locally even while REST reads are online.
+    // v8.8.9: Use the same authenticated REST path as normal sync. The
+    // Firestore SDK can stay offline/pending even when REST reads are healthy.
     const DELETE_BATCH_SIZE = 25;
+    const DELETE_CONCURRENCY = 5;
     const DELETE_MAX_ATTEMPTS = 3;
-    const DELETE_TIMEOUT_MS = 120000;
-    const DELETE_READY_TIMEOUT_MS = 20000;
-    let deleteReadyPromise = null;
+    const DELETE_TIMEOUT_MS = 30000;
+    let deleteAuthPromise = null;
 
     function wait(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    function rejectAfter(ms, message) {
-        return new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms));
-    }
-
-    async function ensureFirestoreDeleteReady() {
-        if (deleteReadyPromise) return deleteReadyPromise;
-        deleteReadyPromise = (async () => {
+    async function ensureFirestoreDeleteAuth() {
+        if (deleteAuthPromise) return deleteAuthPromise;
+        deleteAuthPromise = (async () => {
             if (window.villacartAuthReady && typeof window.villacartAuthReady.then === 'function') {
-                await Promise.race([
-                    window.villacartAuthReady,
-                    rejectAfter(DELETE_READY_TIMEOUT_MS, 'Firebase sign-in timed out before cloud deletion.')
-                ]);
+                await window.villacartAuthReady;
             }
             const currentUser = typeof firebase !== 'undefined' && firebase.auth
                 ? firebase.auth().currentUser
                 : null;
             if (!currentUser) throw new Error('Firebase sign-in is not ready. Reopen the app online, then resume the backup.');
-            if (typeof db === 'undefined' || !db || typeof db.batch !== 'function') {
-                throw new Error('Authenticated Firestore batch helper unavailable.');
+            if (typeof firestoreRestAuthHeaders !== 'function' || typeof firebaseConfig === 'undefined') {
+                throw new Error('Authenticated Firestore REST helper unavailable.');
             }
-            if (typeof db.enableNetwork === 'function') {
-                await Promise.race([
-                    db.enableNetwork(),
-                    rejectAfter(DELETE_READY_TIMEOUT_MS, 'Firestore network did not become ready for cloud deletion.')
-                ]);
-            }
-            return true;
+            const headers = await firestoreRestAuthHeaders();
+            if (!headers.Authorization) throw new Error('Firebase authentication token is unavailable. Reopen the app online, then resume the backup.');
+            return headers;
         })().catch(error => {
-            deleteReadyPromise = null;
+            deleteAuthPromise = null;
             throw error;
         });
-        return deleteReadyPromise;
+        return deleteAuthPromise;
     }
 
     function setBackupButtonStatus(button, text, icon = 'refresh', spinning = false) {
@@ -251,30 +240,53 @@
         return { transactions, businessDays, gcashRecords };
     }
 
-    async function deleteBatchRequest(table, docs) {
-        await ensureFirestoreDeleteReady();
-        const batch = db.batch();
-        (docs || []).forEach(doc => {
-            const id = String(doc && doc.id || '');
-            if (!id || id.includes('/')) throw new Error(`Invalid ${table} document ID.`);
-            batch.delete(db.collection(table).doc(id));
-        });
-        if (!(docs || []).length) return;
-        let timer = null;
+    async function deleteRestDocument(table, doc) {
+        const id = String(doc && doc.id || '');
+        if (!id || id.includes('/')) throw new Error(`Invalid ${table} document ID.`);
+        const headers = await ensureFirestoreDeleteAuth();
+        const projectId = firebaseConfig.projectId;
+        const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/${encodeURIComponent(table)}/${encodeURIComponent(id)}?key=${encodeURIComponent(firebaseConfig.apiKey)}`;
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timer = controller ? setTimeout(() => controller.abort(), DELETE_TIMEOUT_MS) : null;
         try {
-            await Promise.race([
-                batch.commit(),
-                new Promise((_, reject) => {
-                    timer = setTimeout(() => {
-                        const error = new Error('Firestore delete batch timed out.');
-                        error.code = 'archive-delete-timeout';
-                        reject(error);
-                    }, DELETE_TIMEOUT_MS);
-                })
-            ]);
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers,
+                ...(controller ? { signal: controller.signal } : {})
+            });
+            if (response.ok || response.status === 404) return;
+            const body = await response.text().catch(() => '');
+            const error = new Error(`Firestore delete ${response.status}: ${body.slice(0, 240)}`);
+            if (response.status === 401 || response.status === 403) error.code = 'archive-delete-permission';
+            throw error;
+        } catch (error) {
+            if (error && error.name === 'AbortError') {
+                const timeoutError = new Error(`Firestore delete timed out for ${table}/${id}.`);
+                timeoutError.code = 'archive-delete-timeout';
+                throw timeoutError;
+            }
+            throw error;
         } finally {
             if (timer) clearTimeout(timer);
         }
+    }
+
+    async function deleteBatchRequest(table, docs) {
+        const rows = (docs || []).filter(doc => doc && doc.id);
+        let cursor = 0;
+        let firstError = null;
+        const worker = async () => {
+            while (cursor < rows.length) {
+                const index = cursor++;
+                try {
+                    await deleteRestDocument(table, rows[index]);
+                } catch (error) {
+                    if (!firstError) firstError = error;
+                }
+            }
+        };
+        await Promise.all(Array.from({ length: Math.min(DELETE_CONCURRENCY, rows.length) }, worker));
+        if (firstError) throw firstError;
     }
 
     async function remainingAfterTimedOutBatch(table, docs) {
@@ -298,6 +310,7 @@
                     break;
                 } catch (error) {
                     lastError = error;
+                    if (error && error.code === 'archive-delete-permission') break;
                     if (error && error.code === 'archive-delete-timeout') {
                         try {
                             pendingChunk = await remainingAfterTimedOutBatch(table, pendingChunk);
