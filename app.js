@@ -1,7 +1,7 @@
 // --- Firebase Configuration ---
     // SECURITY NOTE: Restrict API keys to your GitHub Pages domain in Firebase Console > API restrictions.
     // Normal URL uses live Firestore. Add ?env=test to use the sandbox Firebase project.
-    window.VILLACART_APP_VERSION = 'v8.8.9';
+    window.VILLACART_APP_VERSION = 'v8.8.10';
     window.__villacartScannerDebug = window.__villacartScannerDebug || {
         events: [],
         lastInputValue: '',
@@ -470,6 +470,7 @@
     function vc7248ShowStockBarcodeSearch(cleanBarcode) {
         const code = vc7227NormalizeBarcode(cleanBarcode);
         if (!code) return false;
+        if (typeof vc8810CancelStockSearchRender === 'function') vc8810CancelStockSearchRender();
         const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
         if (stockSearch) stockSearch.value = code;
         if (typeof renderInventory === 'function') renderInventory(code);

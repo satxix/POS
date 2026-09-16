@@ -8,7 +8,7 @@
     }
 
     function vc7227NormalizeBarcode(value) {
-        return String(value == null ? '' : value).trim().replace(/s+/g, '');
+        return String(value == null ? '' : value).trim().replace(/\s+/g, '');
     }
 
     function vc7228ScannerDebug(type, data) {

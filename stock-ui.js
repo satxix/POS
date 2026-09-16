@@ -13,7 +13,24 @@
         clearBtn.classList.toggle('hidden', !hasValue);
     }
 
+    // A keyboard-wedge scanner sends one input event per character. Rebuilding
+    // hundreds of Stock cards for every character can delay/drop later keys.
+    let vc8810StockSearchTimer = null;
+    function vc8810CancelStockSearchRender() {
+        clearTimeout(vc8810StockSearchTimer);
+        vc8810StockSearchTimer = null;
+    }
+    function vc8810ScheduleStockSearchRender() {
+        vc8810CancelStockSearchRender();
+        vc8046UpdateStockSearchClear();
+        vc8810StockSearchTimer = setTimeout(() => {
+            vc8810StockSearchTimer = null;
+            renderInventory(getInventorySearchValue());
+        }, 180);
+    }
+
     function clearStockSearch() {
+        vc8810CancelStockSearchRender();
         const stockSearch = document.getElementById('stock-search') || document.querySelector('#screen-inventory input[type="text"]');
         if (stockSearch) {
             stockSearch.value = '';
